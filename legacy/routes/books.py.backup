@@ -1,0 +1,413 @@
+"""
+Books routes for KidsKlassiks FastAPI application
+Handles book import, library management, and book operations
+"""
+
+from fastapi import APIRouter, Request, Form, UploadFile, File, HTTPException, BackgroundTasks
+from fastapi.responses import HTMLResponse
+from fastapi.templating import Jinja2Templates
+import aiofiles
+import os
+from typing import Optional
+import asyncio
+
+from database import (
+    import_book_to_db, get_all_books, delete_book_from_db, 
+    get_book_details, get_adaptations_for_book, update_book_character_reference
+)
+from services.text_processing import TextProcessor
+from services.openai_service import OpenAIService
+from models import BookImportRequest
+
+router = APIRouter()
+templates = Jinja2Templates(directory="templates")
+text_processor = TextProcessor()
+
+# ==================== PAGE ROUTES ====================
+
+@router.get("/import")
+async def import_page(request: Request):
+    """Display book import page"""
+    return templates.TemplateResponse("pages/import.html", {"request": request})
+
+@router.get("/library")
+async def library_page(request: Request):
+    """Display library management page"""
+    books = await get_all_books()
+    return templates.TemplateResponse("pages/library.html", {
+        "request": request,
+        "books": books
+    })
+
+# ==================== BOOK IMPORT ====================
+
+@router.post("/import")
+async def import_book(
+    request: Request,
+    background_tasks: BackgroundTasks,
+    title: str = Form(...),
+    author: str = Form(""),
+    file: UploadFile = File(None),
+    url: str = Form(None)
+):
+    """Import a book from file upload or URL"""
+    try:
+        content = None
+        file_path = None
+        source_type = None
+        
+        # Handle file upload
+        if file and file.filename:
+            # Validate file type
+            if not file.filename.endswith(('.txt', '.md')):
+                return HTMLResponse(f"""
+                    <div class="alert error" id="import-result">
+                        ❌ Invalid file type. Please upload .txt or .md files only.
+                    </div>
+                """)
+            
+            # Create uploads directory
+            os.makedirs("uploads", exist_ok=True)
+            
+            # Generate safe filename
+            safe_filename = f"{len(os.listdir('uploads')) + 1}_{file.filename}"
+            file_path = f"uploads/{safe_filename}"
+            
+            # Save file
+            async with aiofiles.open(file_path, 'wb') as f:
+                content_bytes = await file.read()
+                await f.write(content_bytes)
+            
+            # Read content for validation
+            content = content_bytes.decode('utf-8')
+            source_type = "upload"
+            
+        elif url:
+            # Fetch from URL
+            content, error = await text_processor.fetch_text_from_url(url)
+            if error:
+                return HTMLResponse(f"""
+                    <div class="alert error" id="import-result">
+                        ❌ Failed to fetch from URL: {error}
+                    </div>
+                """)
+            
+            # Save content to file
+            os.makedirs("uploads", exist_ok=True)
+            safe_title = "".join(c for c in title if c.isalnum() or c in (' ', '-', '_')).rstrip()
+            file_path = f"uploads/{safe_title}_from_url.txt"
+            
+            async with aiofiles.open(file_path, 'w', encoding='utf-8') as f:
+                await f.write(content)
+            
+            source_type = "url"
+            
+        else:
+            return HTMLResponse(f"""
+                <div class="alert error" id="import-result">
+                    ❌ Please provide either a file or URL.
+                </div>
+            """)
+        
+        # Validate content
+        is_valid, validation_error = text_processor.validate_text_content(content)
+        if not is_valid:
+            # Clean up file
+            if os.path.exists(file_path):
+                os.remove(file_path)
+            
+            return HTMLResponse(f"""
+                <div class="alert error" id="import-result">
+                    ❌ Content validation failed: {validation_error}
+                </div>
+            """)
+        
+        # Import to database
+        book_id = await import_book_to_db(title, author, source_type, file_path, url)
+        
+        # Start background character analysis if enabled
+        background_tasks.add_task(analyze_characters_background, book_id, content, title)
+        
+        # Get processing time estimate
+        processing_estimate = text_processor.estimate_processing_time(content, "6-8")  # Default age group
+        
+        return HTMLResponse(f"""
+            <div class="alert success" id="import-result">
+                <h3>✅ Book imported successfully!</h3>
+                <p><strong>Book ID:</strong> {book_id}</p>
+                <p><strong>Word Count:</strong> {len(content.split())} words</p>
+                <p><strong>Estimated Processing Time:</strong> {processing_estimate['total'] // 60} minutes</p>
+                
+                <div class="action-buttons" style="margin-top: 15px;">
+                    <button class="btn primary" 
+                            hx-get="/adaptations/setup/{book_id}" 
+                            hx-target="#main-content"
+                            hx-push-url="true">
+                        🎨 Start Adaptation
+                    </button>
+                    
+                    <button class="btn secondary" 
+                            hx-get="/books/library" 
+                            hx-target="#main-content"
+                            hx-push-url="true">
+                        📚 View Library
+                    </button>
+                </div>
+                
+                <div class="info-box" style="margin-top: 15px;">
+                    <small>💡 Character analysis is running in the background and will be available when you create an adaptation.</small>
+                </div>
+            </div>
+        """)
+        
+    except Exception as e:
+        return HTMLResponse(f"""
+            <div class="alert error" id="import-result">
+                ❌ Import failed: {str(e)}
+            </div>
+        """)
+
+async def analyze_characters_background(book_id: int, content: str, title: str):
+    """Background task to analyze characters"""
+    try:
+        openai_service = OpenAIService()
+        character_reference, error = await openai_service.analyze_story_characters(content, title)
+        
+        if character_reference and not error:
+            await update_book_character_reference(book_id, character_reference)
+            print(f"✅ Character analysis completed for book {book_id}")
+        else:
+            print(f"⚠️ Character analysis failed for book {book_id}: {error}")
+            
+    except Exception as e:
+        print(f"❌ Background character analysis error for book {book_id}: {e}")
+
+# ==================== BOOK MANAGEMENT ====================
+
+@router.get("/details/{book_id}")
+async def book_details(request: Request, book_id: int):
+    """Get detailed book information"""
+    book = await get_book_details(book_id)
+    if not book:
+        raise HTTPException(status_code=404, detail="Book not found")
+    
+    # Get adaptations for this book
+    adaptations = await get_adaptations_for_book(book_id)
+    
+    # Analyze text complexity
+    if book.get('content'):
+        complexity = text_processor.analyze_text_complexity(book['content'])
+        characters = text_processor.extract_character_names(book['content'])
+    else:
+        complexity = {}
+        characters = []
+    
+    return templates.TemplateResponse("components/book_details.html", {
+        "request": request,
+        "book": book,
+        "adaptations": adaptations,
+        "complexity": complexity,
+        "characters": characters
+    })
+
+@router.delete("/delete/{book_id}")
+async def delete_book(book_id: int):
+    """Delete a book and all its adaptations"""
+    try:
+        # Get book details first to clean up files
+        book = await get_book_details(book_id)
+        
+        # Delete from database (cascades to adaptations and chapters)
+        success = await delete_book_from_db(book_id)
+        
+        if success:
+            # Clean up files
+            if book and book.get('original_content_path'):
+                try:
+                    if os.path.exists(book['original_content_path']):
+                        os.remove(book['original_content_path'])
+                except Exception as e:
+                    print(f"Warning: Could not delete file {book['original_content_path']}: {e}")
+            
+            return HTMLResponse(f"""
+                <div class="alert success" hx-swap-oob="true" id="notifications">
+                    ✅ Book deleted successfully
+                </div>
+            """, status_code=200)
+        else:
+            return HTMLResponse(f"""
+                <div class="alert error">
+                    ❌ Book not found or already deleted
+                </div>
+            """, status_code=404)
+            
+    except Exception as e:
+        return HTMLResponse(f"""
+            <div class="alert error">
+                ❌ Failed to delete book: {str(e)}
+            </div>
+        """, status_code=500)
+
+@router.get("/adaptations/{book_id}")
+async def get_book_adaptations(request: Request, book_id: int):
+    """Get adaptations for a specific book"""
+    adaptations = await get_adaptations_for_book(book_id)
+    
+    return templates.TemplateResponse("components/adaptations_list.html", {
+        "request": request,
+        "adaptations": adaptations,
+        "book_id": book_id
+    })
+
+# ==================== CHARACTER ANALYSIS ====================
+
+@router.post("/analyze-characters/{book_id}")
+async def analyze_characters(request: Request, book_id: int):
+    """Analyze characters for a book"""
+    try:
+        book = await get_book_details(book_id)
+        if not book:
+            return HTMLResponse(f"""
+                <div class="alert error">
+                    ❌ Book not found
+                </div>
+            """)
+        
+        if not book.get('content'):
+            return HTMLResponse(f"""
+                <div class="alert error">
+                    ❌ Book content not available for analysis
+                </div>
+            """)
+        
+        # Check if analysis already exists
+        existing_reference = book.get('character_reference')
+        if existing_reference:
+            return templates.TemplateResponse("components/character_analysis.html", {
+                "request": request,
+                "character_reference": existing_reference,
+                "book_id": book_id,
+                "status": "existing"
+            })
+        
+        # Start analysis
+        return HTMLResponse(f"""
+            <div id="character-analysis" class="analysis-container">
+                <div class="loading-spinner">
+                    <div class="spinner"></div>
+                    <p>🤖 Analyzing characters with AI...</p>
+                    <p><small>This may take 1-2 minutes</small></p>
+                </div>
+                
+                <div hx-get="/books/character-analysis-status/{book_id}"
+                     hx-trigger="every 2s"
+                     hx-target="#character-analysis"
+                     hx-swap="outerHTML">
+                </div>
+            </div>
+        """)
+        
+    except Exception as e:
+        return HTMLResponse(f"""
+            <div class="alert error">
+                ❌ Analysis failed: {str(e)}
+            </div>
+        """)
+
+@router.get("/character-analysis-status/{book_id}")
+async def character_analysis_status(request: Request, book_id: int):
+    """Check character analysis status"""
+    try:
+        book = await get_book_details(book_id)
+        if not book:
+            return HTMLResponse(f"""
+                <div class="alert error">
+                    ❌ Book not found
+                </div>
+            """)
+        
+        character_reference = book.get('character_reference')
+        if character_reference:
+            # Analysis complete
+            return templates.TemplateResponse("components/character_analysis.html", {
+                "request": request,
+                "character_reference": character_reference,
+                "book_id": book_id,
+                "status": "complete"
+            })
+        else:
+            # Still processing
+            return HTMLResponse(f"""
+                <div id="character-analysis" class="analysis-container">
+                    <div class="loading-spinner">
+                        <div class="spinner"></div>
+                        <p>🤖 Still analyzing characters...</p>
+                        <p><small>Please wait...</small></p>
+                    </div>
+                    
+                    <div hx-get="/books/character-analysis-status/{book_id}"
+                         hx-trigger="every 2s"
+                         hx-target="#character-analysis"
+                         hx-swap="outerHTML">
+                    </div>
+                </div>
+            """)
+            
+    except Exception as e:
+        return HTMLResponse(f"""
+            <div class="alert error">
+                ❌ Status check failed: {str(e)}
+            </div>
+        """)
+
+# ==================== UTILITY ROUTES ====================
+
+@router.get("/validate-url")
+async def validate_url(url: str):
+    """Validate a URL for book import"""
+    try:
+        content, error = await text_processor.fetch_text_from_url(url)
+        
+        if error:
+            return {"valid": False, "error": error}
+        
+        # Basic content validation
+        is_valid, validation_error = text_processor.validate_text_content(content)
+        
+        if not is_valid:
+            return {"valid": False, "error": validation_error}
+        
+        # Return preview info
+        word_count = len(content.split())
+        preview = content[:500] + "..." if len(content) > 500 else content
+        
+        return {
+            "valid": True,
+            "word_count": word_count,
+            "preview": preview,
+            "estimated_chapters": max(1, word_count // 400)
+        }
+        
+    except Exception as e:
+        return {"valid": False, "error": str(e)}
+
+@router.get("/search")
+async def search_books(request: Request, q: str = ""):
+    """Search books in library"""
+    books = await get_all_books()
+    
+    if q:
+        # Simple search by title and author
+        filtered_books = [
+            book for book in books
+            if q.lower() in book['title'].lower() or 
+               q.lower() in book.get('author', '').lower()
+        ]
+    else:
+        filtered_books = books
+    
+    return templates.TemplateResponse("components/books_list.html", {
+        "request": request,
+        "books": filtered_books,
+        "search_query": q
+    })

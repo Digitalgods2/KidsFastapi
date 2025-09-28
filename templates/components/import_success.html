@@ -1,0 +1,79 @@
+<!-- Import Success Component -->
+<div class="modal-overlay" id="import-success-modal">
+    <div class="modal-content success">
+        <div class="modal-header">
+            <h3>✅ Import Successful!</h3>
+        </div>
+        
+        <div class="modal-body">
+            <div class="success-icon">🎉</div>
+            <div class="success-message">
+                <strong>"{{ title }}"</strong> has been successfully imported to your library.
+            </div>
+            
+            <div class="action-buttons">
+                <button 
+                    class="btn btn-primary"
+                    hx-get="/books/library"
+                    hx-target="body"
+                    hx-push-url="true"
+                >
+                    📚 View Library
+                </button>
+                
+                <button 
+                    class="btn btn-secondary"
+                    hx-get="/adaptations/create/{{ book_id }}"
+                    hx-target="body"
+                    hx-push-url="true"
+                >
+                    🎨 Create Adaptation
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.modal-content.success {
+    border-top: 4px solid var(--success-color);
+}
+
+.success-icon {
+    font-size: 3rem;
+    text-align: center;
+    margin-bottom: 1rem;
+}
+
+.success-message {
+    text-align: center;
+    margin-bottom: 2rem;
+    color: #333;
+    line-height: 1.5;
+}
+
+.action-buttons {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+}
+
+.action-buttons .btn {
+    flex: 1;
+    max-width: 150px;
+}
+</style>
+
+<script>
+// Auto-close modal after 5 seconds
+setTimeout(() => {
+    const modal = document.getElementById('import-success-modal');
+    if (modal) {
+        modal.style.opacity = '0';
+        setTimeout(() => {
+            // Redirect to library
+            htmx.ajax('GET', '/books/library', {target: 'body'});
+        }, 300);
+    }
+}, 5000);
+</script>

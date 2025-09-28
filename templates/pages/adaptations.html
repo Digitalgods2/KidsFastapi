@@ -1,0 +1,201 @@
+{% extends "layouts/base.html" %}
+
+{% block title %}Adaptations - KidsKlassiks{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h1 class="display-4 mb-3">
+                        <i class="bi bi-layers"></i> Adaptations
+                    </h1>
+                    <p class="text-muted lead">View and manage all your book adaptations</p>
+                </div>
+                <div>
+                    <a href="/adaptations/create" class="btn btn-primary btn-lg">
+                        <i class="bi bi-plus-circle"></i> New Adaptation
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filter Tabs -->
+    <ul class="nav nav-tabs mb-4" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#all" type="button">
+                All Adaptations
+                <span class="badge bg-secondary ms-1">{{ adaptations|length }}</span>
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" data-bs-toggle="tab" data-bs-target="#in-progress" type="button">
+                In Progress
+                <span class="badge bg-warning ms-1">
+                    {{ adaptations|selectattr('status', 'equalto', 'in_progress')|list|length }}
+                </span>
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" data-bs-toggle="tab" data-bs-target="#completed" type="button">
+                Completed
+                <span class="badge bg-success ms-1">
+                    {{ adaptations|selectattr('status', 'equalto', 'completed')|list|length }}
+                </span>
+            </button>
+        </li>
+    </ul>
+
+    <!-- Adaptations Grid -->
+    <div class="tab-content">
+        <div class="tab-pane fade show active" id="all" role="tabpanel">
+            <div class="row g-4">
+                {% if adaptations %}
+                    {% for adaptation in adaptations %}
+                    <div class="col-lg-4 col-md-6">
+                        <div class="card border-0 shadow-sm h-100">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-start mb-3">
+                                    <div>
+                                        <h5 class="card-title mb-1">{{ adaptation.book_title }}</h5>
+                                        <div class="mb-2">
+                                            <span class="badge bg-primary">Age {{ adaptation.target_age_group }}</span>
+                                            <span class="badge bg-info">{{ adaptation.transformation_style }}</span>
+                                        </div>
+                                    </div>
+                                    <span class="badge bg-{{ 'success' if adaptation.status == 'completed' else 'warning' if adaptation.status == 'in_progress' else 'secondary' }}">
+                                        {{ adaptation.status|title|replace('_', ' ') }}
+                                    </span>
+                                </div>
+                                
+                                <p class="text-muted small mb-3">
+                                    Created: {{ adaptation.created_at }}
+                                </p>
+                                
+                                <div class="d-grid gap-2">
+                                    {% if adaptation.status == 'created' %}
+                                    <a href="/adaptations/{{ adaptation.adaptation_id }}/process" class="btn btn-primary">
+                                        <i class="bi bi-play-circle"></i> Start Processing
+                                    </a>
+                                    {% else %}
+                                    <a href="/adaptations/{{ adaptation.adaptation_id }}/review" class="btn btn-primary">
+                                        <i class="bi bi-eye"></i> Review & Edit
+                                    </a>
+                                    {% endif %}
+                                    
+                                    <div class="btn-group" role="group">
+                                        {% if adaptation.status == 'completed' %}
+                                        <a href="/publish?adaptation_id={{ adaptation.adaptation_id }}" class="btn btn-outline-success">
+                                            <i class="bi bi-file-earmark-pdf"></i> Publish
+                                        </a>
+                                        {% endif %}
+                                        <button class="btn btn-outline-danger" onclick="deleteAdaptation({{ adaptation.adaptation_id }})">
+                                            <i class="bi bi-trash"></i> Delete
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="col-12">
+                        <div class="card border-0 shadow-sm">
+                            <div class="card-body text-center py-5">
+                                <i class="bi bi-layers fs-1 text-muted mb-3 d-block"></i>
+                                <h4>No Adaptations Yet</h4>
+                                <p class="text-muted mb-4">Start by creating your first adaptation from a book in your library</p>
+                                <a href="/adaptations/create" class="btn btn-primary btn-lg">
+                                    <i class="bi bi-plus-circle"></i> Create Your First Adaptation
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- In Progress Tab -->
+        <div class="tab-pane fade" id="in-progress" role="tabpanel">
+            <div class="row g-4">
+                {% set in_progress = adaptations|selectattr('status', 'equalto', 'in_progress')|list %}
+                {% if in_progress %}
+                    {% for adaptation in in_progress %}
+                    <!-- Same card structure as above -->
+                    {% endfor %}
+                {% else %}
+                    <div class="col-12">
+                        <p class="text-muted text-center py-4">No adaptations in progress</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- Completed Tab -->
+        <div class="tab-pane fade" id="completed" role="tabpanel">
+            <div class="row g-4">
+                {% set completed = adaptations|selectattr('status', 'equalto', 'completed')|list %}
+                {% if completed %}
+                    {% for adaptation in completed %}
+                    <!-- Same card structure as above -->
+                    {% endfor %}
+                {% else %}
+                    <div class="col-12">
+                        <p class="text-muted text-center py-4">No completed adaptations yet</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteAdaptationModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Confirm Deletion</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to delete this adaptation?</p>
+                <p class="text-danger">
+                    <i class="bi bi-exclamation-triangle"></i> 
+                    This will delete all chapters and images. This action cannot be undone.
+                </p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-danger" id="confirm-delete-adaptation">
+                    <i class="bi bi-trash"></i> Delete Adaptation
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let deleteAdaptationId = null;
+
+function deleteAdaptation(adaptationId) {
+    deleteAdaptationId = adaptationId;
+    const modal = new bootstrap.Modal(document.getElementById('deleteAdaptationModal'));
+    modal.show();
+}
+
+document.getElementById('confirm-delete-adaptation').addEventListener('click', function() {
+    if (deleteAdaptationId) {
+        htmx.ajax('DELETE', `/adaptations/${deleteAdaptationId}`, {
+            swap: 'none'
+        }).then(() => {
+            const modal = bootstrap.Modal.getInstance(document.getElementById('deleteAdaptationModal'));
+            modal.hide();
+            location.reload();
+        });
+    }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,173 @@
+{% extends "layouts/base.html" %}
+
+{% block title %}Publish - KidsKlassiks{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <h1 class="display-4 mb-3">
+                <i class="bi bi-file-earmark-pdf"></i> Publish
+            </h1>
+            <p class="text-muted lead">Export your completed adaptations as beautiful PDFs</p>
+        </div>
+    </div>
+
+    <!-- Completed Adaptations -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white border-bottom-0 pt-4 pb-3">
+                    <h4 class="mb-0"><i class="bi bi-check-circle text-success"></i> Ready to Publish</h4>
+                </div>
+                <div class="card-body">
+                    {% if adaptations %}
+                        <div class="row g-4">
+                            {% for adaptation in adaptations %}
+                            <div class="col-md-6 col-lg-4">
+                                <div class="card h-100 border-0 shadow-sm">
+                                    <div class="card-body">
+                                        <h5 class="card-title">{{ adaptation.title }}</h5>
+                                        <p class="text-muted small mb-2">
+                                            <i class="bi bi-book"></i> {{ adaptation.book_title }}
+                                        </p>
+                                        <p class="text-muted small mb-2">
+                                            <i class="bi bi-person"></i> Age Group: {{ adaptation.age_group }}
+                                        </p>
+                                        <p class="text-muted small mb-3">
+                                            <i class="bi bi-calendar"></i> Completed: {{ adaptation.completed_date }}
+                                        </p>
+                                        
+                                        <div class="d-flex gap-2">
+                                            <a href="/publish/adaptation/{{ adaptation.id }}" class="btn btn-primary btn-sm">
+                                                <i class="bi bi-eye"></i> Preview
+                                            </a>
+                                            <button class="btn btn-success btn-sm" onclick="exportPDF({{ adaptation.id }})">
+                                                <i class="bi bi-download"></i> Export PDF
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="text-center py-5">
+                            <i class="bi bi-file-earmark-pdf display-1 text-muted mb-3"></i>
+                            <h4 class="text-muted">No Completed Adaptations</h4>
+                            <p class="text-muted mb-4">You don't have any completed adaptations ready for publishing yet.</p>
+                            <a href="/adaptations/create" class="btn btn-primary">
+                                <i class="bi bi-plus-circle"></i> Create New Adaptation
+                            </a>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Publishing Options -->
+    <div class="row mt-4">
+        <div class="col-md-6">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white border-bottom-0 pt-4 pb-3">
+                    <h5 class="mb-0"><i class="bi bi-gear text-primary"></i> Export Settings</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="form-label">PDF Format</label>
+                        <select class="form-select" id="pdf-format">
+                            <option value="standard">Standard (Letter Size)</option>
+                            <option value="a4">A4 (International)</option>
+                            <option value="children">Children's Book (8.5x11)</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Include Images</label>
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" id="include-images" checked>
+                            <label class="form-check-label" for="include-images">
+                                Include generated images in PDF
+                            </label>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Font Size</label>
+                        <select class="form-select" id="font-size">
+                            <option value="small">Small (10pt)</option>
+                            <option value="medium" selected>Medium (12pt)</option>
+                            <option value="large">Large (14pt)</option>
+                            <option value="extra-large">Extra Large (16pt)</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white border-bottom-0 pt-4 pb-3">
+                    <h5 class="mb-0"><i class="bi bi-info-circle text-info"></i> Publishing Tips</h5>
+                </div>
+                <div class="card-body">
+                    <ul class="list-unstyled">
+                        <li class="mb-2">
+                            <i class="bi bi-check-circle text-success me-2"></i>
+                            PDFs are optimized for printing and digital reading
+                        </li>
+                        <li class="mb-2">
+                            <i class="bi bi-check-circle text-success me-2"></i>
+                            Images are automatically resized for best quality
+                        </li>
+                        <li class="mb-2">
+                            <i class="bi bi-check-circle text-success me-2"></i>
+                            Chapter breaks are preserved in the layout
+                        </li>
+                        <li class="mb-2">
+                            <i class="bi bi-check-circle text-success me-2"></i>
+                            Table of contents is automatically generated
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function exportPDF(adaptationId) {
+    // Show loading state
+    const button = event.target;
+    const originalText = button.innerHTML;
+    button.innerHTML = '<i class="bi bi-hourglass-split"></i> Exporting...';
+    button.disabled = true;
+    
+    // Make request to export endpoint
+    fetch(`/publish/export/${adaptationId}`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Show success message
+            alert('PDF export started! You will be notified when it\'s ready for download.');
+        } else {
+            alert('Error exporting PDF: ' + (data.message || 'Unknown error'));
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error exporting PDF. Please try again.');
+    })
+    .finally(() => {
+        // Restore button state
+        button.innerHTML = originalText;
+        button.disabled = false;
+    });
+}
+</script>
+{% endblock %}

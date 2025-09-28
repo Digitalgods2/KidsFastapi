@@ -1,0 +1,30 @@
+{% set chapters = chapters or [] %}
+<div id="chapters_table">
+  {% if chapters %}
+  <div class="alert alert-success py-2 mb-2">
+    <i class="bi bi-check-circle"></i> Rebuilt {{ chapters|length }} chapters successfully.
+  </div>
+  <div class="table-responsive">
+    <table class="table table-sm table-striped mb-0">
+      <thead>
+        <tr>
+          <th class="text-muted" style="width:70px">#</th>
+          <th class="text-muted">Preview</th>
+          <th class="text-muted" style="width:120px">Words</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for ch in chapters %}
+        <tr>
+          <td><span class="badge bg-primary">{{ ch.chapter_number or loop.index }}</span></td>
+          <td><small>{{ (ch.original_text_segment or ch.content or '')[:160] }}{% if (ch.original_text_segment or ch.content or '')|length > 160 %}...{% endif %}</small></td>
+          <td><small>{% set txt = ch.original_text_segment or ch.content or '' %}{{ txt.split()|length }}</small></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+    <div class="alert alert-light">No chapters.</div>
+  {% endif %}
+</div>

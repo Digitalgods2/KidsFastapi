@@ -1,0 +1,448 @@
+{% extends "layouts/base.html" %}
+
+{% block title %}Settings - KidsKlassiks{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <h1 class="display-4 mb-3">
+                <i class="bi bi-gear"></i> Settings
+            </h1>
+            <p class="text-muted lead">Configure your API keys and application preferences</p>
+        </div>
+    </div>
+
+    <!-- Settings Tabs -->
+    <div class="row">
+        <div class="col-lg-3 mb-4">
+            <!-- Settings Navigation -->
+            <div class="card border-0 shadow-sm">
+                <div class="card-body p-2">
+                    <div class="nav flex-column nav-pills" id="settings-tab" role="tablist">
+                        <button class="nav-link active text-start" id="api-tab" data-bs-toggle="pill" data-bs-target="#api-settings" type="button">
+                            <i class="bi bi-key"></i> API Configuration
+                        </button>
+                        <button class="nav-link text-start" id="image-tab" data-bs-toggle="pill" data-bs-target="#image-settings" type="button">
+                            <i class="bi bi-image"></i> Image Generation
+                        </button>
+                        <button class="nav-link text-start" id="defaults-tab" data-bs-toggle="pill" data-bs-target="#default-settings" type="button">
+                            <i class="bi bi-sliders"></i> Default Preferences
+                        </button>
+                        <button class="nav-link text-start" id="advanced-tab" data-bs-toggle="pill" data-bs-target="#advanced-settings" type="button">
+                            <i class="bi bi-cpu"></i> Advanced Settings
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-9">
+            <div class="tab-content" id="settings-content">
+                <!-- API Configuration Tab -->
+                <div class="tab-pane fade show active" id="api-settings" role="tabpanel">
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-header bg-white border-bottom-0 pt-4 pb-3">
+                            <h4 class="mb-0"><i class="bi bi-key text-primary"></i> API Configuration</h4>
+                        </div>
+                        <div class="card-body">
+                            <form hx-post="/settings/api/save" hx-trigger="submit" hx-target="#api-response">
+                                <!-- OpenAI API -->
+                                <div class="mb-4">
+                                    <h5 class="mb-3">OpenAI API</h5>
+                                    <div class="mb-3">
+                                        <label for="openai-key" class="form-label">
+                                            API Key <span class="text-danger">*</span>
+                                            <small class="text-muted">(Required for text transformation and DALL-E image generation)</small>
+                                        </label>
+                                        <div class="input-group">
+                                            <span class="input-group-text"><i class="bi bi-key-fill"></i></span>
+                                            <input type="password" class="form-control" id="openai-key" name="openai_api_key" 
+                                                   value="{{ settings.openai_api_key|default('') }}"
+                                                   placeholder="sk-..." required>
+                                            <button class="btn btn-outline-secondary" type="button" onclick="togglePassword('openai-key')">
+                                                <i class="bi bi-eye"></i>
+                                            </button>
+                                        </div>
+                                        <div class="form-text">Get your API key from <a href="https://platform.openai.com/api-keys" target="_blank">OpenAI Platform</a></div>
+                                    </div>
+                                    
+                                    <div class="mb-3">
+                                        <label for="openai-model" class="form-label">Default Model</label>
+                                        <select class="form-select" id="openai-model" name="openai_default_model">
+                                            <option value="gpt-4" {% if settings.openai_default_model == 'gpt-4' %}selected{% endif %}>GPT-4 (Best quality)</option>
+                                            <option value="gpt-4-turbo" {% if settings.openai_default_model == 'gpt-4-turbo' %}selected{% endif %}>GPT-4 Turbo (Faster)</option>
+                                            <option value="gpt-3.5-turbo" {% if settings.openai_default_model == 'gpt-3.5-turbo' %}selected{% endif %}>GPT-3.5 Turbo (Economical)</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <hr>
+
+                                <!-- Google Vertex AI -->
+                                <div class="mb-4">
+                                    <h5 class="mb-3">Google Vertex AI</h5>
+                                    <div class="mb-3">
+                                        <label for="vertex-project" class="form-label">
+                                            Project ID
+                                            <small class="text-muted">(Required for Vertex AI Imagen image generation)</small>
+                                        </label>
+                                        <div class="input-group">
+                                            <span class="input-group-text"><i class="bi bi-folder"></i></span>
+                                            <input type="text" class="form-control" id="vertex-project" name="vertex_project_id" 
+                                                   value="{{ settings.vertex_project_id|default('') }}"
+                                                   placeholder="your-project-id">
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="mb-3">
+                                        <label for="vertex-location" class="form-label">Location</label>
+                                        <select class="form-select" id="vertex-location" name="vertex_location">
+                                            <option value="us-central1" {% if settings.vertex_location == 'us-central1' %}selected{% endif %}>us-central1</option>
+                                            <option value="us-east1" {% if settings.vertex_location == 'us-east1' %}selected{% endif %}>us-east1</option>
+                                            <option value="europe-west1" {% if settings.vertex_location == 'europe-west1' %}selected{% endif %}>europe-west1</option>
+                                            <option value="asia-northeast1" {% if settings.vertex_location == 'asia-northeast1' %}selected{% endif %}>asia-northeast1</option>
+                                        </select>
+                                    </div>
+                                    
+                                    <div class="mb-3">
+                                        <label for="vertex-creds" class="form-label">Service Account Credentials (Optional)</label>
+                                        <input type="file" class="form-control" id="vertex-creds" name="vertex_credentials" accept=".json">
+                                        <div class="form-text">Upload service account JSON file for authentication</div>
+                                    </div>
+                                </div>
+
+                                <div id="api-response"></div>
+                                
+                                <div class="d-flex justify-content-between">
+                                    <button type="button" class="btn btn-outline-secondary" onclick="testAPIConnection()">
+                                        <i class="bi bi-wifi"></i> Test Connection
+                                    </button>
+                                    <button type="submit" class="btn btn-primary">
+                                        <i class="bi bi-save"></i> Save API Settings
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Image Generation Tab -->
+                <div class="tab-pane fade" id="image-settings" role="tabpanel">
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-header bg-white border-bottom-0 pt-4 pb-3">
+                            <h4 class="mb-0"><i class="bi bi-image text-success"></i> Image Generation Preferences</h4>
+                        </div>
+                        <div class="card-body">
+                            <form hx-post="/settings/image-preferences" hx-trigger="submit" hx-target="#image-response">
+                                <div class="mb-4">
+                                    <label class="form-label fw-bold">Preferred Image Generation API</label>
+                                    <div class="row g-3">
+                                        <div class="col-md-6">
+                                            <div class="form-check card p-3">
+                                                <input class="form-check-input" type="radio" name="image_api" id="dall-e-3" value="dall-e-3" 
+                                                       {% if settings.image_api_preference == 'dall-e-3' %}checked{% endif %}>
+                                                <label class="form-check-label" for="dall-e-3">
+                                                    <strong>DALL-E 3</strong>
+                                                    <small class="d-block text-muted">Higher resolution (1792×1024), best quality</small>
+                                                </label>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="form-check card p-3">
+                                                <input class="form-check-input" type="radio" name="image_api" id="dall-e-2" value="dall-e-2"
+                                                       {% if settings.image_api_preference == 'dall-e-2' %}checked{% endif %}>
+                                                <label class="form-check-label" for="dall-e-2">
+                                                    <strong>DALL-E 2</strong>
+                                                    <small class="d-block text-muted">Faster, economical, supports variations</small>
+                                                </label>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="form-check card p-3">
+                                                <input class="form-check-input" type="radio" name="image_api" id="vertex-imagen" value="vertex-imagen"
+                                                       {% if settings.image_api_preference == 'vertex-imagen' %}checked{% endif %}>
+                                                <label class="form-check-label" for="vertex-imagen">
+                                                    <strong>Google Vertex Imagen</strong>
+                                                    <small class="d-block text-muted">Advanced AI model, custom aspect ratios</small>
+                                                </label>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="form-check card p-3">
+                                                <input class="form-check-input" type="radio" name="image_api" id="imagen-children" value="imagen-children"
+                                                       {% if settings.image_api_preference == 'imagen-children' %}checked{% endif %}>
+                                                <label class="form-check-label" for="imagen-children">
+                                                    <strong>Imagen Children's Mode</strong>
+                                                    <small class="d-block text-muted">Optimized for children's illustrations</small>
+                                                </label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="mb-4">
+                                    <label for="image-size" class="form-label">Default Image Size</label>
+                                    <select class="form-select" id="image-size" name="default_image_size">
+                                        <option value="1024x1024" {% if settings.default_image_size == '1024x1024' %}selected{% endif %}>1024×1024 (Square)</option>
+                                        <option value="1792x1024" {% if settings.default_image_size == '1792x1024' %}selected{% endif %}>1792×1024 (Landscape)</option>
+                                        <option value="1024x1792" {% if settings.default_image_size == '1024x1792' %}selected{% endif %}>1024×1792 (Portrait)</option>
+                                    </select>
+                                </div>
+
+                                <div class="mb-4">
+                                    <label for="image-quality" class="form-label">Image Quality</label>
+                                    <select class="form-select" id="image-quality" name="image_quality">
+                                        <option value="standard" {% if settings.image_quality == 'standard' %}selected{% endif %}>Standard (Faster)</option>
+                                        <option value="hd" {% if settings.image_quality == 'hd' %}selected{% endif %}>HD (Better quality)</option>
+                                    </select>
+                                </div>
+
+                                <div class="mb-4">
+                                    <label for="image-style" class="form-label">Image Style</label>
+                                    <select class="form-select" id="image-style" name="image_style">
+                                        <option value="vivid" {% if settings.image_style == 'vivid' %}selected{% endif %}>Vivid (Hyper-real and dramatic)</option>
+                                        <option value="natural" {% if settings.image_style == 'natural' %}selected{% endif %}>Natural (More natural, less hyper-real)</option>
+                                    </select>
+                                </div>
+
+                                <div id="image-response"></div>
+
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="bi bi-save"></i> Save Image Preferences
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Default Preferences Tab -->
+                <div class="tab-pane fade" id="default-settings" role="tabpanel">
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-header bg-white border-bottom-0 pt-4 pb-3">
+                            <h4 class="mb-0"><i class="bi bi-sliders text-warning"></i> Default Preferences</h4>
+                        </div>
+                        <div class="card-body">
+                            <form hx-post="/settings/save" hx-trigger="submit" hx-target="#defaults-response" hx-swap="innerHTML">
+                                <div class="mb-4">
+                                    <label for="default-age" class="form-label">Default Age Group</label>
+                                    <select class="form-select" id="default-age" name="default_age_group">
+                                        <option value="3-5" {% if settings.default_age_group == '3-5' %}selected{% endif %}>3-5 years</option>
+                                        <option value="6-8" {% if settings.default_age_group == '6-8' %}selected{% endif %}>6-8 years</option>
+                                        <option value="9-12" {% if settings.default_age_group == '9-12' %}selected{% endif %}>9-12 years</option>
+                                    </select>
+                                </div>
+
+                                <div class="mb-4">
+                                    <label for="default-style" class="form-label">Default Transformation Style</label>
+                                    <select class="form-select" id="default-style" name="default_transformation_style">
+                                        <option value="Simple & Direct" {% if settings.default_transformation_style == 'Simple & Direct' %}selected{% endif %}>Simple & Direct</option>
+                                        <option value="Playful & Whimsical" {% if settings.default_transformation_style == 'Playful & Whimsical' %}selected{% endif %}>Playful & Whimsical</option>
+                                        <option value="Adventurous & Exciting" {% if settings.default_transformation_style == 'Adventurous & Exciting' %}selected{% endif %}>Adventurous & Exciting</option>
+                                        <option value="Gentle & Poetic" {% if settings.default_transformation_style == 'Gentle & Poetic' %}selected{% endif %}>Gentle & Poetic</option>
+                                    </select>
+                                </div>
+
+                                <div class="mb-4">
+                                    <label for="chapter-length" class="form-label">Chapter Word Count</label>
+                                    <div class="row g-3">
+                                        <div class="col-md-4">
+                                            <label class="form-label small">Ages 3-5</label>
+                                            <input type="number" class="form-control" name="chapter_words_3_5" 
+                                                   value="{{ settings.chapter_words_3_5|default(500) }}" min="100" max="2000">
+                                        </div>
+                                        <div class="col-md-4">
+                                            <label class="form-label small">Ages 6-8</label>
+                                            <input type="number" class="form-control" name="chapter_words_6_8" 
+                                                   value="{{ settings.chapter_words_6_8|default(1500) }}" min="500" max="3000">
+                                        </div>
+                                        <div class="col-md-4">
+                                            <label class="form-label small">Ages 9-12</label>
+                                            <input type="number" class="form-control" name="chapter_words_9_12" 
+                                                   value="{{ settings.chapter_words_9_12|default(2500) }}" min="1000" max="5000">
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="mb-4">
+                                    <label for="auto-generate" class="form-label">Auto-generation Options</label>
+                                    <div class="form-check form-switch mb-2">
+                                        <input class="form-check-input" type="checkbox" id="auto-images" name="auto_generate_images" 
+                                               {% if settings.auto_generate_images == 'true' %}checked{% endif %}>
+                                        <label class="form-check-label" for="auto-images">
+                                            Auto-generate images during adaptation
+                                        </label>
+                                    </div>
+                                    <div class="form-check form-switch mb-2">
+                                        <input class="form-check-input" type="checkbox" id="auto-analyze" name="auto_analyze_characters" 
+                                               {% if settings.auto_analyze_characters == 'true' %}checked{% endif %}>
+                                        <label class="form-check-label" for="auto-analyze">
+                                            Auto-analyze characters with AI
+                                        </label>
+                                    </div>
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input" type="checkbox" id="preserve-chapters" name="preserve_original_chapters" 
+                                               {% if settings.preserve_original_chapters == 'true' %}checked{% endif %}>
+                                        <label class="form-check-label" for="preserve-chapters">
+                                            Preserve original chapter structure by default
+                                        </label>
+                                    </div>
+                                </div>
+
+                                <div id="defaults-response"></div>
+
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="bi bi-save"></i> Save Default Preferences
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Advanced Settings Tab -->
+                <div class="tab-pane fade" id="advanced-settings" role="tabpanel">
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-header bg-white border-bottom-0 pt-4 pb-3">
+                            <h4 class="mb-0"><i class="bi bi-cpu text-danger"></i> Advanced Settings</h4>
+                        </div>
+                        <div class="card-body">
+                            <form hx-post="/settings/advanced" hx-trigger="submit" hx-target="#advanced-response">
+                                <div class="mb-4">
+                                    <h5 class="mb-3">Performance</h5>
+                                    <div class="mb-3">
+                                        <label for="max-tokens" class="form-label">Max Tokens per Request</label>
+                                        <input type="number" class="form-control" id="max-tokens" name="max_tokens" 
+                                               value="{{ settings.max_tokens|default(4000) }}" min="1000" max="8000">
+                                        <div class="form-text">Higher values allow longer responses but cost more</div>
+                                    </div>
+                                    
+                                    <div class="mb-3">
+                                        <label for="temperature" class="form-label">AI Temperature (Creativity)</label>
+                                        <input type="range" class="form-range" id="temperature" name="temperature" 
+                                               value="{{ settings.temperature|default(0.7) }}" min="0" max="1" step="0.1"
+                                               oninput="this.nextElementSibling.value = this.value">
+                                        <output>{{ settings.temperature|default(0.7) }}</output>
+                                        <div class="form-text">0 = More focused, 1 = More creative</div>
+                                    </div>
+                                </div>
+
+                                <hr>
+
+                                <div class="mb-4">
+                                    <h5 class="mb-3">Storage</h5>
+                                    <div class="mb-3">
+                                        <label for="storage-path" class="form-label">Storage Path</label>
+                                        <input type="text" class="form-control" id="storage-path" name="storage_path" 
+                                               value="{{ settings.storage_path|default('./storage') }}" readonly>
+                                        <div class="form-text">Local path for storing books and images</div>
+                                    </div>
+                                    
+                                    <div class="mb-3">
+                                        <label class="form-label">Storage Usage</label>
+                                        <div class="progress" style="height: 25px;">
+                                            <div class="progress-bar" role="progressbar" style="width: {{ storage_percentage|default(0) }}%">
+                                                {{ storage_used|default(0) }}MB / {{ storage_total|default(1000) }}MB
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <button type="button" class="btn btn-outline-danger" onclick="clearCache()">
+                                        <i class="bi bi-trash"></i> Clear Cache
+                                    </button>
+                                </div>
+
+                                <hr>
+
+                                <div class="mb-4">
+                                    <h5 class="mb-3">Export/Import Settings</h5>
+                                    <div class="mb-3">
+                                        <button type="button" class="btn btn-outline-primary" onclick="exportSettings()">
+                                            <i class="bi bi-download"></i> Export Settings
+                                        </button>
+                                        <button type="button" class="btn btn-outline-primary" onclick="document.getElementById('import-settings').click()">
+                                            <i class="bi bi-upload"></i> Import Settings
+                                        </button>
+                                        <input type="file" id="import-settings" accept=".json" style="display: none;" onchange="importSettings(this)">
+                                    </div>
+                                </div>
+
+                                <div id="advanced-response"></div>
+
+                                <div class="d-flex justify-content-between">
+                                    <button type="button" class="btn btn-outline-warning" onclick="resetToDefaults()">
+                                        <i class="bi bi-arrow-clockwise"></i> Reset to Defaults
+                                    </button>
+                                    <button type="submit" class="btn btn-primary">
+                                        <i class="bi bi-save"></i> Save Advanced Settings
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function togglePassword(inputId) {
+    const input = document.getElementById(inputId);
+    const button = input.nextElementSibling;
+    const icon = button.querySelector('i');
+    
+    if (input.type === 'password') {
+        input.type = 'text';
+        icon.className = 'bi bi-eye-slash';
+    } else {
+        input.type = 'password';
+        icon.className = 'bi bi-eye';
+    }
+}
+
+function testAPIConnection() {
+    // Send HTMX request to test API connections
+    htmx.ajax('POST', '/settings/api/test-connection', {
+        target: '#api-response',
+        swap: 'innerHTML'
+    });
+}
+
+function clearCache() {
+    if (confirm('Are you sure you want to clear the cache? This will remove temporary files but preserve your books and adaptations.')) {
+        htmx.ajax('POST', '/settings/api/clear-cache', {
+            target: '#advanced-response',
+            swap: 'innerHTML'
+        });
+    }
+}
+
+function exportSettings() {
+    window.location.href = '/settings/api/export';
+}
+
+function importSettings(input) {
+    const file = input.files[0];
+    if (file) {
+        const formData = new FormData();
+        formData.append('settings_file', file);
+        
+        htmx.ajax('POST', '/settings/api/import', {
+            body: formData,
+            target: '#advanced-response',
+            swap: 'innerHTML'
+        });
+    }
+}
+
+function resetToDefaults() {
+    if (confirm('Are you sure you want to reset all settings to their default values? This cannot be undone.')) {
+        htmx.ajax('POST', '/settings/api/reset', {
+            target: '#advanced-response',
+            swap: 'innerHTML'
+        });
+    }
+}
+</script>
+{% endblock %}

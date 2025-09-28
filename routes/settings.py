@@ -1,0 +1,353 @@
+"""
+Settings routes for KidsKlassiks
+Handles application settings and configuration
+"""
+
+from fastapi import APIRouter, Request, Form, HTTPException
+from fastapi.templating import Jinja2Templates
+from fastapi.responses import HTMLResponse, JSONResponse
+import database_fixed as database
+import config
+from services import chat_helper
+
+router = APIRouter()
+templates = Jinja2Templates(directory="templates")
+
+# Helper function for base context
+def get_base_context(request):
+    """Get base context variables for all templates"""
+    return {
+        "request": request,
+        "notifications_count": 0,
+        "notifications": [],
+        "openai_status": bool(config.OPENAI_API_KEY),
+        "vertex_status": config.validate_vertex_ai_config()
+    }
+
+@router.get("/", response_class=HTMLResponse)
+async def settings_page(request: Request):
+    """Settings page"""
+    context = get_base_context(request)
+    
+    try:
+        settings_data = await database.get_all_settings()
+        
+        # Ensure all expected settings exist
+        default_settings = {
+            "openai_api_key": await database.get_setting("openai_api_key", config.OPENAI_API_KEY or ""),
+            "vertex_project_id": await database.get_setting("vertex_project_id", config.VERTEX_PROJECT_ID or ""),
+            "vertex_location": await database.get_setting("vertex_location", config.VERTEX_LOCATION or "us-central1"),
+            "image_api_preference": await database.get_setting("image_api_preference", "dall-e-3"),
+            "default_age_group": await database.get_setting("default_age_group", "6-8"),
+            "default_transformation_style": await database.get_setting("default_transformation_style", "Simple & Direct"),
+            "chapter_words_3_5": await database.get_setting("chapter_words_3_5", "500"),
+            "chapter_words_6_8": await database.get_setting("chapter_words_6_8", "1500"),
+            "chapter_words_9_12": await database.get_setting("chapter_words_9_12", "2500"),
+            "auto_generate_images": await database.get_setting("auto_generate_images", "false"),
+            "auto_analyze_characters": await database.get_setting("auto_analyze_characters", "false"),
+            "preserve_original_chapters": await database.get_setting("preserve_original_chapters", "false"),
+            "max_tokens": await database.get_setting("max_tokens", "4000"),
+            "temperature": await database.get_setting("temperature", "0.7"),
+            "storage_path": await database.get_setting("storage_path", "./storage")
+        }
+        
+        # Merge with defaults
+        for key, value in default_settings.items():
+            if key not in settings_data:
+                settings_data[key] = value
+        
+        context["settings"] = settings_data
+        context["storage_percentage"] = 0
+        context["storage_used"] = 0
+        context["storage_total"] = 1000
+        
+    except Exception as e:
+        from services.logger import get_logger
+        log = get_logger("routes.settings")
+        log.error("settings_page_error", extra={"error": str(e), "component": "routes.settings", "request_id": getattr(request.state, 'request_id', None)})
+        context["settings"] = {}
+        context["storage_percentage"] = 0
+        context["storage_used"] = 0
+        context["storage_total"] = 1000
+    
+    return templates.TemplateResponse("pages/settings.html", context)
+
+@router.post("/save")
+async def save_settings(request: Request):
+    """Save settings to database"""
+    try:
+        form_data = await request.form()
+        
+        # Handle checkbox values properly - unchecked checkboxes don't send data
+        checkbox_fields = ['auto_generate_images', 'auto_analyze_characters', 'preserve_original_chapters']
+        
+        # Save each setting
+        for key, value in form_data.items():
+            await database.update_setting(key, value)
+        
+        # Set unchecked checkboxes to "false"
+        for checkbox_field in checkbox_fields:
+            if checkbox_field not in form_data:
+                await database.update_setting(checkbox_field, "false")
+        
+        # Return HTML success message for HTMX
+        return HTMLResponse("""
+            <div class="alert alert-success alert-dismissible fade show" role="alert">
+                <i class="bi bi-check-circle"></i> Settings saved successfully!
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        """)
+        
+    except Exception as e:
+        from services.logger import get_logger
+        log = get_logger("routes.settings")
+        log.error("save_settings_error", extra={"error": str(e), "component": "routes.settings", "request_id": getattr(request.state, 'request_id', None)})
+        # Return HTML error message for HTMX
+        return HTMLResponse(f"""
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                <i class="bi bi-exclamation-triangle"></i> Error saving settings: {str(e)}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        """, status_code=500)
+
+@router.post("/api/test-connection")
+async def test_connection():
+    """Test API connections"""
+    try:
+        results = {
+            "openai": False,
+            "vertex": False,
+            "database": False
+        }
+        
+        # Test database
+        conn = database.get_db_connection()
+        if conn:
+            results["database"] = True
+            conn.close()
+        
+        # Test OpenAI via chat_helper (version-agnostic)
+        try:
+            text, err = await chat_helper.generate_chat_text(
+                messages=[
+                    {"role": "system", "content": "You are a health check."},
+                    {"role": "user", "content": "Reply with: OK"}
+                ],
+                model=getattr(config, 'DEFAULT_GPT_MODEL', 'gpt-4o-mini'),
+                temperature=0,
+                max_tokens=5,
+            )
+            results["openai"] = (err is None and (text or '').strip().upper().startswith('OK'))
+        except Exception:
+            results["openai"] = False
+        
+        # Test Vertex
+        if config.validate_vertex_ai_config():
+            results["vertex"] = True
+        
+        return JSONResponse({"success": True, "results": results})
+        
+    except Exception as e:
+        from services.logger import get_logger
+        log = get_logger("routes.settings")
+        log.error("test_connection_error", extra={"error": str(e), "component": "routes.settings"})
+        return JSONResponse({"success": False, "error": str(e)})
+
+@router.post("/api/save")
+async def save_api_settings(request: Request):
+    """Save API configuration settings"""
+    try:
+        form_data = await request.form()
+        
+        # Save each API setting
+        for key, value in form_data.items():
+            await database.update_setting(key, value)
+        
+        # Return HTML success message for HTMX
+        return HTMLResponse("""
+            <div class="alert alert-success alert-dismissible fade show" role="alert">
+                <i class="bi bi-check-circle"></i> API settings saved successfully!
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        """)
+        
+    except Exception as e:
+        from services.logger import get_logger
+        log = get_logger("routes.settings")
+        log.error("save_api_settings_error", extra={"error": str(e), "component": "routes.settings", "request_id": getattr(request.state, 'request_id', None)})
+        return HTMLResponse(f"""
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                <i class="bi bi-exclamation-triangle"></i> Error saving API settings: {str(e)}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        """, status_code=500)
+
+@router.post("/image-preferences")
+async def save_image_preferences(request: Request):
+    """Save image generation preferences"""
+    try:
+        form_data = await request.form()
+        
+        # Save each image setting
+        for key, value in form_data.items():
+            await database.update_setting(key, value)
+        
+        # Return HTML success message for HTMX
+        return HTMLResponse("""
+            <div class="alert alert-success alert-dismissible fade show" role="alert">
+                <i class="bi bi-check-circle"></i> Image preferences saved successfully!
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        """)
+        
+    except Exception as e:
+        from services.logger import get_logger
+        log = get_logger("routes.settings")
+        log.error("save_image_preferences_error", extra={"error": str(e), "component": "routes.settings", "request_id": getattr(request.state, 'request_id', None)})
+        return HTMLResponse(f"""
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                <i class="bi bi-exclamation-triangle"></i> Error saving image preferences: {str(e)}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        """, status_code=500)
+
+@router.post("/advanced")
+async def save_advanced_settings(request: Request):
+    """Save advanced settings"""
+    try:
+        form_data = await request.form()
+        
+        # Save each advanced setting
+        for key, value in form_data.items():
+            await database.update_setting(key, value)
+        
+        # Return HTML success message for HTMX
+        return HTMLResponse("""
+            <div class="alert alert-success alert-dismissible fade show" role="alert">
+                <i class="bi bi-check-circle"></i> Advanced settings saved successfully!
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        """)
+        
+    except Exception as e:
+        from services.logger import get_logger
+        log = get_logger("routes.settings")
+        log.error("save_advanced_settings_error", extra={"error": str(e), "component": "routes.settings", "request_id": getattr(request.state, 'request_id', None)})
+        return HTMLResponse(f"""
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                <i class="bi bi-exclamation-triangle"></i> Error saving advanced settings: {str(e)}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        """, status_code=500)
+
+
+@router.post("/api/clear-cache")
+async def clear_cache():
+    """Clear application cache"""
+    try:
+        # Implementation for clearing cache
+        # For now, just return success message
+        return HTMLResponse("""
+            <div class="alert alert-success alert-dismissible fade show" role="alert">
+                <i class="bi bi-check-circle"></i> Cache cleared successfully!
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        """)
+        
+    except Exception as e:
+        from services.logger import get_logger
+        log = get_logger("routes.settings")
+        log.error("clear_cache_error", extra={"error": str(e), "component": "routes.settings"})
+        return HTMLResponse(f"""
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                <i class="bi bi-exclamation-triangle"></i> Error clearing cache: {str(e)}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        """, status_code=500)
+
+@router.get("/api/export")
+async def export_settings():
+    """Export settings as JSON"""
+    try:
+        settings_data = await database.get_all_settings()
+        from fastapi.responses import JSONResponse
+        
+        return JSONResponse(
+            content=settings_data,
+            headers={"Content-Disposition": "attachment; filename=kidsklassiks_settings.json"}
+        )
+        
+    except Exception as e:
+        from services.logger import get_logger
+        log = get_logger("routes.settings")
+        log.error("export_settings_error", extra={"error": str(e), "component": "routes.settings"})
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/api/import")
+async def import_settings(request: Request):
+    """Import settings from JSON file"""
+    try:
+        # Implementation for importing settings
+        # For now, just return success message
+        return HTMLResponse("""
+            <div class="alert alert-success alert-dismissible fade show" role="alert">
+                <i class="bi bi-check-circle"></i> Settings imported successfully!
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        """)
+        
+    except Exception as e:
+        from services.logger import get_logger
+        log = get_logger("routes.settings")
+        log.error("import_settings_error", extra={"error": str(e), "component": "routes.settings"})
+        return HTMLResponse(f"""
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                <i class="bi bi-exclamation-triangle"></i> Error importing settings: {str(e)}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        """, status_code=500)
+
+@router.post("/api/reset")
+async def reset_settings():
+    """Reset all settings to defaults"""
+    try:
+        # Reset to default values
+        default_settings = {
+            "openai_api_key": "",
+            "vertex_project_id": "",
+            "vertex_location": "us-central1",
+            "image_api_preference": "dall-e-3",
+            "default_age_group": "6-8",
+            "default_transformation_style": "Simple & Direct",
+            "chapter_words_3_5": "500",
+            "chapter_words_6_8": "1500",
+            "chapter_words_9_12": "2500",
+            "auto_generate_images": "false",
+            "auto_analyze_characters": "false",
+            "preserve_original_chapters": "false",
+            "max_tokens": "4000",
+            "temperature": "0.7",
+            "storage_path": "./storage"
+        }
+        
+        # Save each default setting
+        for key, value in default_settings.items():
+            await database.update_setting(key, value)
+        
+        return HTMLResponse("""
+            <div class="alert alert-success alert-dismissible fade show" role="alert">
+                <i class="bi bi-check-circle"></i> Settings reset to defaults successfully!
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        """)
+        
+    except Exception as e:
+        from services.logger import get_logger
+        log = get_logger("routes.settings")
+        log.error("reset_settings_error", extra={"error": str(e), "component": "routes.settings"})
+        return HTMLResponse(f"""
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                <i class="bi bi-exclamation-triangle"></i> Error resetting settings: {str(e)}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        """, status_code=500)

@@ -1,0 +1,482 @@
+{% extends "layouts/base.html" %}
+
+{% block title %}Chapter Images - {{ adaptation.title }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h2 class="mb-1">📖 Chapter Images</h2>
+                    <p class="text-muted mb-0">{{ adaptation.title }} - Individual Chapter Image Generation</p>
+                </div>
+                <div>
+                    <a href="/adaptations/{{ adaptation.adaptation_id }}/process" class="btn btn-outline-secondary">
+                        <i class="fas fa-arrow-left"></i> Back to Processing
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Adaptation Info -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6 class="text-muted">Book Details</h6>
+                            <p class="mb-1"><strong>Title:</strong> {{ book.title }}</p>
+                            <p class="mb-1"><strong>Author:</strong> {{ book.author }}</p>
+                            <p class="mb-0"><strong>Target Age:</strong> {{ adaptation.target_age_group }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <h6 class="text-muted">Adaptation Settings</h6>
+                            <p class="mb-1"><strong>Style:</strong> {{ adaptation.transformation_style }}</p>
+                            <p class="mb-1"><strong>Theme:</strong> {{ adaptation.overall_theme_tone }}</p>
+                            <p class="mb-0"><strong>Chapters:</strong> {{ chapters|length }} chapters</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Cover Image Section -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">📚 Book Cover</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-8">
+                            <div class="mb-3">
+                                <label class="form-label">Cover Image Prompt</label>
+                                <textarea 
+                                    class="form-control" 
+                                    rows="4" 
+                                    id="cover-prompt"
+                                    placeholder="AI will generate a cover prompt based on your book..."
+                                >{{ adaptation.cover_image_prompt or '' }}</textarea>
+                                <small class="form-text text-muted">Edit this prompt to customize the cover image</small>
+                            </div>
+                            <div class="btn-group" role="group">
+                                <button class="btn btn-primary" onclick="generateCoverPrompt()">
+                                    <i class="fas fa-magic"></i> Generate Prompt
+                                </button>
+                                <button class="btn btn-success" onclick="generateCoverImage()" id="generate-cover-btn">
+                                    <i class="fas fa-image"></i> Generate Cover
+                                </button>
+                                <button class="btn btn-outline-secondary" onclick="skipCoverImage()">
+                                    <i class="fas fa-times"></i> Skip Cover
+                                </button>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div id="cover-image-container">
+                                {% if adaptation.cover_image_url %}
+                                    <img src="{{ adaptation.cover_image_url }}" class="img-fluid rounded" alt="Book Cover">
+                                    <div class="mt-2">
+                                        <button class="btn btn-sm btn-outline-primary" onclick="regenerateCoverImage()">
+                                            <i class="fas fa-redo"></i> Regenerate
+                                        </button>
+                                    </div>
+                                {% else %}
+                                    <div class="text-center p-4 border rounded bg-light">
+                                        <i class="fas fa-image fa-3x text-muted mb-3"></i>
+                                        <p class="text-muted">No cover image generated yet</p>
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Chapter Images Section -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">📖 Chapter Images</h5>
+                    <div class="btn-group btn-group-sm">
+                        <button class="btn btn-outline-primary" onclick="generateAllPrompts()">
+                            <i class="fas fa-magic"></i> Generate All Prompts
+                        </button>
+                        <button class="btn btn-outline-success" onclick="generateAllImages()">
+                            <i class="fas fa-images"></i> Generate All Images
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    {% for chapter in chapters %}
+                    <div class="chapter-section mb-4 p-3 border rounded" id="chapter-{{ chapter.id }}">
+                        <div class="row">
+                            <div class="col-12">
+                                <h6 class="text-primary mb-3">
+                                    <i class="fas fa-book-open"></i> Chapter {{ chapter.chapter_number }}
+                                    <span class="badge badge-{{ 'success' if chapter.image_url else 'secondary' }} ms-2">
+                                        {{ 'Image Generated' if chapter.image_url else 'No Image' }}
+                                    </span>
+                                </h6>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <!-- Text and Prompt Column -->
+                            <div class="col-md-8">
+                                <!-- Transformed Text Preview -->
+                                <div class="mb-3">
+                                    <label class="form-label">Transformed Chapter Text (Preview)</label>
+                                    <div class="form-control" style="height: 120px; overflow-y: auto; background-color: #f8f9fa;">
+                                        {{ (chapter.transformed_chapter_text or 'No transformed text available')[:500] }}
+                                        {% if chapter.transformed_chapter_text and chapter.transformed_chapter_text|length > 500 %}...{% endif %}
+                                    </div>
+                                </div>
+                                
+                                <!-- Image Prompt -->
+                                <div class="mb-3">
+                                    <label class="form-label">Chapter Image Prompt</label>
+                                    <textarea 
+                                        class="form-control" 
+                                        rows="4" 
+                                        id="chapter-prompt-{{ chapter.id }}"
+                                        placeholder="Generate or edit the image prompt for this chapter..."
+                                    >{{ chapter.user_edited_image_prompt or chapter.ai_generated_image_prompt or '' }}</textarea>
+                                    {% if chapter.ai_generated_image_prompt and chapter.user_edited_image_prompt != chapter.ai_generated_image_prompt %}
+                                    <small class="form-text text-muted">
+                                        <strong>Original AI Prompt:</strong> {{ chapter.ai_generated_image_prompt[:100] }}...
+                                    </small>
+                                    {% endif %}
+                                </div>
+                                
+                                <!-- Action Buttons -->
+                                <div class="btn-group" role="group">
+                                    <button class="btn btn-outline-primary btn-sm" onclick="generateChapterPrompt({{ chapter.id }})">
+                                        <i class="fas fa-magic"></i> Generate Prompt
+                                    </button>
+                                    <button class="btn btn-success btn-sm" onclick="generateChapterImage({{ chapter.id }})" id="generate-chapter-{{ chapter.id }}-btn">
+                                        <i class="fas fa-image"></i> Generate Image
+                                    </button>
+                                    <button class="btn btn-outline-warning btn-sm" onclick="saveChapterPrompt({{ chapter.id }})">
+                                        <i class="fas fa-save"></i> Save Prompt
+                                    </button>
+                                    <button class="btn btn-outline-secondary btn-sm" onclick="skipChapterImage({{ chapter.id }})">
+                                        <i class="fas fa-times"></i> Skip Image
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <!-- Image Column -->
+                            <div class="col-md-4">
+                                <div id="chapter-image-container-{{ chapter.id }}">
+                                    {% if chapter.image_url %}
+                                        <img src="{{ chapter.image_url }}" class="img-fluid rounded" alt="Chapter {{ chapter.chapter_number }} Image">
+                                        <div class="mt-2 text-center">
+                                            <button class="btn btn-sm btn-outline-primary" onclick="regenerateChapterImage({{ chapter.id }})">
+                                                <i class="fas fa-redo"></i> Regenerate
+                                            </button>
+                                            <button class="btn btn-sm btn-outline-danger" onclick="deleteChapterImage({{ chapter.id }})">
+                                                <i class="fas fa-trash"></i> Delete
+                                            </button>
+                                        </div>
+                                    {% else %}
+                                        <div class="text-center p-4 border rounded bg-light">
+                                            <i class="fas fa-image fa-2x text-muted mb-2"></i>
+                                            <p class="text-muted small">No image generated</p>
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Progress Modal -->
+<div class="modal fade" id="progressModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Generating Image...</h5>
+            </div>
+            <div class="modal-body text-center">
+                <div class="spinner-border text-primary mb-3" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                <p id="progress-message">Processing your request...</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Bulk actions
+async function generateAllPrompts() {
+    try {
+        const res = await fetch(`/images/generate-all-prompts/{{ adaptation.adaptation_id }}`, { method: 'POST' });
+        const result = await res.json();
+        if (result.success) {
+            showToast(`Generated prompts for ${result.results?.filter(r=>r.success).length || 0} chapters`, 'success');
+            // Refresh page to load prompts
+            location.reload();
+        } else {
+            showToast('Failed to generate all prompts: ' + (result.error || 'Unknown error'), 'error');
+        }
+    } catch (e) {
+        showToast('Error generating all prompts: ' + e.message, 'error');
+    }
+}
+
+async function generateAllImages() {
+    try {
+        // resolve backend from server default; leave image_api unspecified
+        const form = new FormData();
+        form.append('generate_cover', 'false');
+        const res = await fetch(`/images/{{ adaptation.adaptation_id }}/generate_batch`, { method: 'POST', body: form });
+        const result = await res.json();
+        if (result.success) {
+            showToast(`Started batch image generation using ${result.api_type}`, 'info');
+        } else {
+            showToast('Failed to start batch image generation: ' + (result.error || 'Unknown error'), 'error');
+        }
+    } catch (e) {
+        showToast('Error starting batch generation: ' + e.message, 'error');
+    }
+}
+
+// Individual Chapter Image Generation Functions
+async function generateChapterPrompt(chapterId) {
+    try {
+        const response = await fetch(`/images/generate-chapter-prompt/${chapterId}`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'}
+        });
+        
+        const result = await response.json();
+        if (result.success) {
+            document.getElementById(`chapter-prompt-${chapterId}`).value = result.prompt;
+            showToast('Prompt generated successfully!', 'success');
+        } else {
+            showToast('Failed to generate prompt: ' + result.error, 'error');
+        }
+    } catch (error) {
+        showToast('Error generating prompt: ' + error.message, 'error');
+    }
+}
+
+async function generateChapterImage(chapterId) {
+    const prompt = document.getElementById(`chapter-prompt-${chapterId}`).value.trim();
+    if (!prompt) {
+        showToast('Please generate or enter an image prompt first', 'warning');
+        return;
+    }
+    
+    const btn = document.getElementById(`generate-chapter-${chapterId}-btn`);
+    const originalText = btn.innerHTML;
+    
+    try {
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating...';
+        btn.disabled = true;
+        
+        const response = await fetch(`/images/generate-chapter-image/${chapterId}`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({prompt: prompt})
+        });
+        
+        const result = await response.json();
+        if (result.success) {
+            // Update the image container
+            const container = document.getElementById(`chapter-image-container-${chapterId}`);
+            container.innerHTML = `
+                <img src="${result.image_url}" class="img-fluid rounded" alt="Chapter Image">
+                <div class="mt-2 text-center">
+                    <button class="btn btn-sm btn-outline-primary" onclick="regenerateChapterImage(${chapterId})">
+                        <i class="fas fa-redo"></i> Regenerate
+                    </button>
+                    <button class="btn btn-sm btn-outline-danger" onclick="deleteChapterImage(${chapterId})">
+                        <i class="fas fa-trash"></i> Delete
+                    </button>
+                </div>
+            `;
+            showToast('Image generated successfully!', 'success');
+        } else {
+            showToast('Failed to generate image: ' + result.error, 'error');
+        }
+    } catch (error) {
+        showToast('Error generating image: ' + error.message, 'error');
+    } finally {
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+    }
+}
+
+async function regenerateChapterImage(chapterId) {
+    if (confirm('Are you sure you want to regenerate this image? The current image will be replaced.')) {
+        await generateChapterImage(chapterId);
+    }
+}
+
+async function saveChapterPrompt(chapterId) {
+    const prompt = document.getElementById(`chapter-prompt-${chapterId}`).value.trim();
+    
+    try {
+        const response = await fetch(`/images/save-chapter-prompt/${chapterId}`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({prompt: prompt})
+        });
+        
+        const result = await response.json();
+        if (result.success) {
+            showToast('Prompt saved successfully!', 'success');
+        } else {
+            showToast('Failed to save prompt: ' + result.error, 'error');
+        }
+    } catch (error) {
+        showToast('Error saving prompt: ' + error.message, 'error');
+    }
+}
+
+async function skipChapterImage(chapterId) {
+    if (confirm('Skip image generation for this chapter?')) {
+        try {
+            const response = await fetch(`/images/skip-chapter-image/${chapterId}`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'}
+            });
+            
+            const result = await response.json();
+            if (result.success) {
+                showToast('Chapter image skipped', 'info');
+            }
+        } catch (error) {
+            showToast('Error skipping image: ' + error.message, 'error');
+        }
+    }
+}
+
+async function deleteChapterImage(chapterId) {
+    if (confirm('Are you sure you want to delete this image?')) {
+        try {
+            const response = await fetch(`/images/delete-chapter-image/${chapterId}`, {
+                method: 'DELETE',
+                headers: {'Content-Type': 'application/json'}
+            });
+            
+            const result = await response.json();
+            if (result.success) {
+                // Reset the image container
+                const container = document.getElementById(`chapter-image-container-${chapterId}`);
+                container.innerHTML = `
+                    <div class="text-center p-4 border rounded bg-light">
+                        <i class="fas fa-image fa-2x text-muted mb-2"></i>
+                        <p class="text-muted small">No image generated</p>
+                    </div>
+                `;
+                showToast('Image deleted successfully', 'success');
+            } else {
+                showToast('Failed to delete image: ' + result.error, 'error');
+            }
+        } catch (error) {
+            showToast('Error deleting image: ' + error.message, 'error');
+        }
+    }
+}
+
+// Cover Image Functions
+async function generateCoverPrompt() {
+    try {
+        const response = await fetch(`/images/generate-cover-prompt/{{ adaptation.adaptation_id }}`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'}
+        });
+        
+        const result = await response.json();
+        if (result.success) {
+            document.getElementById('cover-prompt').value = result.prompt;
+            showToast('Cover prompt generated successfully!', 'success');
+        } else {
+            showToast('Failed to generate cover prompt: ' + result.error, 'error');
+        }
+    } catch (error) {
+        showToast('Error generating cover prompt: ' + error.message, 'error');
+    }
+}
+
+async function generateCoverImage() {
+    const prompt = document.getElementById('cover-prompt').value.trim();
+    if (!prompt) {
+        showToast('Please generate or enter a cover prompt first', 'warning');
+        return;
+    }
+    
+    const btn = document.getElementById('generate-cover-btn');
+    const originalText = btn.innerHTML;
+    
+    try {
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating...';
+        btn.disabled = true;
+        
+        const response = await fetch(`/images/generate-cover-image/{{ adaptation.adaptation_id }}`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({prompt: prompt})
+        });
+        
+        const result = await response.json();
+        if (result.success) {
+            // Update the cover image container
+            const container = document.getElementById('cover-image-container');
+            container.innerHTML = `
+                <img src="${result.image_url}" class="img-fluid rounded" alt="Book Cover">
+                <div class="mt-2">
+                    <button class="btn btn-sm btn-outline-primary" onclick="regenerateCoverImage()">
+                        <i class="fas fa-redo"></i> Regenerate
+                    </button>
+                </div>
+            `;
+            showToast('Cover image generated successfully!', 'success');
+        } else {
+            showToast('Failed to generate cover image: ' + result.error, 'error');
+        }
+    } catch (error) {
+        showToast('Error generating cover image: ' + error.message, 'error');
+    } finally {
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+    }
+}
+
+// Utility Functions
+function showToast(message, type) {
+    // Simple toast notification
+    const toast = document.createElement('div');
+    toast.className = `alert alert-${type === 'error' ? 'danger' : type} position-fixed`;
+    toast.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
+    toast.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" onclick="this.parentElement.remove()"></button>
+    `;
+    document.body.appendChild(toast);
+    
+    setTimeout(() => {
+        if (toast.parentElement) {
+            toast.remove();
+        }
+    }, 5000);
+}
+</script>
+{% endblock %}

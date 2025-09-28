@@ -1,0 +1,122 @@
+<!-- Import Progress Component -->
+<div class="modal-overlay" id="import-progress-modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>📚 Importing Book</h3>
+        </div>
+        
+        <div class="modal-body">
+            <div class="progress-container">
+                <div class="progress-bar">
+                    <div class="progress-fill" style="width: {{ progress }}%"></div>
+                </div>
+                <div class="progress-text">{{ progress }}%</div>
+            </div>
+            
+            <div class="status-message">
+                {% if status == "starting" %}
+                    🚀 Starting import process...
+                {% elif status == "reading_file" %}
+                    📖 Reading file content...
+                {% elif status == "fetching" %}
+                    🌐 Fetching content from URL...
+                {% elif status == "processing" %}
+                    ⚙️ Processing content...
+                {% elif status == "validating" %}
+                    ✅ Validating content...
+                {% elif status == "saving" %}
+                    💾 Saving to library...
+                {% else %}
+                    📋 Processing...
+                {% endif %}
+            </div>
+            
+            <div class="spinner"></div>
+        </div>
+        
+        <!-- Auto-refresh every 2 seconds -->
+        <div 
+            hx-get="/books/import/status/{{ process_id }}"
+            hx-trigger="every 2s"
+            hx-target="#import-progress-modal"
+            hx-swap="outerHTML"
+        ></div>
+    </div>
+</div>
+
+<style>
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.modal-content {
+    background: white;
+    border-radius: 12px;
+    padding: 2rem;
+    max-width: 400px;
+    width: 90%;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+}
+
+.modal-header h3 {
+    margin: 0 0 1.5rem 0;
+    text-align: center;
+    color: var(--primary-color);
+}
+
+.progress-container {
+    margin-bottom: 1.5rem;
+}
+
+.progress-bar {
+    width: 100%;
+    height: 8px;
+    background: #e0e0e0;
+    border-radius: 4px;
+    overflow: hidden;
+    margin-bottom: 0.5rem;
+}
+
+.progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--primary-color), var(--secondary-color));
+    transition: width 0.3s ease;
+}
+
+.progress-text {
+    text-align: center;
+    font-weight: 600;
+    color: var(--primary-color);
+}
+
+.status-message {
+    text-align: center;
+    margin-bottom: 1.5rem;
+    color: #666;
+    font-size: 0.95rem;
+}
+
+.spinner {
+    width: 40px;
+    height: 40px;
+    border: 4px solid #e0e0e0;
+    border-top: 4px solid var(--primary-color);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin: 0 auto;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+</style>

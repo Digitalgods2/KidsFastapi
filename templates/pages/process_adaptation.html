@@ -1,0 +1,559 @@
+{% extends "layouts/base.html" %}
+
+{% block title %}Process Adaptation - {{ adaptation.title }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h1 class="h3 mb-1">
+                        <i class="fas fa-cogs text-primary me-2"></i>
+                        Processing Adaptation
+                    </h1>
+                    <p class="text-muted mb-0">{{ book.title }} - {{ adaptation.target_age_group }} Adaptation</p>
+                </div>
+                <div>
+                    <a href="/adaptations/" class="btn btn-outline-secondary me-2">
+                        <i class="fas fa-arrow-left me-1"></i>Back to Adaptations
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Processing Steps -->
+    <div class="row">
+        <div class="col-lg-8">
+            <!-- Step 1: Chapter Processing -->
+            <div class="card mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <div class="d-flex align-items-center gap-2">
+                        <h5 class="mb-0">
+                            <i class="fas fa-book-open text-primary me-2"></i>
+                            Step 1: Chapter Processing
+                        </h5>
+                        <span class="badge bg-secondary" id="detector-badge-inline" title="Chapter detector" style="display:none;">detector</span>
+                    </div>
+                    <span class="badge bg-success">{{ 'Completed' if (chapters_count or 0) > 0 else 'Pending' }}</span>
+                </div>
+                <div class="card-body">
+                    <p class="text-muted mb-3">Break down the book into chapters and prepare for transformation.</p>
+                    
+                    <div id="processing-status" class="mb-3">
+                        {% if (chapters_count or 0) > 0 %}
+                        <div class="alert alert-success">
+                            <i class="fas fa-check-circle me-2"></i>
+                            {{ chapters_count }} chapters created successfully!
+                            <a href="/images/adaptation/{{ adaptation.adaptation_id }}/chapters" class="btn btn-sm btn-outline-light ms-2">View chapters</a>
+                        </div>
+                        {% else %}
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle me-2"></i>
+                            No chapters yet. Click Reprocess to create them.
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    {% include 'components/chapters_table.html' %}
+
+                    <button type="button" class="btn btn-primary"
+                            hx-post="/adaptations/{{ adaptation.adaptation_id }}/process_chapters?htmx=true&redirect=false"
+                            hx-target="#chapters_table"
+                            hx-swap="outerHTML"
+                            hx-indicator="#processing-spinner">
+                        <i class="fas fa-redo me-1"></i>Reprocess Chapters
+                    </button>
+                    <script>
+                    (function(){
+                      // HTMX error handler for 429 cooldown
+                      document.body.addEventListener('htmx:afterRequest', function(evt){
+                        try{
+                          const xhr = evt.detail.xhr;
+                          if (!xhr) return;
+                          if (evt.detail.requestConfig && evt.detail.requestConfig.verb === 'post' && String(evt.detail.requestConfig.path||'').includes('/process_chapters')){
+                            const status = xhr.status;
+                            if (status === 429){
+                              const retry = parseInt(xhr.getResponseHeader('Retry-After')||'0', 10) || 0;
+                              const btn = document.querySelector('[hx-post$="/process_chapters"]');
+                              const slot = document.getElementById('processing-status');
+                              if (btn) btn.disabled = true;
+                              if (slot){
+                                slot.innerHTML = '<div class="alert alert-warning"><i class="bi bi-hourglass"></i> Please wait <span id="cooldown-seconds">'+retry+'</span>s before starting another run.</div>';
+                              }
+                              let remaining = retry;
+                              const iv = setInterval(function(){
+                                remaining -= 1;
+                                const el = document.getElementById('cooldown-seconds');
+                                if (el) el.textContent = Math.max(0, remaining);
+                                if (remaining <= 0){
+                                  clearInterval(iv);
+                                  if (btn) btn.disabled = false;
+                                }
+                              }, 1000);
+                            }
+                          }
+                        }catch(e){}
+                      });
+                    })();
+                    </script>
+                    <div id="processing-spinner" class="mt-2" style="display:none;">
+                        <div class="spinner-border text-primary spinner-border-sm" role="status">
+                          <span class="visually-hidden">Processing...</span>
+                        </div>
+                        <span class="text-muted ms-2">Processing...</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 2: Image Generation -->
+            <div class="card mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="fas fa-images text-warning me-2"></i>
+                        Step 2: Image Generation
+                    </h5>
+                    <span class="badge bg-warning">Ready</span>
+                </div>
+                <div class="card-body">
+                    <p class="text-muted mb-3">Generate AI-powered illustrations for each chapter using DALL-E or other models.</p>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <div class="d-flex align-items-center">
+                                <i class="fas fa-image text-muted me-2"></i>
+                                <span id="images-progress-text">0 of 0 images generated</span>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="progress" style="height: 6px;">
+                                <div id="images-progress-bar" class="progress-bar bg-warning" role="progressbar" style="width: 0%"></div>
+                            </div>
+                            <script>
+                              (function(){
+                                const pctLabel = document.getElementById('images-progress-pct');
+                                const textLabel = document.getElementById('images-progress-text');
+                                const bar = document.getElementById('images-progress-bar');
+                                const originalUpdate = (window.__updateImagesUI__ || function(){});
+                                window.__updateImagesUI__ = function(s){
+                                  try{
+                                    const total = s.chapters_total ?? s.total_chapters ?? 0;
+                                    const done = s.images_done ?? s.chapters_with_images ?? 0;
+                                    const pct = total ? Math.max(0, Math.min(100, Math.round(100*done/total))) : 0;
+                                    if (pctLabel) pctLabel.textContent = pct + '%';
+                                    if (textLabel) textLabel.textContent = `${done} of ${total} images generated`;
+                                    if (bar) bar.style.width = pct + '%';
+                                  }catch(e){}
+                                  try{ originalUpdate(s); }catch(e){}
+                                };
+                              })();
+                            </script>
+                        </div>
+                    </div>
+
+                    <div class="d-flex gap-2">
+                        <a href="/images/adaptation/{{ adaptation.adaptation_id }}/chapters" class="btn btn-primary">
+                            <i class="fas fa-images me-1"></i>Manage Chapter Images
+                        </a>
+                        <a href="/images/adaptation/{{ adaptation.adaptation_id }}/status" class="btn btn-outline-primary">
+                            <i class="fas fa-chart-bar me-1"></i>Image Status
+                        </a>
+                    </div>
+                </div>
+                </div>
+            </div>
+
+            <!-- Normalization Summary (CHAP-MAP) -->
+            <div class="card mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                        <div class="mb-2">
+                            <span class="badge bg-secondary" id="detector-badge" title="Chapter detector">Detector: -</span>
+                        </div>
+
+                    <h5 class="mb-0">
+                        <i class="fas fa-diagram-project text-secondary me-2"></i>
+                        Normalization Summary
+                    </h5>
+                    <a class="small text-decoration-none" id="chapter-map-link" href="#" target="_blank" rel="noopener">Open details</a>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="d-flex align-items-center">
+                                <i class="fas fa-magnifying-glass text-muted me-2"></i>
+                                <span id="nm-detected">Detected: -</span>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="d-flex align-items-center">
+                                <i class="fas fa-bullseye text-muted me-2"></i>
+                                <span id="nm-target">Target: -</span>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="d-flex align-items-center">
+                                <i class="fas fa-list-check text-muted me-2"></i>
+                                <span id="nm-ops">Operations: -</span>
+                            </div>
+                        </div>
+                    </div>
+
+                        <div class="mt-3">
+                          <div class="d-flex justify-content-between align-items-center mb-2">
+                            <div>
+                              <span class="small text-muted">Operations total: <span id="ops-total">-</span></span>
+                              <span class="small text-muted ms-3">Final map total: <span id="map-total">-</span></span>
+                            </div>
+                            <div class="btn-group btn-group-sm" role="group" aria-label="CHAP-MAP pagination">
+                              <button class="btn btn-outline-secondary" id="chap-prev" disabled>Prev</button>
+                              <button class="btn btn-outline-secondary" id="chap-next" disabled>Next</button>
+                            </div>
+                          </div>
+                          <div class="table-responsive">
+                            <table class="table table-sm table-striped mb-0">
+                              <thead>
+                                <tr>
+                                  <th class="text-muted">#</th>
+                                  <th class="text-muted">Operation</th>
+                                  <th class="text-muted">Final Map</th>
+                                </tr>
+                              </thead>
+                              <tbody id="chapmap-page-body">
+                                <tr><td colspan="3" class="text-muted">No data</td></tr>
+                              </tbody>
+                            </table>
+                          </div>
+                        </div>
+
+                    <small class="text-muted" id="nm-status">Last run: -</small>
+
+                    <div class="mt-3">
+                        <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#chapmap-sample" aria-expanded="false" aria-controls="chapmap-sample">
+                            Show CHAP-MAP sample
+                        </button>
+                        <div class="collapse mt-2" id="chapmap-sample">
+                            <pre class="small mb-0" id="chapmap-sample-pre">No data</pre>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            </div>
+
+            <!-- Step 3: Text Transformation -->
+            <div class="card mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="fas fa-edit text-info me-2"></i>
+                        Step 3: Text Transformation
+                    </h5>
+                    <span class="badge bg-secondary">Pending</span>
+                </div>
+                <div class="card-body">
+                    <p class="text-muted mb-3">Transform the original text to be appropriate for the target age group.</p>
+                    
+                    <button class="btn btn-info" disabled>
+                        <i class="fas fa-wand-magic-sparkles me-1"></i>Transform Text
+                    </button>
+                    <small class="text-muted ms-2">Complete image generation first</small>
+                </div>
+            </div>
+
+            <!-- Step 4: Review & Edit -->
+            <div class="card mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="fas fa-pen-to-square text-success me-2"></i>
+                        Step 4: Review & Edit
+                    </h5>
+                    <span class="badge bg-secondary">Pending</span>
+                </div>
+                <div class="card-body">
+                    <p class="text-muted mb-3">Review and edit the generated content and images.</p>
+                    
+                    <button class="btn btn-success" disabled>
+                        <i class="fas fa-eye me-1"></i>Review Content
+                    </button>
+                    <small class="text-muted ms-2">Complete text transformation first</small>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sidebar -->
+        <div class="col-lg-4">
+            <!-- Adaptation Details -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h6 class="mb-0">Adaptation Details</h6>
+                </div>
+                <div class="card-body">
+                    <div class="mb-2">
+                        <strong>Book:</strong> {{ book.title }}
+                    </div>
+                    <div class="mb-2">
+                        <strong>Author:</strong> {{ book.author }}
+                    </div>
+                    <div class="mb-2">
+                        <strong>Age Group:</strong> {{ adaptation.target_age_group }}
+                    </div>
+                    <div class="mb-2">
+                        <strong>Style:</strong> {{ adaptation.transformation_style }}
+                    </div>
+                    <div class="mb-2">
+                        <strong>Status:</strong> 
+                        <span class="badge bg-primary" id="overall-stage-badge">{{ adaptation.status|title }}</span>
+                    </div>
+                    <div class="mb-0">
+                        <strong>Chapters:</strong> {{ chapters_count or 0 }}
+                    </div>
+                </div>
+                    <div class="mb-0">
+                        <strong>Curated Characters:</strong> {{ curated_count or 0 }}
+                            <div class="small text-muted" id="stage-detail-text">-</div>
+
+                    </div>
+
+            </div>
+
+            <!-- Progress Overview -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h6 class="mb-0">Progress Overview</h6>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between mb-1">
+                            <span class="small">Chapter Processing</span>
+                            <span class="small">100%</span>
+                        </div>
+                        <div class="progress" style="height: 6px;">
+                            <div class="progress-bar bg-success" style="width: 100%"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <span class="small">Image Generation</span>
+                            <span class="small" id="images-progress-pct">0%</span>
+                        </div>
+                        <div class="progress" style="height: 6px;">
+                            <div class="progress-bar bg-warning" style="width: 0%"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between mb-1">
+                            <span class="small">Text Transformation</span>
+                            <span class="small">0%</span>
+                        </div>
+                        <div class="progress" style="height: 6px;">
+                            <div class="progress-bar bg-info" style="width: 0%"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-0">
+                        <div class="d-flex justify-content-between mb-1">
+                            <span class="small">Overall Progress</span>
+                            <span class="small">25%</span>
+                        </div>
+                        <div class="progress" style="height: 8px;">
+                            <div class="progress-bar bg-primary" style="width: 25%"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="mb-0">Quick Actions</h6>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <a href="/images/{{ adaptation.adaptation_id }}/images" class="btn btn-outline-primary btn-sm">
+                            <i class="fas fa-images me-1"></i>Manage Images
+                        </a>
+                        <button class="btn btn-outline-secondary btn-sm" disabled>
+                            <i class="fas fa-file-export me-1"></i>Export Preview
+                        </button>
+                        <button class="btn btn-outline-info btn-sm" disabled>
+                            <i class="fas fa-cog me-1"></i>Settings
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+<script>
+(function(){
+  const adaptationId = {{ adaptation.adaptation_id }};
+  let latestTs = 0; let latestRun = null;
+  function updateUI(s){
+    try {
+      const total = s.chapters_total ?? s.total_chapters ?? 0;
+      const imagesDone = s.images_done ?? s.chapters_with_images ?? 0;
+      const pct = Math.max(0, Math.min(100, s.completion_pct ?? s.completion_percentage ?? (total? Math.round(100*imagesDone/total):0)));
+      const bar = document.getElementById('images-progress-bar');
+      if (bar) bar.style.width = pct + '%';
+
+	      const pctLabel = document.getElementById('images-progress-pct');
+	      if (pctLabel) pctLabel.textContent = pct + '%';
+	      const stageDetail = document.getElementById('stage-detail-text');
+	      if (stageDetail) stageDetail.textContent = s.stage_detail || '-';
+	      const db1 = document.getElementById('detector-badge');
+	      const db2 = document.getElementById('detector-badge-inline');
+	      const det = (s.detector || (s.last_run && s.last_run.detector) || '').toString();
+	      if (det && (db1 || db2)){
+	        const label = det.replace(/_/g, ' ');
+	        if (db1){ db1.textContent = `Detector: ${label}`; db1.style.display = ''; }
+	        if (db2){ db2.textContent = label; db2.style.display = ''; }
+	      }
+
+      const badge = document.getElementById('overall-stage-badge');
+      // Handle failure banner from status
+      try{
+        const err = s.last_error || (s.last_run && s.last_run.error);
+        if (err && s.stage === 'failed'){
+          const slot = document.getElementById('processing-status');
+          if (slot) slot.innerHTML = `<div class="alert alert-danger"><i class=\"fas fa-triangle-exclamation me-2\"></i>${err}</div>`;
+
+	  // CHAP-MAP pagination state + rendering
+	  let pg = { offset: 0, limit: 50, totalOps: 0, totalMap: 0 };
+	  function renderPageRows(ops, fm, offset){
+	    const tbody = document.getElementById('chapmap-page-body');
+	    if (!tbody) return;
+	    if ((!ops || !ops.length) && (!fm || !fm.length)){
+	      tbody.innerHTML = '<tr><td colspan="3" class="text-muted">No data</td></tr>';
+	      return;
+	    }
+	    const rows = [];
+	    const n = Math.max(ops?.length||0, fm?.length||0);
+	    for (let i=0;i<n;i++){
+	      const op = ops && ops[i];
+	      const map = fm && fm[i];
+	      const idx = offset + i + 1;
+	      rows.push(`<tr>
+	        <td class="text-muted">${idx}</td>
+	        <td><pre class="small mb-0">${op? JSON.stringify(op): ''}</pre></td>
+	        <td><pre class="small mb-0">${map? JSON.stringify(map): ''}</pre></td>
+	      </tr>`);
+	    }
+	    tbody.innerHTML = rows.join('');
+	  }
+	  function updatePagerUI(){
+	    const opsT = document.getElementById('ops-total');
+	    const mapT = document.getElementById('map-total');
+	    if (opsT) opsT.textContent = String(pg.totalOps);
+	    if (mapT) mapT.textContent = String(pg.totalMap);
+	    const prev = document.getElementById('chap-prev');
+	    const next = document.getElementById('chap-next');
+	    if (prev) prev.disabled = pg.offset <= 0;
+	    const maxTotal = Math.max(pg.totalOps||0, pg.totalMap||0);
+	    if (next) next.disabled = (pg.offset + pg.limit) >= maxTotal;
+	  }
+	  async function loadPageFromURL(){
+	    const url = new URL(window.location.href);
+	    pg.offset = Math.max(0, parseInt(url.searchParams.get('chap_offset')||'0',10)||0);
+	    pg.limit = Math.max(1, Math.min(1000, parseInt(url.searchParams.get('chap_limit')||'50',10)||50));
+	    const resp = await fetch(`/adaptations/${adaptationId}/chapter_map?offset=${pg.offset}&limit=${pg.limit}`, { headers: { 'Accept':'application/json' }});
+	    if (!resp.ok) return;
+	    const data = await resp.json();
+	    pg.totalOps = parseInt(data.operations_total||0,10)||0;
+	    pg.totalMap = parseInt(data.final_map_total||0,10)||0;
+	    renderPageRows(data.operations||[], data.final_map||[], data.offset||0);
+	    updatePagerUI();
+	  }
+	  function setURL(offset, limit, replace){
+	    const url = new URL(window.location.href);
+	    url.searchParams.set('chap_offset', String(offset));
+	    url.searchParams.set('chap_limit', String(limit));
+	    if (replace){
+	      history.replaceState({ chap_offset: offset, chap_limit: limit }, '', url);
+	    } else {
+	      history.pushState({ chap_offset: offset, chap_limit: limit }, '', url);
+	    }
+	  }
+	  function attachPagerHandlers(){
+	    const prev = document.getElementById('chap-prev');
+	    const next = document.getElementById('chap-next');
+	    if (prev){ prev.addEventListener('click', async function(){
+	      const newOffset = Math.max(0, pg.offset - pg.limit);
+	      setURL(newOffset, pg.limit, false);
+	      await loadPageFromURL();
+	    }); }
+	    if (next){ next.addEventListener('click', async function(){
+	      const maxTotal = Math.max(pg.totalOps||0, pg.totalMap||0);
+	      const newOffset = Math.min(maxTotal, pg.offset + pg.limit);
+	      setURL(newOffset, pg.limit, false);
+	      await loadPageFromURL();
+	    }); }
+	    window.addEventListener('popstate', async function(){
+	      await loadPageFromURL();
+	    });
+	  }
+	  // Kick off paging init after initial status fetch to avoid race with page load
+	  document.addEventListener('DOMContentLoaded', function(){
+	    attachPagerHandlers();
+	    loadPageFromURL();
+	  });
+
+        } else if (s.stage === 'completed'){
+          const slot = document.getElementById('processing-status');
+          if (slot) slot.innerHTML = `<div class=\"alert alert-success\"><i class=\"fas fa-check-circle me-2\"></i>Chapters ready. <a class=\"btn btn-sm btn-outline-light ms-2\" href=\"/images/adaptation/${adaptationId}/chapters\">View chapters</a></div>`;
+        }
+      }catch(e){}
+
+      if (badge && s.stage){
+        const stage = s.stage;
+        badge.textContent = stage.charAt(0).toUpperCase()+stage.slice(1);
+        badge.className = 'badge ' + (stage==='completed' ? 'bg-success' : stage==='failed' ? 'bg-danger' : 'bg-primary');
+      }
+      if (window.__updateImagesUI__) { window.__updateImagesUI__(s); }
+    } catch(e) { /* noop */ }
+  }
+  async function poll(){
+    try{
+      const r = await fetch(`/adaptations/${adaptationId}/status`, { headers: { 'Accept': 'application/json' }});
+      if (!r.ok) return;
+      const s = await r.json();
+      const ts = Date.parse(s.last_update_ts || s.updated_at || new Date().toISOString());
+      const run = s.run_id || s.batch_id || null;
+      if ((latestRun && run && latestRun!==run) || ts < latestTs) {
+        return; // stale
+      }
+      latestTs = ts; latestRun = run;
+      updateUI(s);
+      // Normalize Summary UI
+      try{
+        const last = s.last_run || {};
+        const det = document.getElementById('nm-detected');
+        const tar = document.getElementById('nm-target');
+        const ops = document.getElementById('nm-ops');
+        const st = document.getElementById('nm-status');
+        const link = document.getElementById('chapter-map-link');
+        if (det) det.textContent = `Detected: ${last.detected_count ?? '-'}`;
+        if (tar) tar.textContent = `Target: ${last.target_count ?? '-'}`;
+        if (ops) ops.textContent = `Operations: ${last.operations_count ?? '-'}`;
+        if (st) st.textContent = `Last run: ${last.status ? last.status.toUpperCase() : '-'}${last.finished_at ? ' at ' + last.finished_at : ''}${last.error ? ' — ' + last.error : ''}`;
+        if (link && last.chapter_map_url) link.href = last.chapter_map_url;
+        // CHAP-MAP sample first 3 entries
+        const pre = document.getElementById('chapmap-sample-pre');
+        if (pre && Array.isArray(last.final_map || []) && last.final_map.length) {
+          const sample = (last.final_map || []).slice(0,3).map(e => `#${e.final_index}: [${(e.source_indices||[]).join(', ')}]`).join('\n');
+          pre.textContent = sample;
+        } else if (pre) {
+          pre.textContent = 'No data';
+        }
+      }catch(e){}
+    }catch(e){/* ignore */}
+    setTimeout(poll, 4000);
+  }
+  document.addEventListener('DOMContentLoaded', poll);
+})();
+</script>
+
+</div>
+{% endblock %}

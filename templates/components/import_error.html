@@ -1,0 +1,116 @@
+<!-- Import Error Component -->
+<div class="modal-overlay" id="import-error-modal">
+    <div class="modal-content error">
+        <div class="modal-header">
+            <h3>❌ Import Failed</h3>
+        </div>
+        
+        <div class="modal-body">
+            <div class="error-icon">⚠️</div>
+            <div class="error-message">
+                <strong>Import Error:</strong><br>
+                {{ error }}
+            </div>
+            
+            <div class="error-suggestions">
+                <h4>💡 Suggestions:</h4>
+                <ul>
+                    <li>Make sure the file is a valid text file (.txt or .md)</li>
+                    <li>Check that the file contains enough content (at least 100 characters)</li>
+                    <li>Verify the URL is accessible and contains text content</li>
+                    <li>Try a different file or URL</li>
+                </ul>
+            </div>
+            
+            <div class="action-buttons">
+                <button 
+                    class="btn btn-primary"
+                    onclick="closeModal()"
+                >
+                    🔄 Try Again
+                </button>
+                
+                <button 
+                    class="btn btn-secondary"
+                    hx-get="/books/library"
+                    hx-target="body"
+                    hx-push-url="true"
+                >
+                    📚 Back to Library
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.modal-content.error {
+    border-top: 4px solid var(--error-color);
+}
+
+.error-icon {
+    font-size: 3rem;
+    text-align: center;
+    margin-bottom: 1rem;
+}
+
+.error-message {
+    text-align: center;
+    margin-bottom: 1.5rem;
+    color: var(--error-color);
+    line-height: 1.5;
+    padding: 1rem;
+    background: #ffeaea;
+    border-radius: 8px;
+    border-left: 4px solid var(--error-color);
+}
+
+.error-suggestions {
+    margin-bottom: 2rem;
+    text-align: left;
+}
+
+.error-suggestions h4 {
+    margin-bottom: 0.5rem;
+    color: #333;
+}
+
+.error-suggestions ul {
+    margin: 0;
+    padding-left: 1.5rem;
+    color: #666;
+}
+
+.error-suggestions li {
+    margin-bottom: 0.5rem;
+    line-height: 1.4;
+}
+
+.action-buttons {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+}
+
+.action-buttons .btn {
+    flex: 1;
+    max-width: 150px;
+}
+</style>
+
+<script>
+function closeModal() {
+    const modal = document.getElementById('import-error-modal');
+    if (modal) {
+        modal.style.opacity = '0';
+        setTimeout(() => {
+            modal.remove();
+        }, 300);
+    }
+}
+
+// Auto-close modal after 10 seconds
+setTimeout(() => {
+    closeModal();
+}, 10000);
+</script>

@@ -1,0 +1,432 @@
+{% extends "layouts/base.html" %}
+
+{% block title %}Create Adaptation - KidsKlassiks{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <h1 class="display-4 mb-3">
+                <i class="bi bi-magic"></i> Create New Adaptation
+            </h1>
+            <p class="text-muted lead">Transform a classic book into an age-appropriate children's story</p>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-8 mx-auto">
+            <form hx-post="/adaptations/create" 
+                  hx-trigger="submit" 
+                  hx-target="#adaptation-response"
+                  id="adaptation-form">
+                
+                <!-- Step 1: Select Book -->
+                <div class="card border-0 shadow-sm mb-4">
+                    <div class="card-header bg-white border-bottom-0 pt-4 pb-3">
+                        <h4 class="mb-0">
+                            <span class="badge bg-primary rounded-circle me-2">1</span>
+                            Select Book
+                        </h4>
+                    </div>
+                    <div class="card-body">
+                        {% if selected_book %}
+                            <div class="alert alert-info">
+                                <strong>Selected Book:</strong> {{ selected_book.title }} by {{ selected_book.author }}
+                                <input type="hidden" name="book_id" id="book_id" value="{{ selected_book.book_id }}">
+                                <input type="hidden" id="book_word_count" value="{{ selected_book.word_count|default(0) }}">
+                                <input type="hidden" id="original_chapters" value="{{ selected_book.chapter_count|default(0) }}">
+                            </div>
+                        {% else %}
+                            <div class="mb-3">
+                                <label for="book_id" class="form-label">Choose a book to adapt <span class="text-danger">*</span></label>
+                                <select class="form-select" id="book_id" name="book_id" required 
+                                        onchange="loadBookInfo(this.value)">
+                                    <option value="">-- Select a book --</option>
+                                    {% for book in books %}
+                                    <option value="{{ book.book_id }}" 
+                                            data-word-count="{{ book.word_count|default(0) }}"
+                                            data-chapters="{{ book.chapter_count|default(0) }}">
+                                        {{ book.title }} by {{ book.author }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            {% if not books %}
+                            <div class="alert alert-warning">
+                                No books available. Please <a href="/books/import">import a book</a> first.
+                            </div>
+                            {% endif %}
+                        {% endif %}
+                        
+                        <!-- Book Info Display -->
+                        <div id="book-info" class="mt-3" style="display:none;">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <small class="text-muted">Total Word Count</small>
+                                    <p class="mb-0 fw-bold" id="display-word-count">-</p>
+                                </div>
+                                <div class="col-md-6">
+                                    <small class="text-muted">Original Chapters</small>
+                                    <p class="mb-0 fw-bold" id="display-chapters">-</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Step 2: Target Audience -->
+                <div class="card border-0 shadow-sm mb-4">
+                    <div class="card-header bg-white border-bottom-0 pt-4 pb-3">
+                        <h4 class="mb-0">
+                            <span class="badge bg-primary rounded-circle me-2">2</span>
+                            Target Audience
+                        </h4>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label class="form-label">Select Age Group <span class="text-danger">*</span></label>
+                            <div class="row g-3">
+                                <div class="col-md-4">
+                                    <div class="form-check card p-3">
+                                        <input class="form-check-input" type="radio" name="target_age_group" 
+                                               id="age-3-5" value="3-5" data-words-per-chapter="500"
+                                               onchange="updateChapterEstimate()">
+                                        <label class="form-check-label" for="age-3-5">
+                                            <strong>Ages 3-5</strong>
+                                            <small class="d-block text-muted">Simple words, short sentences</small>
+                                            <small class="d-block text-primary">~500 words per chapter</small>
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="form-check card p-3">
+                                        <input class="form-check-input" type="radio" name="target_age_group" 
+                                               id="age-6-8" value="6-8" data-words-per-chapter="1500" checked
+                                               onchange="updateChapterEstimate()">
+                                        <label class="form-check-label" for="age-6-8">
+                                            <strong>Ages 6-8</strong>
+                                            <small class="d-block text-muted">Growing vocabulary</small>
+                                            <small class="d-block text-primary">~1500 words per chapter</small>
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="form-check card p-3">
+                                        <input class="form-check-input" type="radio" name="target_age_group" 
+                                               id="age-9-12" value="9-12" data-words-per-chapter="2500"
+                                               onchange="updateChapterEstimate()">
+                                        <label class="form-check-label" for="age-9-12">
+                                            <strong>Ages 9-12</strong>
+                                            <small class="d-block text-muted">Complex stories</small>
+                                            <small class="d-block text-primary">~2500 words per chapter</small>
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Step 3: Transformation Style -->
+                <div class="card border-0 shadow-sm mb-4">
+                    <div class="card-header bg-white border-bottom-0 pt-4 pb-3">
+                        <h4 class="mb-0">
+                            <span class="badge bg-primary rounded-circle me-2">3</span>
+                            Transformation Style
+                        </h4>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label for="transformation_style" class="form-label">Choose Style <span class="text-danger">*</span></label>
+                            <select class="form-select" id="transformation_style" name="transformation_style" required>
+                                <option value="Simple & Direct">Simple & Direct - Clear, straightforward storytelling</option>
+                                <option value="Playful & Whimsical">Playful & Whimsical - Fun and imaginative</option>
+                                <option value="Adventurous & Exciting">Adventurous & Exciting - Action-packed</option>
+                                <option value="Gentle & Poetic">Gentle & Poetic - Soft, lyrical prose</option>
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="overall_theme_tone" class="form-label">Theme/Tone <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="overall_theme_tone" name="overall_theme_tone" 
+                                   placeholder="e.g., Friendship and bravery, lighthearted" required
+                                   value="Friendship and bravery, lighthearted">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Step 4: Chapter Structure -->
+                <div class="card border-0 shadow-sm mb-4">
+                    <div class="card-header bg-white border-bottom-0 pt-4 pb-3">
+                        <h4 class="mb-0">
+                            <span class="badge bg-primary rounded-circle me-2">4</span>
+                            Chapter Structure
+                        </h4>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label class="form-label">How should chapters be organized?</label>
+                            
+                            <div class="form-check mb-3">
+                                <input class="form-check-input" type="radio" name="chapter_structure_choice" 
+                                       id="auto-segment" value="auto_wordcount" checked
+                                       onchange="updateChapterInfo()">
+                                <label class="form-check-label" for="auto-segment">
+                                    <strong>Auto-segment by word count</strong>
+                                    <small class="d-block text-muted">Create age-appropriate chapter lengths automatically</small>
+                                    <div id="auto-segment-info" class="alert alert-light mt-2">
+                                        <small>
+                                            <i class="bi bi-info-circle"></i>
+                                            <span id="estimated-chapters">Estimated chapters will be calculated based on selected age group</span>
+                                        </small>
+                                    </div>
+                                </label>
+                            </div>
+                            
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="chapter_structure_choice" 
+                                       id="keep-original" value="keep_original"
+                                       onchange="updateChapterInfo()">
+                                <label class="form-check-label" for="keep-original">
+                                    <strong>Keep original chapter structure</strong>
+                                    <small class="d-block text-muted">Preserve the author's chapter divisions</small>
+                                    <div id="original-structure-info" class="alert alert-info mt-2" style="display:none;">
+                                        <i class="bi bi-book"></i>
+                                        <span id="original-chapter-count">📖 This book has <span id="display-chapters">24 original chapters</span> that will be preserved in the adaptation.</span>
+                                    </div>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Step 5: Character Preservation -->
+                <div class="card border-0 shadow-sm mb-4">
+                    <div class="card-header bg-white border-bottom-0 pt-4 pb-3">
+                        <h4 class="mb-0">
+                            <span class="badge bg-primary rounded-circle me-2">5</span>
+                            Character Preservation
+                        </h4>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label for="key_characters_to_preserve" class="form-label">
+                                Key Characters to Preserve
+                                <small class="text-muted">(Major and minor characters - comma separated)</small>
+                            </label>
+                            
+                            <div class="input-group mb-2">
+                                <textarea class="form-control" id="key_characters_to_preserve" name="key_characters_to_preserve" 
+                                          rows="3" placeholder="e.g., Dorothy, Tin Man, Scarecrow, Cowardly Lion, Wicked Witch of the West, Glinda, Toto, Wizard of Oz"></textarea>
+                                <button type="button" class="btn btn-outline-primary" id="analyze-characters-btn" 
+                                        onclick="analyzeCharacters()" {% if not books %}disabled{% endif %}>
+                                    <i class="bi bi-cpu"></i> Analyze Characters
+                                </button>
+                            </div>
+                            <div class="form-text">
+                                Click "Analyze Characters" to use AI to automatically extract all major and minor characters from the selected book, 
+                                or manually enter the characters you want to preserve.
+                            </div>
+                            
+                            <!-- Analysis Progress -->
+                            <div id="character-analysis-progress" class="alert alert-info mt-2" style="display:none;">
+                                <div class="spinner-border spinner-border-sm me-2" role="status"></div>
+                                Analyzing book to extract characters... This may take a moment.
+                            </div>
+                            
+                            <!-- Analysis Results -->
+                            <div id="character-analysis-results" class="alert alert-success mt-2" style="display:none;">
+                                <i class="bi bi-check-circle me-1"></i>
+                                <span id="character-count"></span> characters found and added
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Response Area -->
+                <div id="adaptation-response"></div>
+
+                <!-- Submit Button -->
+                <div class="d-grid">
+                    <button type="submit" class="btn btn-primary btn-lg" {% if not books %}disabled{% endif %}>
+                        <i class="bi bi-rocket-takeoff"></i> Create Adaptation
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+// Load book information when selected
+function loadBookInfo(bookId) {
+    if (!bookId) {
+        document.getElementById('book-info').style.display = 'none';
+        return;
+    }
+    
+    // Get selected option
+    const select = document.getElementById('book_id');
+    const option = select.options[select.selectedIndex];
+    const wordCount = option.getAttribute('data-word-count') || 0;
+    const chapters = option.getAttribute('data-chapters') || 0;
+    
+    // Display book info
+    document.getElementById('display-word-count').textContent = parseInt(wordCount).toLocaleString() + ' words';
+    document.getElementById('display-chapters').textContent = chapters > 0 ? chapters + ' chapters' : 'No chapter divisions detected';
+    document.getElementById('book-info').style.display = 'block';
+    
+    // Store for calculations - create hidden inputs if they don't exist
+    let wordCountInput = document.getElementById('book_word_count');
+    if (!wordCountInput) {
+        wordCountInput = document.createElement('input');
+        wordCountInput.type = 'hidden';
+        wordCountInput.id = 'book_word_count';
+        wordCountInput.name = 'book_word_count';
+        document.getElementById('adaptation-form').appendChild(wordCountInput);
+    }
+    wordCountInput.value = wordCount;
+    
+    let chaptersInput = document.getElementById('original_chapters');
+    if (!chaptersInput) {
+        chaptersInput = document.createElement('input');
+        chaptersInput.type = 'hidden';
+        chaptersInput.id = 'original_chapters';
+        chaptersInput.name = 'original_chapters';
+        document.getElementById('adaptation-form').appendChild(chaptersInput);
+    }
+    chaptersInput.value = chapters;
+    
+    // Update estimates
+    updateChapterEstimate();
+    updateChapterInfo();
+}
+
+// Update chapter estimate based on age group
+function updateChapterEstimate() {
+    const wordCount = parseInt(document.getElementById('book_word_count')?.value || 0);
+    if (wordCount === 0) return;
+    
+    const selectedAge = document.querySelector('input[name="target_age_group"]:checked');
+    if (!selectedAge) return;
+    
+    const wordsPerChapter = parseInt(selectedAge.getAttribute('data-words-per-chapter'));
+    const estimatedChapters = Math.ceil(wordCount / wordsPerChapter);
+    
+    const infoText = `Based on ${wordsPerChapter.toLocaleString()} words per chapter for ${selectedAge.value} age group, 
+                      this book will be divided into approximately ${estimatedChapters} chapters.`;
+    
+    document.getElementById('estimated-chapters').innerHTML = `<i class="bi bi-calculator"></i> ${infoText}`;
+}
+
+// Update chapter structure information
+function updateChapterInfo() {
+    const autoSegment = document.getElementById('auto-segment').checked;
+    const originalChapters = parseInt(document.getElementById('original_chapters')?.value || 0);
+    
+    document.getElementById('auto-segment-info').style.display = autoSegment ? 'block' : 'none';
+    document.getElementById('original-structure-info').style.display = !autoSegment ? 'block' : 'none';
+    
+    if (!autoSegment && originalChapters > 0) {
+        document.getElementById('original-chapter-count').innerHTML = 
+            `<i class="bi bi-book"></i> This book has ${originalChapters} original chapters that will be preserved in the adaptation.`;
+    } else if (!autoSegment) {
+        document.getElementById('original-chapter-count').innerHTML = 
+            `<i class="bi bi-exclamation-circle"></i> No chapter divisions detected in the original text. Consider using auto-segment instead.`;
+    }
+    
+    if (autoSegment) {
+        updateChapterEstimate();
+    }
+}
+
+// Analyze characters using AI
+function analyzeCharacters() {
+    // Get book ID from dropdown (works for both pre-selected and dropdown selection)
+    const bookSelect = document.getElementById('book_id');
+    let bookId = null;
+    
+    if (bookSelect && bookSelect.value && bookSelect.value !== '') {
+        bookId = bookSelect.value;
+    }
+    
+    if (!bookId || bookId === '' || bookId === '0') {
+        alert('Please select a book first');
+        return;
+    }
+    
+    // Validate that book ID is a valid number
+    if (isNaN(bookId) || parseInt(bookId) <= 0) {
+        alert('Invalid book selected. Please select a valid book from the dropdown.');
+        return;
+    }
+    
+    // Show detailed progress
+    document.getElementById('character-analysis-progress').style.display = 'block';
+    document.getElementById('character-analysis-results').style.display = 'none';
+    document.getElementById('analyze-characters-btn').disabled = true;
+    
+    // Update progress message with more detail
+    document.getElementById('character-analysis-progress').innerHTML = `
+        <div class="spinner-border spinner-border-sm me-2" role="status"></div>
+        <strong>Analyzing book comprehensively...</strong><br>
+        <small>Scanning beginning, middle, and end sections to find ALL characters.<br>
+        This thorough analysis may take 30-60 seconds.</small>
+    `;
+    
+    // Make AJAX call to analyze characters
+    fetch('/books/analyze-characters', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: `book_id=${bookId}`
+    })
+    .then(response => response.json())
+    .then(data => {
+        document.getElementById('character-analysis-progress').style.display = 'none';
+        
+        if (data.success && data.characters) {
+            // Add characters to textarea
+            document.getElementById('key_characters_to_preserve').value = data.characters.join(', ');
+            
+            // Show detailed results
+            document.getElementById('character-analysis-results').innerHTML = `
+                <i class="bi bi-check-circle me-1"></i>
+                <strong>Analysis Complete!</strong><br>
+                <strong>${data.characters.length}</strong> characters found<br>
+                <small>Book has <strong>${data.chapter_count || 0}</strong> chapters detected</small>
+            `;
+            document.getElementById('character-analysis-results').style.display = 'block';
+            
+            // Update chapter info if available
+            if (data.chapter_count > 0) {
+                document.getElementById('original_chapters').value = data.chapter_count;
+                document.getElementById('display-chapters').textContent = data.chapter_count + ' chapters';
+                updateChapterInfo();
+            }
+        } else {
+            alert(data.message || 'Failed to analyze characters. Please try again or enter manually.');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error analyzing characters. Please enter them manually.');
+        document.getElementById('character-analysis-progress').style.display = 'none';
+    })
+    .finally(() => {
+        document.getElementById('analyze-characters-btn').disabled = false;
+    });
+}
+
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', function() {
+    // If a book is pre-selected
+    const bookId = document.getElementById('book_id')?.value;
+    if (bookId) {
+        loadBookInfo(bookId);
+    }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,491 @@
+{% extends "layouts/base.html" %}
+
+{% block title %}Import Book - KidsKlassiks{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <h1 class="display-4 mb-3">
+                <i class="bi bi-upload"></i> Import New Book
+            </h1>
+            <p class="text-muted lead">Upload a text file or fetch content from a URL to begin transforming classic literature</p>
+        </div>
+    </div>
+
+    <!-- Import Methods -->
+    <div class="row">
+        <div class="col-lg-8 mx-auto">
+            <!-- Import Method Tabs -->
+            <ul class="nav nav-tabs mb-4" id="importTabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="upload-tab" data-bs-toggle="tab" data-bs-target="#upload" type="button" role="tab">
+                        <i class="bi bi-file-earmark-arrow-up"></i> Upload File
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="url-tab" data-bs-toggle="tab" data-bs-target="#url" type="button" role="tab">
+                        <i class="bi bi-globe"></i> Fetch from URL
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="gutenberg-tab" data-bs-toggle="tab" data-bs-target="#gutenberg" type="button" role="tab">
+                        <i class="bi bi-book"></i> Project Gutenberg
+                    </button>
+                </li>
+            </ul>
+
+            <!-- Tab Content -->
+            <div class="tab-content" id="importTabContent">
+                <!-- Upload File Tab -->
+                <div class="tab-pane fade show active" id="upload" role="tabpanel">
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-body p-4">
+                            <form id="upload-form"
+                                  hx-post="/books/import/file" 
+                                  hx-trigger="submit" 
+                                  hx-target="#import-response"
+                                  hx-encoding="multipart/form-data"
+                                  hx-swap="innerHTML">
+                                
+                                <!-- Book Details -->
+                                <div class="row mb-4">
+                                    <div class="col-md-6">
+                                        <label for="upload-title" class="form-label">Book Title <span class="text-danger">*</span></label>
+                                        <input type="text" class="form-control" id="upload-title" name="title" required 
+                                               placeholder="Enter book title">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label for="upload-author" class="form-label">Author</label>
+                                        <input type="text" class="form-control" id="upload-author" name="author" 
+                                               placeholder="Enter author name (optional)">
+                                    </div>
+                                </div>
+
+                                <!-- File Upload Area -->
+                                <div class="mb-4">
+                                    <label for="file-upload" class="form-label">Select Text File <span class="text-danger">*</span></label>
+                                    <div class="file-upload-area" id="fileUploadArea">
+                                        <input type="file" class="form-control d-none" id="file-upload" name="file" 
+                                               accept=".txt,.md" required onchange="updateFileName(this)">
+                                        <label for="file-upload" class="d-block text-center cursor-pointer">
+                                            <i class="bi bi-cloud-arrow-up fs-1 text-primary mb-3 d-block"></i>
+                                            <p class="mb-2">Click to upload or drag and drop</p>
+                                            <p class="text-muted small">Supported formats: .txt, .md</p>
+                                            <p class="text-primary" id="selectedFileName"></p>
+                                        </label>
+                                    </div>
+                                </div>
+
+                                <!-- Submit Button -->
+                                <button type="submit" class="btn btn-primary btn-lg w-100" id="upload-submit">
+                                    <i class="bi bi-upload"></i> Import Book
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- URL Tab -->
+                <div class="tab-pane fade" id="url" role="tabpanel">
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-body p-4">
+                            <form id="url-form"
+                                  hx-post="/books/import/url" 
+                                  hx-trigger="submit" 
+                                  hx-target="#import-response"
+                                  hx-swap="innerHTML">
+                                
+                                <!-- Book Details -->
+                                <div class="row mb-4">
+                                    <div class="col-md-6">
+                                        <label for="url-title" class="form-label">Book Title <span class="text-danger">*</span></label>
+                                        <input type="text" class="form-control" id="url-title" name="title" required 
+                                               placeholder="Enter book title">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label for="url-author" class="form-label">Author</label>
+                                        <input type="text" class="form-control" id="url-author" name="author" 
+                                               placeholder="Enter author name (optional)">
+                                    </div>
+                                </div>
+
+                                <!-- URL Input -->
+                                <div class="mb-4">
+                                    <label for="book-url" class="form-label">Book URL <span class="text-danger">*</span></label>
+                                    <div class="input-group">
+                                        <span class="input-group-text"><i class="bi bi-link-45deg"></i></span>
+                                        <input type="url" class="form-control" id="book-url" name="url" required 
+                                               placeholder="https://www.gutenberg.org/files/...">
+                                    </div>
+                                    <div class="form-text">Enter the direct URL to a text file (e.g., from Project Gutenberg)</div>
+                                </div>
+
+                                <!-- Submit Button -->
+                                <button type="submit" class="btn btn-primary btn-lg w-100" id="url-submit">
+                                    <i class="bi bi-download"></i> Fetch and Import
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Project Gutenberg Tab -->
+                <div class="tab-pane fade" id="gutenberg" role="tabpanel">
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-body p-4">
+                            <h5 class="card-title mb-3">Popular Classic Books</h5>
+                            
+                            <!-- Search Bar -->
+                            <div class="mb-4">
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="bi bi-search"></i></span>
+                                    <input type="text" class="form-control" id="gutenberg-search" 
+                                           placeholder="Search for a book..." onkeyup="filterBooks(this.value)">
+                                </div>
+                            </div>
+
+                            <!-- Popular Books Grid -->
+                            <div class="row g-3" id="gutenberg-books">
+                                <div class="col-md-6 book-item">
+                                    <div class="card h-100 book-card">
+                                        <div class="card-body">
+                                            <h6 class="card-title">Alice's Adventures in Wonderland</h6>
+                                            <p class="card-text small text-muted">by Lewis Carroll</p>
+                                            <button class="btn btn-sm btn-outline-primary" 
+                                                    onclick="importGutenbergBook('Alice\\'s Adventures in Wonderland', 'Lewis Carroll', 'https://www.gutenberg.org/files/11/11-0.txt')">
+                                                <i class="bi bi-download"></i> Import
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="col-md-6 book-item">
+                                    <div class="card h-100 book-card">
+                                        <div class="card-body">
+                                            <h6 class="card-title">The Wonderful Wizard of Oz</h6>
+                                            <p class="card-text small text-muted">by L. Frank Baum</p>
+                                            <button class="btn btn-sm btn-outline-primary" 
+                                                    onclick="importGutenbergBook('The Wonderful Wizard of Oz', 'L. Frank Baum', 'https://www.gutenberg.org/files/55/55-0.txt')">
+                                                <i class="bi bi-download"></i> Import
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="col-md-6 book-item">
+                                    <div class="card h-100 book-card">
+                                        <div class="card-body">
+                                            <h6 class="card-title">Peter Pan</h6>
+                                            <p class="card-text small text-muted">by J. M. Barrie</p>
+                                            <button class="btn btn-sm btn-outline-primary" 
+                                                    onclick="importGutenbergBook('Peter Pan', 'J. M. Barrie', 'https://www.gutenberg.org/files/16/16-0.txt')">
+                                                <i class="bi bi-download"></i> Import
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="col-md-6 book-item">
+                                    <div class="card h-100 book-card">
+                                        <div class="card-body">
+                                            <h6 class="card-title">The Adventures of Tom Sawyer</h6>
+                                            <p class="card-text small text-muted">by Mark Twain</p>
+                                            <button class="btn btn-sm btn-outline-primary" 
+                                                    onclick="importGutenbergBook('The Adventures of Tom Sawyer', 'Mark Twain', 'https://www.gutenberg.org/files/74/74-0.txt')">
+                                                <i class="bi bi-download"></i> Import
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="col-md-6 book-item">
+                                    <div class="card h-100 book-card">
+                                        <div class="card-body">
+                                            <h6 class="card-title">A Christmas Carol</h6>
+                                            <p class="card-text small text-muted">by Charles Dickens</p>
+                                            <button class="btn btn-sm btn-outline-primary" 
+                                                    onclick="importGutenbergBook('A Christmas Carol', 'Charles Dickens', 'https://www.gutenberg.org/files/46/46-0.txt')">
+                                                <i class="bi bi-download"></i> Import
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="col-md-6 book-item">
+                                    <div class="card h-100 book-card">
+                                        <div class="card-body">
+                                            <h6 class="card-title">The Secret Garden</h6>
+                                            <p class="card-text small text-muted">by Frances Hodgson Burnett</p>
+                                            <button class="btn btn-sm btn-outline-primary" 
+                                                    onclick="importGutenbergBook('The Secret Garden', 'Frances Hodgson Burnett', 'https://www.gutenberg.org/files/113/113-0.txt')">
+                                                <i class="bi bi-download"></i> Import
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="mt-4 text-center">
+                                <a href="https://www.gutenberg.org" target="_blank" class="btn btn-outline-secondary">
+                                    <i class="bi bi-box-arrow-up-right"></i> Browse More at Project Gutenberg
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Response Area -->
+            <div id="import-response" class="mt-4"></div>
+
+            <!-- Recent Imports -->
+            <div class="card border-0 shadow-sm mt-4">
+                <div class="card-body">
+                    <h5 class="card-title mb-3">
+                        <i class="bi bi-clock-history"></i> Recently Imported
+                    </h5>
+                    <div class="list-group list-group-flush" id="recent-imports-list">
+                        {% if recent_books %}
+                            {% for book in recent_books %}
+                            <a href="/books/{{ book.book_id }}/details" class="list-group-item list-group-item-action">
+                                <div class="d-flex w-100 justify-content-between">
+                                    <div>
+                                        <h6 class="mb-1">{{ book.title }}</h6>
+                                        <p class="mb-0 small text-muted">by {{ book.author }}</p>
+                                    </div>
+                                    <small class="text-muted">{{ book.imported_at }}</small>
+                                </div>
+                            </a>
+                            {% endfor %}
+                        {% else %}
+                            <p class="text-muted text-center py-3" id="no-books-message">No books imported yet</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// File upload handling
+function updateFileName(input) {
+    const fileName = input.files[0]?.name || '';
+    document.getElementById('selectedFileName').textContent = fileName ? `Selected: ${fileName}` : '';
+}
+
+// Drag and drop
+const uploadArea = document.getElementById('fileUploadArea');
+if (uploadArea) {
+    uploadArea.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        uploadArea.classList.add('dragover');
+    });
+
+    uploadArea.addEventListener('dragleave', () => {
+        uploadArea.classList.remove('dragover');
+    });
+
+    uploadArea.addEventListener('drop', (e) => {
+        e.preventDefault();
+        uploadArea.classList.remove('dragover');
+        
+        const fileInput = document.getElementById('file-upload');
+        if (e.dataTransfer.files.length > 0) {
+            fileInput.files = e.dataTransfer.files;
+            updateFileName(fileInput);
+        }
+    });
+}
+
+// Filter Gutenberg books
+function filterBooks(searchTerm) {
+    const books = document.querySelectorAll('.book-item');
+    books.forEach(book => {
+        const title = book.querySelector('.card-title').textContent.toLowerCase();
+        const author = book.querySelector('.card-text').textContent.toLowerCase();
+        const searchLower = searchTerm.toLowerCase();
+        
+        if (title.includes(searchLower) || author.includes(searchLower)) {
+            book.style.display = '';
+        } else {
+            book.style.display = 'none';
+        }
+    });
+}
+
+// Import from Gutenberg
+function importGutenbergBook(title, author, url) {
+    // Set values in URL form
+    document.getElementById('url-title').value = title;
+    document.getElementById('url-author').value = author;
+    document.getElementById('book-url').value = url;
+    
+    // Switch to URL tab
+    const urlTab = new bootstrap.Tab(document.getElementById('url-tab'));
+    urlTab.show();
+}
+
+// Handle HTMX responses properly
+document.addEventListener('DOMContentLoaded', function() {
+    document.body.addEventListener('htmx:beforeRequest', function(evt) {
+        // Show loading state
+        if (evt.detail.elt.id === 'upload-form' || evt.detail.elt.id === 'url-form') {
+            const submitBtn = evt.detail.elt.querySelector('button[type="submit"]');
+            if (submitBtn) {
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Processing...';
+            }
+        }
+    });
+    
+    document.body.addEventListener('htmx:afterRequest', function(evt) {
+        if (evt.detail.target.id === 'import-response') {
+            const submitBtns = document.querySelectorAll('#upload-submit, #url-submit');
+            submitBtns.forEach(btn => {
+                btn.disabled = false;
+                if (btn.id === 'upload-submit') {
+                    btn.innerHTML = '<i class="bi bi-upload"></i> Import Book';
+                } else {
+                    btn.innerHTML = '<i class="bi bi-download"></i> Fetch and Import';
+                }
+            });
+            
+            // Parse JSON response and display properly
+            try {
+                const response = JSON.parse(evt.detail.xhr.response);
+                const responseDiv = document.getElementById('import-response');
+                
+                if (response.success) {
+                    responseDiv.innerHTML = `
+                        <div class="alert alert-success alert-dismissible fade show" role="alert">
+                            <h4 class="alert-heading"><i class="bi bi-check-circle"></i> Import Successful!</h4>
+                            <p>Your book has been imported and is being processed.</p>
+                            <hr>
+                            <div class="d-flex gap-2">
+                                <a href="/books/library" class="btn btn-success">
+                                    <i class="bi bi-collection"></i> View Library
+                                </a>
+                                <a href="/adaptations/create" class="btn btn-outline-success">
+                                    <i class="bi bi-magic"></i> Create Adaptation
+                                </a>
+                            </div>
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    `;
+                    
+                    // Clear form
+                    document.getElementById('upload-form').reset();
+                    document.getElementById('url-form').reset();
+                    document.getElementById('selectedFileName').textContent = '';
+                    
+                    // Poll for processing status
+                    if (response.process_id) {
+                        checkProcessingStatus(response.process_id);
+                    }
+                } else {
+                    responseDiv.innerHTML = `
+                        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                            <h4 class="alert-heading"><i class="bi bi-x-circle"></i> Import Failed</h4>
+                            <p>${response.message || 'An error occurred during import.'}</p>
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    `;
+                }
+            } catch (e) {
+                console.error('Error parsing response:', e);
+                // If response is not JSON, display it as is
+                if (evt.detail.xhr.response && !evt.detail.xhr.response.startsWith('{')) {
+                    evt.detail.target.innerHTML = evt.detail.xhr.response;
+                }
+            }
+        }
+    });
+});
+
+// Check processing status
+async function checkProcessingStatus(processId) {
+    let attempts = 0;
+    const maxAttempts = 30; // 30 seconds max
+    
+    const interval = setInterval(async () => {
+        attempts++;
+        
+        try {
+            const response = await fetch(`/books/import/status/${processId}`);
+            const data = await response.json();
+            
+            if (data.status === 'completed') {
+                clearInterval(interval);
+                
+                // Update the response area with completion info
+                const responseDiv = document.getElementById('import-response');
+                responseDiv.innerHTML += `
+                    <div class="alert alert-info mt-2">
+                        <strong>Processing Complete!</strong><br>
+                        Word Count: ${data.word_count?.toLocaleString() || 'N/A'}<br>
+                        Chapters Detected: ${data.chapter_count || 'N/A'}
+                    </div>
+                `;
+                
+                // Reload the page to show the new book
+                setTimeout(() => {
+                    window.location.href = '/books/library';
+                }, 2000);
+            } else if (data.status === 'error') {
+                clearInterval(interval);
+                
+                const responseDiv = document.getElementById('import-response');
+                responseDiv.innerHTML = `
+                    <div class="alert alert-danger">
+                        <strong>Processing Error:</strong> ${data.error || 'Unknown error'}
+                    </div>
+                `;
+            } else if (attempts >= maxAttempts) {
+                clearInterval(interval);
+            }
+        } catch (e) {
+            console.error('Error checking status:', e);
+            clearInterval(interval);
+        }
+    }, 1000);
+}
+</script>
+
+<style>
+.file-upload-area {
+    border: 2px dashed #dee2e6;
+    border-radius: 0.5rem;
+    padding: 2rem;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.file-upload-area:hover {
+    border-color: var(--bs-primary);
+    background-color: rgba(13, 110, 253, 0.05);
+}
+
+.file-upload-area.dragover {
+    border-color: var(--bs-success);
+    background-color: rgba(25, 135, 84, 0.05);
+}
+
+.book-card {
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+.book-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15) !important;
+}
+
+.cursor-pointer {
+    cursor: pointer;
+}
+</style>
+{% endblock %}
