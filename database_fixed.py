@@ -607,11 +607,31 @@ async def update_book_character_reference(book_id: int, character_reference: str
         conn.close()
 
 async def delete_book_from_db(book_id: int) -> bool:
-    """Delete book and all adaptations - matches app5.py function"""
+    """Delete book and all related records and files.
+    - Deletes chapters, adaptations, runs, locks
+    - Removes uploads file for the book
+    - Removes generated_images/{book_id}
+    """
     conn = db_manager.get_connection()
     cursor = conn.cursor()
     
     try:
+        # Capture upload file path before deleting
+        cursor.execute('SELECT path FROM books WHERE book_id = ?', (book_id,))
+        row = cursor.fetchone()
+        upload_path = row[0] if row else None
+
+        # Identify adaptation ids for this book
+        cursor.execute('SELECT adaptation_id FROM adaptations WHERE book_id = ?', (book_id,))
+        adap_ids = [r[0] for r in cursor.fetchall()]
+
+        # Delete run tracking and locks for these adaptations
+        if adap_ids:
+            qmarks = ','.join(['?'] * len(adap_ids))
+            cursor.execute(f'DELETE FROM adaptation_runs WHERE adaptation_id IN ({qmarks})', adap_ids)
+            cursor.execute(f'DELETE FROM active_runs WHERE adaptation_id IN ({qmarks})', adap_ids)
+            cursor.execute(f'DELETE FROM adaptation_locks WHERE adaptation_id IN ({qmarks})', adap_ids)
+
         # Delete chapters first
         cursor.execute('''
             DELETE FROM chapters 
@@ -627,7 +647,8 @@ async def delete_book_from_db(book_id: int) -> bool:
         cursor.execute('DELETE FROM books WHERE book_id = ?', (book_id,))
         
         conn.commit()
-        # also remove per-book folder under generated_images if exists
+
+        # Remove per-book folder under generated_images if exists
         try:
             import shutil as _sh
             _dir = os.path.join('generated_images', str(book_id))
@@ -635,6 +656,14 @@ async def delete_book_from_db(book_id: int) -> bool:
                 _sh.rmtree(_dir)
         except Exception:
             pass
+
+        # Remove upload file if exists
+        try:
+            if upload_path and os.path.isfile(upload_path):
+                os.remove(upload_path)
+        except Exception:
+            pass
+
         return True
     except Exception as e:
         print(f"❌ Book deletion failed: {e}")

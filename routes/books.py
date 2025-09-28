@@ -420,11 +420,46 @@ async def book_details(request: Request, book_id: int):
         get_logger("routes.books").error("book_details_error", extra={"component":"routes.books","error":str(e), "book_id": book_id, "request_id": getattr(request.state, 'request_id', None)})
         raise HTTPException(status_code=500, detail="Failed to load book details")
 
+
+@router.get("/{book_id}/deletion-info")
+async def deletion_info(book_id: int):
+    """Return counts of related records and files for confirmation UI."""
+    try:
+        import os
+        import database_fixed as db
+        # Count adaptations
+        conn = db.get_db_connection()
+        cur = conn.cursor()
+        try:
+            cur.execute("SELECT COUNT(*) FROM adaptations WHERE book_id = ?", (book_id,))
+            adaptation_count = cur.fetchone()[0] or 0
+            cur.execute("SELECT COUNT(*) FROM chapters WHERE adaptation_id IN (SELECT adaptation_id FROM adaptations WHERE book_id = ?)", (book_id,))
+            chapter_count = cur.fetchone()[0] or 0
+        finally:
+            conn.close()
+        # Count images on filesystem (simple file count under per-book folder)
+        image_count = 0
+        try:
+            base = os.path.join('generated_images', str(book_id))
+            if os.path.isdir(base):
+                for root, dirs, files in os.walk(base):
+                    image_count += len([f for f in files if not f.startswith('.')])
+        except Exception:
+            image_count = 0
+        return JSONResponse({
+            "book_id": book_id,
+            "adaptation_count": int(adaptation_count),
+            "chapter_count": int(chapter_count),
+            "image_count": int(image_count),
+        })
+    except Exception as e:
+        return JSONResponse({"error": str(e)}, status_code=500)
+
 @router.delete("/{book_id}")
 async def delete_book(book_id: int):
-    """Delete a book"""
+    """Delete a book completely: DB cascade, run-tracking cleanup, and filesystem removal."""
     try:
-        success = await database.delete_book(book_id)
+        success = await database.delete_book_completely(book_id)
         if success:
             return JSONResponse({"success": True, "message": "Book deleted successfully"})
         else:
