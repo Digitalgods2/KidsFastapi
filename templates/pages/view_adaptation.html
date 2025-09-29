@@ -1,0 +1,517 @@
+{% extends "layouts/base.html" %}
+
+{% block title %}{{ adaptation.title or 'Adaptation' }} - KidsKlassiks{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Header Section -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+                <div>
+                    <h1 class="display-6 mb-2">
+                        <i class="bi bi-book-half"></i> 
+                        {% if book %}{{ book.title }}{% else %}Adaptation{% endif %}
+                    </h1>
+                    <p class="text-muted mb-0">
+                        {% if book %}
+                            <strong>{{ book.author }}</strong> • 
+                        {% endif %}
+                        Ages {{ adaptation.target_age_group }} • 
+                        <span class="badge bg-{% if adaptation.status == 'completed' %}success{% elif adaptation.status == 'published' %}primary{% elif adaptation.status == 'processing' %}warning{% else %}secondary{% endif %}">
+                            {{ adaptation.status|title or 'In Progress' }}
+                        </span>
+                    </p>
+                </div>
+                <div class="d-flex gap-2">
+                    <a href="/adaptations/" class="btn btn-outline-secondary">
+                        <i class="bi bi-arrow-left"></i> All Adaptations
+                    </a>
+                    <a href="/adaptations/{{ adaptation.adaptation_id }}/process" class="btn btn-primary">
+                        <i class="bi bi-gear"></i> Process
+                    </a>
+                    <a href="/review/adaptation/{{ adaptation.adaptation_id }}" class="btn btn-success">
+                        <i class="bi bi-eye"></i> Review
+                    </a>
+                    {% if adaptation.status == 'completed' %}
+                    <a href="/publish?adaptation_id={{ adaptation.adaptation_id }}" class="btn btn-info">
+                        <i class="bi bi-upload"></i> Publish
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Left Column: Adaptation Details -->
+        <div class="col-lg-4 mb-4">
+            <!-- Adaptation Info Card -->
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="bi bi-info-circle"></i> Adaptation Details</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="text-muted small d-block mb-1">Target Age Group</label>
+                        <div class="fw-bold">{{ adaptation.target_age_group }}</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="text-muted small d-block mb-1">Transformation Style</label>
+                        <div>{{ adaptation.transformation_style or 'Not specified' }}</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="text-muted small d-block mb-1">Theme/Tone</label>
+                        <div>{{ adaptation.overall_theme_tone or 'Not specified' }}</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="text-muted small d-block mb-1">Chapter Structure</label>
+                        <div>{{ adaptation.chapter_structure_choice or 'Auto-segment' }}</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="text-muted small d-block mb-1">Created</label>
+                        <div>{{ adaptation.created_at }}</div>
+                    </div>
+                    
+                    {% if adaptation.updated_at %}
+                    <div class="mb-3">
+                        <label class="text-muted small d-block mb-1">Last Updated</label>
+                        <div>{{ adaptation.updated_at }}</div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Progress Card -->
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0"><i class="bi bi-graph-up"></i> Progress</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between mb-1">
+                            <span class="small text-muted">Chapters</span>
+                            <span class="small fw-bold">{{ chapters|length }}</span>
+                        </div>
+                        <div class="progress" style="height: 8px;">
+                            <div class="progress-bar bg-success" style="width: {{ 100 if chapters|length > 0 else 0 }}%"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between mb-1">
+                            <span class="small text-muted">Images Generated</span>
+                            <span class="small fw-bold">{{ chapters_with_images }}/{{ chapters|length }}</span>
+                        </div>
+                        <div class="progress" style="height: 8px;">
+                            <div class="progress-bar bg-info" style="width: {{ (chapters_with_images / chapters|length * 100) if chapters|length > 0 else 0 }}%"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-3">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="small text-muted">Overall Completion</span>
+                            <span class="badge bg-{{ 'success' if adaptation.status == 'completed' else 'warning' }}">
+                                {{ 'Complete' if adaptation.status == 'completed' else 'In Progress' }}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Character Preservation Card -->
+            {% if adaptation.key_characters_to_preserve %}
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0"><i class="bi bi-people"></i> Key Characters</h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-flex flex-wrap gap-1">
+                        {% set characters = adaptation.key_characters_to_preserve.split(',') if adaptation.key_characters_to_preserve else [] %}
+                        {% for character in characters %}
+                            <span class="badge bg-light text-dark" style="font-size: 0.85em;">
+                                {{ character.strip() }}
+                            </span>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Actions Card -->
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-warning text-dark">
+                    <h5 class="mb-0"><i class="bi bi-lightning"></i> Quick Actions</h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <a href="/adaptations/{{ adaptation.adaptation_id }}/process" class="btn btn-outline-primary btn-sm">
+                            <i class="bi bi-play-fill"></i> Continue Processing
+                        </a>
+                        <a href="/review/adaptation/{{ adaptation.adaptation_id }}" class="btn btn-outline-success btn-sm">
+                            <i class="bi bi-eye"></i> Review & Edit
+                        </a>
+                        {% if chapters|length > 0 %}
+                        <button class="btn btn-outline-info btn-sm" onclick="generateAllImages()">
+                            <i class="bi bi-images"></i> Generate All Images
+                        </button>
+                        {% endif %}
+                        {% if adaptation.status == 'completed' %}
+                        <a href="/publish?adaptation_id={{ adaptation.adaptation_id }}" class="btn btn-outline-info btn-sm">
+                            <i class="bi bi-upload"></i> Publish to Platform
+                        </a>
+                        {% endif %}
+                        <button class="btn btn-outline-danger btn-sm" onclick="deleteAdaptation()">
+                            <i class="bi bi-trash"></i> Delete Adaptation
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Column: Chapters -->
+        <div class="col-lg-8">
+            {% if chapters %}
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="bi bi-book"></i> Chapters ({{ chapters|length }})
+                    </h5>
+                    <div class="btn-group btn-group-sm">
+                        <button class="btn btn-outline-secondary" onclick="toggleView('grid')">
+                            <i class="bi bi-grid"></i> Grid
+                        </button>
+                        <button class="btn btn-outline-secondary active" onclick="toggleView('list')">
+                            <i class="bi bi-list"></i> List
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body p-0">
+                    <!-- List View -->
+                    <div id="list-view" class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th style="width: 60px;">Ch.</th>
+                                    <th>Title & Content</th>
+                                    <th style="width: 100px;">Words</th>
+                                    <th style="width: 100px;">Image</th>
+                                    <th style="width: 120px;">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for chapter in chapters %}
+                                <tr>
+                                    <td>
+                                        <span class="badge bg-primary">{{ chapter.chapter_number }}</span>
+                                    </td>
+                                    <td>
+                                        <div class="fw-bold mb-1">{{ chapter.title or 'Chapter ' + chapter.chapter_number|string }}</div>
+                                        {% if chapter.content %}
+                                            <div class="small text-muted text-truncate" style="max-width: 400px;">
+                                                {{ chapter.content[:150] }}...
+                                            </div>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-light text-dark">
+                                            {% if chapter.content %}
+                                                {{ chapter.content.split()|length }}
+                                            {% else %}
+                                                0
+                                            {% endif %}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        {% if chapter.image_url %}
+                                            <span class="badge bg-success">
+                                                <i class="bi bi-check-circle"></i> Done
+                                            </span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">
+                                                <i class="bi bi-circle"></i> None
+                                            </span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm">
+                                            <button class="btn btn-outline-primary" onclick="viewChapter({{ chapter.chapter_id }})" title="View">
+                                                <i class="bi bi-eye"></i>
+                                            </button>
+                                            {% if chapter.image_url %}
+                                                <button class="btn btn-outline-success" onclick="viewImage({{ chapter.chapter_id }})" title="View Image">
+                                                    <i class="bi bi-image"></i>
+                                                </button>
+                                            {% else %}
+                                                <button class="btn btn-outline-warning" onclick="generateImage({{ chapter.chapter_id }})" title="Generate Image">
+                                                    <i class="bi bi-magic"></i>
+                                                </button>
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Grid View (hidden by default) -->
+                    <div id="grid-view" class="d-none p-3">
+                        <div class="row g-3">
+                            {% for chapter in chapters %}
+                            <div class="col-md-6 col-lg-4">
+                                <div class="card h-100 border shadow-sm">
+                                    {% if chapter.image_url %}
+                                    <img src="{{ chapter.image_url }}" class="card-img-top" alt="Chapter {{ chapter.chapter_number }}" style="height: 200px; object-fit: cover;">
+                                    {% else %}
+                                    <div class="bg-light d-flex align-items-center justify-content-center" style="height: 200px;">
+                                        <i class="bi bi-image text-muted" style="font-size: 3rem;"></i>
+                                    </div>
+                                    {% endif %}
+                                    <div class="card-body">
+                                        <div class="d-flex justify-content-between align-items-start mb-2">
+                                            <span class="badge bg-primary">Ch. {{ chapter.chapter_number }}</span>
+                                            <span class="badge bg-light text-dark">{{ chapter.content.split()|length if chapter.content else 0 }} words</span>
+                                        </div>
+                                        <h6 class="card-title">{{ chapter.title or 'Chapter ' + chapter.chapter_number|string }}</h6>
+                                        {% if chapter.content %}
+                                        <p class="card-text small text-muted">{{ chapter.content[:80] }}...</p>
+                                        {% endif %}
+                                    </div>
+                                    <div class="card-footer bg-white border-top-0">
+                                        <div class="d-flex gap-1">
+                                            <button class="btn btn-sm btn-outline-primary flex-fill" onclick="viewChapter({{ chapter.chapter_id }})">
+                                                <i class="bi bi-eye"></i> View
+                                            </button>
+                                            {% if chapter.image_url %}
+                                                <button class="btn btn-sm btn-outline-success" onclick="viewImage({{ chapter.chapter_id }})">
+                                                    <i class="bi bi-image"></i>
+                                                </button>
+                                            {% else %}
+                                                <button class="btn btn-sm btn-outline-warning" onclick="generateImage({{ chapter.chapter_id }})">
+                                                    <i class="bi bi-magic"></i>
+                                                </button>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% else %}
+            <div class="card border-0 shadow-sm">
+                <div class="card-body text-center py-5">
+                    <i class="bi bi-book text-muted" style="font-size: 4rem;"></i>
+                    <h5 class="mt-3 text-muted">No Chapters Yet</h5>
+                    <p class="text-muted">This adaptation doesn't have any chapters yet. Start processing to create them.</p>
+                    <a href="/adaptations/{{ adaptation.adaptation_id }}/process" class="btn btn-primary btn-lg">
+                        <i class="bi bi-play-fill"></i> Start Processing
+                    </a>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Chapter View Modal -->
+<div class="modal fade" id="chapterViewModal" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Chapter Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="chapterDetails">
+                    <div class="text-center py-5">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <a id="editChapterLink" href="#" class="btn btn-primary">
+                    <i class="bi bi-pencil"></i> Edit Chapter
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Image View Modal -->
+<div class="modal fade" id="imageViewModal" tabindex="-1">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Chapter Image</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body text-center">
+                <img id="chapterImage" src="" class="img-fluid" alt="Chapter Image">
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button class="btn btn-warning" onclick="regenerateCurrentImage()">
+                    <i class="bi bi-arrow-clockwise"></i> Regenerate
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let currentChapterId = null;
+
+function toggleView(viewType) {
+    const listView = document.getElementById('list-view');
+    const gridView = document.getElementById('grid-view');
+    const buttons = document.querySelectorAll('.btn-group button');
+    
+    buttons.forEach(btn => btn.classList.remove('active'));
+    
+    if (viewType === 'grid') {
+        listView.classList.add('d-none');
+        gridView.classList.remove('d-none');
+        buttons[0].classList.add('active');
+    } else {
+        gridView.classList.add('d-none');
+        listView.classList.remove('d-none');
+        buttons[1].classList.add('active');
+    }
+}
+
+function viewChapter(chapterId) {
+    currentChapterId = chapterId;
+    fetch(`/chapters/${chapterId}/details`)
+        .then(response => response.json())
+        .then(data => {
+            const details = `
+                <div class="mb-3">
+                    <h6 class="text-muted">Title</h6>
+                    <p class="fs-5 fw-bold">${data.title || 'Chapter ' + data.chapter_number}</p>
+                </div>
+                <div class="mb-3">
+                    <h6 class="text-muted">Content</h6>
+                    <div class="border rounded p-3 bg-light" style="max-height: 400px; overflow-y: auto;">
+                        ${data.content ? data.content.replace(/\n/g, '<br>') : 'No content'}
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <h6 class="text-muted">Word Count</h6>
+                    <p>${data.content ? data.content.split(/\s+/).length : 0} words</p>
+                </div>
+                ${data.image_url ? `
+                <div class="mb-3">
+                    <h6 class="text-muted">Chapter Image</h6>
+                    <img src="${data.image_url}" class="img-fluid rounded" alt="Chapter image">
+                </div>
+                ` : ''}
+            `;
+            document.getElementById('chapterDetails').innerHTML = details;
+            document.getElementById('editChapterLink').href = `/review/adaptation/{{ adaptation.adaptation_id }}#chapter-${chapterId}`;
+            new bootstrap.Modal(document.getElementById('chapterViewModal')).show();
+        })
+        .catch(error => {
+            console.error('Error loading chapter:', error);
+            document.getElementById('chapterDetails').innerHTML = '<div class="alert alert-danger">Error loading chapter details</div>';
+        });
+}
+
+function viewImage(chapterId) {
+    currentChapterId = chapterId;
+    fetch(`/chapters/${chapterId}/details`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.image_url) {
+                document.getElementById('chapterImage').src = data.image_url;
+                new bootstrap.Modal(document.getElementById('imageViewModal')).show();
+            }
+        })
+        .catch(error => {
+            console.error('Error loading image:', error);
+            alert('Error loading image');
+        });
+}
+
+function generateImage(chapterId) {
+    if (confirm('Generate image for this chapter? This may take a few moments.')) {
+        currentChapterId = chapterId;
+        fetch(`/chapters/${chapterId}/generate-image`, {
+            method: 'POST'
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('Image generation started. The page will refresh in a few moments.');
+                setTimeout(() => location.reload(), 3000);
+            } else {
+                alert('Error starting image generation: ' + (data.error || 'Unknown error'));
+            }
+        })
+        .catch(error => {
+            console.error('Error generating image:', error);
+            alert('Error generating image');
+        });
+    }
+}
+
+function regenerateCurrentImage() {
+    if (currentChapterId) {
+        bootstrap.Modal.getInstance(document.getElementById('imageViewModal')).hide();
+        generateImage(currentChapterId);
+    }
+}
+
+function generateAllImages() {
+    if (confirm('Generate images for all chapters without images? This may take several minutes.')) {
+        fetch(`/images/adaptation/{{ adaptation.adaptation_id }}/generate-all`, {
+            method: 'POST'
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert(`Started generating ${data.count} images. The page will refresh automatically.`);
+                setTimeout(() => location.reload(), 5000);
+            } else {
+                alert('Error: ' + (data.error || 'Unknown error'));
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error starting image generation');
+        });
+    }
+}
+
+function deleteAdaptation() {
+    if (confirm('Are you sure you want to delete this adaptation? This action cannot be undone.')) {
+        fetch('/adaptations/{{ adaptation.adaptation_id }}', {
+            method: 'DELETE'
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('Adaptation deleted successfully');
+                window.location.href = '/adaptations/';
+            } else {
+                alert('Error deleting adaptation: ' + (data.error || data.message || 'Unknown error'));
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error deleting adaptation');
+        });
+    }
+}
+</script>
+{% endblock %}

@@ -50,6 +50,41 @@ async def adaptations_list(request: Request):
     
     return templates.TemplateResponse("pages/adaptations.html", context)
 
+@router.get("/{adaptation_id}", response_class=HTMLResponse)
+async def view_adaptation(request: Request, adaptation_id: int):
+    """View a specific adaptation with full details"""
+    context = get_base_context(request)
+    
+    try:
+        # Get adaptation details
+        adaptation = await database.get_adaptation_details(adaptation_id)
+        if not adaptation:
+            raise HTTPException(status_code=404, detail="Adaptation not found")
+        
+        # Get chapters
+        chapters = await database.get_chapters_for_adaptation(adaptation_id)
+        
+        # Count chapters with images
+        chapters_with_images = sum(1 for ch in chapters if ch.get("image_url"))
+        
+        # Get book details
+        book = await database.get_book_details(adaptation["book_id"])
+        
+        context["adaptation"] = adaptation
+        context["chapters"] = chapters
+        context["chapters_with_images"] = chapters_with_images
+        context["book"] = book
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        from services.logger import get_logger
+        log = get_logger("routes.adaptations")
+        log.error("view_adaptation_error", extra={"error": str(e), "component": "routes.adaptations", "request_id": getattr(request.state, 'request_id', None), "adaptation_id": adaptation_id})
+        raise HTTPException(status_code=500, detail=str(e))
+    
+    return templates.TemplateResponse("pages/view_adaptation.html", context)
+
 @router.get("/create", response_class=HTMLResponse)
 async def create_adaptation_page(request: Request, book_id: Optional[int] = None):
     """Create new adaptation page"""
