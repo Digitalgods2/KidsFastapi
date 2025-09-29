@@ -20,6 +20,7 @@ import database_fixed as database
 from database_fixed import initialize_database, get_dashboard_stats, get_all_settings
 from routes import adaptations, review, settings, publish
 from routes.books import router as books_router
+from routes.chapters import router as chapters_router
 from routes.images_individual import router as images_router
 from routes.images_gallery import router as images_gallery_router
 from routes.images import router as images_status_router
@@ -140,6 +141,7 @@ templates = Jinja2Templates(directory="templates")
 # Include routers
 app.include_router(books_router, prefix="/books", tags=["books"])
 app.include_router(adaptations.router, prefix="/adaptations", tags=["adaptations"])
+app.include_router(chapters_router, prefix="/chapters", tags=["chapters"])
 app.include_router(review.router, prefix="/review", tags=["review"])
 app.include_router(settings.router, prefix="/settings", tags=["settings"])
 app.include_router(publish.router, prefix="/publish", tags=["publish"])
