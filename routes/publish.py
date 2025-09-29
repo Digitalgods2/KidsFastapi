@@ -6,7 +6,7 @@ Handles PDF export and publishing functionality
 from fastapi import APIRouter, Request, HTTPException
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import HTMLResponse
-import database
+import database_fixed as database
 import config
 
 router = APIRouter()

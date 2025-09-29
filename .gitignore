@@ -1,6 +1,12 @@
-
 __pycache__/
 *.pyc
 .generated/
 generated_images/
- legacy/
+legacy/
+old/
+.env
+*.db
+uploads/
+backups/
+publications/
+exports/

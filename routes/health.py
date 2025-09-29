@@ -4,7 +4,7 @@ from datetime import datetime, timezone
 import asyncio
 import time
 import config
-import database
+import database_fixed as database
 
 router = APIRouter()
 
