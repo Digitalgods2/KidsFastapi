@@ -76,6 +76,14 @@ def detect_chapters_universal(text):
         (r'^\s*BOOK\s+([IVXLCDM]+)', 'book_roman'),
         (r'^\s*Book\s+(\d+)', 'book_numeric'),
         
+        # Stave format (A Christmas Carol and similar)
+        (r'^\s*Stave\s+([IVXLCDM]+)\s*[:\-—–]\s*(.+)', 'stave_roman_with_title'),
+        (r'^\s*STAVE\s+([IVXLCDM]+)\s*[:\-—–]\s*(.+)', 'stave_roman_uppercase_with_title'),
+        (r'^\s*Stave\s+([IVXLCDM]+)', 'stave_roman'),
+        (r'^\s*STAVE\s+([IVXLCDM]+)', 'stave_roman_uppercase'),
+        (r'^\s*Stave\s+(\d+)', 'stave_numeric'),
+        (r'^\s*STAVE\s+(\d+)', 'stave_numeric_uppercase'),
+        
         # Just numbers or romans with period (minimalist)
         (r'^\s*([IVXLCDM]+)\.\s+[A-Z]', 'roman_minimal'),
         (r'^\s*(\d+)\.\s+[A-Z]', 'numeric_minimal'),
@@ -171,6 +179,10 @@ def detect_original_chapters(text):
         r'^CHAPTER\s+\d+',
         r'^Part\s+[IVXLCDM]+',
         r'^Part\s+\d+',
+        r'^Stave\s+[IVXLCDM]+',
+        r'^Stave\s+\d+',
+        r'^STAVE\s+[IVXLCDM]+',
+        r'^STAVE\s+\d+',
         r'^\d+\.\s+[A-Z]',
         r'^[IVXLCDM]+\.\s+[A-Z]',
         r'^Chap\.\s*[IVXLCDM]+',
