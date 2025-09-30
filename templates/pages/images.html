@@ -80,7 +80,7 @@
                                         </div>
                                     </div>
                                     <div class="card-body">
-                                        <h6 class="card-title">Chapter {{ image.chapter_id|default('N/A') }}</h6>
+                                        <h6 class="card-title">Chapter {{ image.chapter_number|default('N/A') }}</h6>
                                         <p class="card-text small text-muted">
                                             {{ image.prompt[:100] }}{% if image.prompt|length > 100 %}...{% endif %}
                                         </p>
@@ -123,7 +123,7 @@
                                                 <img src="{{ image.image_url }}" alt="Generated Image" style="width: 60px; height: 60px; object-fit: cover;" class="rounded">
                                             </td>
                                             <td>{{ image.adaptation_id|default('N/A') }}</td>
-                                            <td>{{ image.chapter_id|default('N/A') }}</td>
+                                            <td>{{ image.chapter_number|default('N/A') }}</td>
                                             <td>
                                                 <span class="text-truncate d-inline-block" style="max-width: 300px;">
                                                     {{ image.prompt }}
