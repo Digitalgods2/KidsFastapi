@@ -61,6 +61,21 @@ async def publish_adaptation(request: Request, adaptation_id: int):
         log.error("publish_adaptation_error", extra={"error": str(e), "component": "routes.publish", "request_id": getattr(request.state, 'request_id', None), "adaptation_id": adaptation_id})
         raise HTTPException(status_code=500, detail=str(e))
 
+@router.get("/api/chapters/{adaptation_id}")
+async def get_adaptation_chapters_api(adaptation_id: int):
+    """Get chapters for an adaptation - JSON API"""
+    try:
+        # Get chapters from database
+        chapters = await database.get_chapters_for_adaptation(adaptation_id)
+        
+        return {"success": True, "chapters": chapters}
+        
+    except Exception as e:
+        from services.logger import get_logger
+        log = get_logger("routes.publish")
+        log.error("get_chapters_api_error", extra={"error": str(e), "component": "routes.publish", "adaptation_id": adaptation_id})
+        raise HTTPException(status_code=500, detail=str(e))
+
 @router.post("/export/{adaptation_id}")
 async def export_adaptation_pdf(request: Request, adaptation_id: int):
     """Export adaptation as PDF"""
