@@ -64,7 +64,7 @@ async def images_gallery(request: Request):
                     'id': adaptation_id,
                     'book_title': img.get('book_title', ''),
                     'target_age': img.get('target_age_group', ''),
-                    'goal': img.get('transformation_goal', '')[:50] + '...' if img.get('transformation_goal', '') else ''
+                    'style': img.get('transformation_style', '')[:50] + '...' if img.get('transformation_style', '') else ''
                 }
         
         context["available_books"] = list(books.values())
