@@ -89,7 +89,9 @@
                                                 <i class="bi bi-calendar"></i> {{ image.created_at[:10] if image.created_at else 'Unknown' }}
                                             </small>
                                             <div class="btn-group btn-group-sm">
-                                                <button class="btn btn-outline-primary" onclick="viewImage('{{ image.image_url }}', '{{ image.prompt }}')">
+                                                <button class="btn btn-outline-primary view-image-btn" 
+                                                        data-image-url="{{ image.image_url }}" 
+                                                        data-prompt="{{ image.prompt }}">
                                                     <i class="bi bi-eye"></i>
                                                 </button>
                                                 <a href="{{ image.image_url }}" download class="btn btn-outline-success">
@@ -132,7 +134,9 @@
                                             <td>{{ image.created_at[:16] if image.created_at else 'Unknown' }}</td>
                                             <td>
                                                 <div class="btn-group btn-group-sm">
-                                                    <button class="btn btn-outline-primary" onclick="viewImage('{{ image.image_url }}', '{{ image.prompt }}')">
+                                                    <button class="btn btn-outline-primary view-image-btn" 
+                                                            data-image-url="{{ image.image_url }}" 
+                                                            data-prompt="{{ image.prompt }}">
                                                         <i class="bi bi-eye"></i>
                                                     </button>
                                                     <a href="{{ image.image_url }}" download class="btn btn-outline-success">
@@ -211,5 +215,16 @@ function viewImage(imageUrl, prompt) {
     const modal = new bootstrap.Modal(document.getElementById('imageModal'));
     modal.show();
 }
+
+// Add event listeners for view image buttons
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.view-image-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            const imageUrl = this.getAttribute('data-image-url');
+            const prompt = this.getAttribute('data-prompt');
+            viewImage(imageUrl, prompt);
+        });
+    });
+});
 </script>
 {% endblock %}
