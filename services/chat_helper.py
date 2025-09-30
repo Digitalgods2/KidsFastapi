@@ -104,7 +104,8 @@ def build_chapter_prompt_template(
     system = (
         "You are an expert prompt engineer and children's book illustrator. "
         "Create visually rich, child-friendly prompts that produce a single cohesive illustration. "
-        "When character consistency guides are provided, maintain exact visual descriptions across all chapters."
+        "When character consistency guides are provided, you MUST include the COMPLETE physical description "
+        "for any character mentioned - do NOT summarize or paraphrase character appearances."
     )
     
     # Use formatted reference if provided (preferred), otherwise fallback to raw dict
@@ -127,10 +128,14 @@ Chapter Excerpt (trimmed):
 Guidelines:
 - One single, engaging scene from this chapter
 - Friendly, whimsical tone; bright colors; clear subject and background
-- CRITICAL: If character consistency guide provided above, use EXACT physical descriptions for any characters shown
+- CRITICAL CHARACTER RULE: When mentioning ANY character from the CHARACTER CONSISTENCY GUIDE above, 
+  you MUST include their COMPLETE physical description from the guide. Do NOT abbreviate or summarize.
+  Example: If guide says "Toto is a small black dog with long silky hair and small black eyes", 
+  your prompt must say "Toto, a small black dog with long silky hair and small black eyes" - 
+  NOT just "a small dog, Toto" or "Toto, a dog".
 - Describe characters (appearance, pose, expression), setting, mood, palette, composition
 - Avoid text in the image; avoid violence/scary content
-- Keep under 180 words; no extra commentary
+- Keep under 200 words; no extra commentary
 """
     return [
         {"role": "system", "content": system},
