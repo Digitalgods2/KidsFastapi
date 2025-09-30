@@ -107,7 +107,7 @@
         <!-- Cover Section -->
         <div class="cover-section">
             {% if adaptation.cover_url %}
-            <img src="{{ adaptation.cover_url }}" class="cover-image mb-4" alt="Book Cover">
+            <img src="{{ adaptation.cover_url }}?t={{ cache_timestamp }}" class="cover-image mb-4" alt="Book Cover">
             {% else %}
             <div class="mb-4">
                 <i class="bi bi-book display-1 mb-3 d-block"></i>

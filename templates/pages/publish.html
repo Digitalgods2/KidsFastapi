@@ -29,7 +29,7 @@
                                 <div class="card h-100 border-0 shadow-sm">
                                     {% if adaptation.cover_url %}
                                     <div class="card-img-top" style="height: 180px; overflow: hidden; background: #f8f9fa;">
-                                        <img src="{{ adaptation.cover_url }}" class="w-100 h-100" style="object-fit: cover;" alt="Cover">
+                                        <img src="{{ adaptation.cover_url }}?t={{ cache_timestamp }}" class="w-100 h-100" style="object-fit: cover;" alt="Cover">
                                     </div>
                                     {% endif %}
                                     <div class="card-body">

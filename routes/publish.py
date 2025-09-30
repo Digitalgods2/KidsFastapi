@@ -33,6 +33,10 @@ async def publish_page(request: Request):
         all_adaptations = await database.get_all_adaptations_with_stats()
         context["adaptations"] = all_adaptations
         
+        # Add timestamp for cache-busting
+        import time
+        context["cache_timestamp"] = int(time.time())
+        
     except Exception as e:
         from services.logger import get_logger
         log = get_logger("routes.publish")
@@ -53,6 +57,11 @@ async def publish_adaptation(request: Request, adaptation_id: int):
             raise HTTPException(status_code=404, detail="Adaptation not found")
         
         context["adaptation"] = adaptation
+        
+        # Add timestamp for cache-busting
+        import time
+        context["cache_timestamp"] = int(time.time())
+        
         return templates.TemplateResponse("pages/publish_adaptation.html", context)
         
     except Exception as e:
