@@ -27,24 +27,91 @@
                             {% for adaptation in adaptations %}
                             <div class="col-md-6 col-lg-4">
                                 <div class="card h-100 border-0 shadow-sm">
+                                    {% if adaptation.cover_url %}
+                                    <div class="card-img-top" style="height: 180px; overflow: hidden; background: #f8f9fa;">
+                                        <img src="{{ adaptation.cover_url }}" class="w-100 h-100" style="object-fit: cover;" alt="Cover">
+                                    </div>
+                                    {% endif %}
                                     <div class="card-body">
-                                        <h5 class="card-title">{{ adaptation.title }}</h5>
-                                        <p class="text-muted small mb-2">
-                                            <i class="bi bi-book"></i> {{ adaptation.book_title }}
-                                        </p>
-                                        <p class="text-muted small mb-2">
-                                            <i class="bi bi-person"></i> Age Group: {{ adaptation.age_group }}
+                                        <h5 class="card-title mb-2">{{ adaptation.book_title }}</h5>
+                                        <p class="text-muted small mb-1">
+                                            <i class="bi bi-person-circle"></i> {{ adaptation.book_author }}
                                         </p>
                                         <p class="text-muted small mb-3">
-                                            <i class="bi bi-calendar"></i> Completed: {{ adaptation.completed_date }}
+                                            <i class="bi bi-people"></i> Ages {{ adaptation.target_age_group or 'Not set' }}
                                         </p>
                                         
-                                        <div class="d-flex gap-2">
-                                            <a href="/publish/adaptation/{{ adaptation.id }}" class="btn btn-primary btn-sm">
+                                        <!-- Content Statistics -->
+                                        <div class="mb-3 p-2 bg-light rounded">
+                                            <div class="row g-2 text-center small">
+                                                <div class="col-4">
+                                                    <div class="fw-bold text-primary">{{ adaptation.chapter_count }}</div>
+                                                    <div class="text-muted" style="font-size: 0.75rem;">Chapters</div>
+                                                </div>
+                                                <div class="col-4">
+                                                    <div class="fw-bold text-success">{{ adaptation.image_count }}</div>
+                                                    <div class="text-muted" style="font-size: 0.75rem;">Images</div>
+                                                </div>
+                                                <div class="col-4">
+                                                    <div class="fw-bold text-info">{{ "{:,}".format(adaptation.word_count) }}</div>
+                                                    <div class="text-muted" style="font-size: 0.75rem;">Words</div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- Completion Progress -->
+                                        {% if adaptation.chapter_count > 0 %}
+                                        {% set illustration_pct = ((adaptation.image_count / adaptation.chapter_count) * 100) | int %}
+                                        {% set has_cover = 1 if adaptation.cover_url else 0 %}
+                                        {% set has_content = 1 if adaptation.word_count > 0 else 0 %}
+                                        {% set completion_pct = ((has_cover + has_content + (illustration_pct / 100)) / 3 * 100) | int %}
+                                        
+                                        <div class="mb-2">
+                                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                                <small class="text-muted">Completion</small>
+                                                <small class="fw-bold {% if completion_pct >= 80 %}text-success{% elif completion_pct >= 50 %}text-warning{% else %}text-danger{% endif %}">
+                                                    {{ completion_pct }}%
+                                                </small>
+                                            </div>
+                                            <div class="progress" style="height: 6px;">
+                                                <div class="progress-bar {% if completion_pct >= 80 %}bg-success{% elif completion_pct >= 50 %}bg-warning{% else %}bg-danger{% endif %}" 
+                                                     role="progressbar" 
+                                                     style="width: {{ completion_pct }}%;"
+                                                     aria-valuenow="{{ completion_pct }}" 
+                                                     aria-valuemin="0" 
+                                                     aria-valuemax="100">
+                                                </div>
+                                            </div>
+                                        </div>
+                                        {% endif %}
+                                        
+                                        <!-- Status Badges -->
+                                        <div class="mb-2">
+                                            {% if adaptation.cover_url %}
+                                            <span class="badge bg-success"><i class="bi bi-check-circle"></i> Cover</span>
+                                            {% else %}
+                                            <span class="badge bg-warning text-dark"><i class="bi bi-exclamation-circle"></i> No Cover</span>
+                                            {% endif %}
+                                            
+                                            {% if adaptation.image_count > 0 %}
+                                            <span class="badge bg-info">{{ illustration_pct }}% Illustrated</span>
+                                            {% else %}
+                                            <span class="badge bg-secondary">No Images</span>
+                                            {% endif %}
+                                            
+                                            {% if adaptation.word_count > 1000 %}
+                                            <span class="badge bg-primary"><i class="bi bi-file-text"></i> Content</span>
+                                            {% elif adaptation.word_count > 0 %}
+                                            <span class="badge bg-warning text-dark"><i class="bi bi-file-text"></i> Minimal</span>
+                                            {% endif %}
+                                        </div>
+                                        
+                                        <div class="d-flex gap-2 mt-3">
+                                            <a href="/publish/adaptation/{{ adaptation.adaptation_id }}" class="btn btn-primary btn-sm flex-fill">
                                                 <i class="bi bi-eye"></i> Preview
                                             </a>
-                                            <button class="btn btn-success btn-sm" onclick="exportPDF({{ adaptation.id }})">
-                                                <i class="bi bi-download"></i> Export PDF
+                                            <button class="btn btn-success btn-sm flex-fill" onclick="exportPDF({{ adaptation.adaptation_id }})">
+                                                <i class="bi bi-download"></i> Export
                                             </button>
                                         </div>
                                     </div>

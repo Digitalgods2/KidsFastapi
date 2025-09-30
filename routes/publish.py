@@ -25,12 +25,12 @@ def get_base_context(request):
 
 @router.get("/", response_class=HTMLResponse)
 async def publish_page(request: Request):
-    """Publish page - shows all adaptations ready for publishing"""
+    """Publish page - shows all adaptations with content statistics"""
     context = get_base_context(request)
     
     try:
-        # Get all adaptations (user can publish anytime with content)
-        all_adaptations = await database.get_all_adaptations()
+        # Get all adaptations with content statistics (chapters, images, word count)
+        all_adaptations = await database.get_all_adaptations_with_stats()
         context["adaptations"] = all_adaptations
         
     except Exception as e:

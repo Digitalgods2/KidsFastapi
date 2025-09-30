@@ -884,6 +884,63 @@ async def get_all_adaptations() -> List[Dict]:
     finally:
         conn.close()
 
+async def get_all_adaptations_with_stats() -> List[Dict]:
+    """Get all adaptations with book details AND content statistics - used by publish page"""
+    conn = db_manager.get_connection()
+    cursor = conn.cursor()
+    
+    try:
+        cursor.execute('''
+            SELECT 
+                a.adaptation_id, a.book_id, a.target_age_group, a.transformation_style,
+                a.overall_theme_tone, a.key_characters_to_preserve, a.chapter_structure_choice,
+                a.cover_prompt, a.cover_url, a.status, a.created_at,
+                b.title, b.author,
+                COUNT(DISTINCT c.chapter_id) as chapter_count,
+                SUM(CASE WHEN c.image_url IS NOT NULL AND c.image_url != '' THEN 1 ELSE 0 END) as image_count,
+                SUM(CASE 
+                    WHEN c.transformed_text IS NOT NULL AND LENGTH(c.transformed_text) > 0 
+                    THEN LENGTH(c.transformed_text)
+                    WHEN c.original_text_segment IS NOT NULL 
+                    THEN LENGTH(c.original_text_segment)
+                    ELSE 0
+                END) as total_chars
+            FROM adaptations a
+            JOIN books b ON a.book_id = b.book_id
+            LEFT JOIN chapters c ON a.adaptation_id = c.adaptation_id
+            GROUP BY a.adaptation_id
+            ORDER BY a.created_at DESC
+        ''')
+        
+        adaptations = []
+        for row in cursor.fetchall():
+            total_chars = row[15] or 0
+            word_count = max(1, total_chars // 5) if total_chars > 0 else 0  # Rough estimate: avg 5 chars per word
+            
+            adaptations.append({
+                "adaptation_id": row[0],
+                "book_id": row[1],
+                "target_age_group": row[2],
+                "transformation_style": row[3],
+                "overall_theme_tone": row[4],
+                "key_characters_to_preserve": row[5],
+                "chapter_structure_choice": row[6],
+                "cover_prompt": row[7],
+                "cover_url": row[8],
+                "status": row[9],
+                "created_at": row[10],
+                "book_title": row[11],
+                "book_author": row[12],
+                "chapter_count": row[13],
+                "image_count": row[14],
+                "total_chars": total_chars,
+                "word_count": word_count
+            })
+        
+        return adaptations
+    finally:
+        conn.close()
+
 async def delete_adaptation_from_db(adaptation_id: int) -> bool:
     """Delete adaptation and chapters - matches app5.py function"""
     conn = db_manager.get_connection()
