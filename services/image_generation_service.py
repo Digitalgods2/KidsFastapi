@@ -485,45 +485,53 @@ class ImageGenerationService:
     async def generate_image_prompt(self, chapter: Dict, adaptation_id: int) -> str:
         """
         Generate an AI-powered image prompt based on chapter content
+        Includes character consistency reference for visual coherence across chapters
         """
         try:
             # Get adaptation details for context
             import database_fixed as database
             adaptation = await database.get_adaptation_details(adaptation_id)
             
+            if not adaptation:
+                logger.warning(f"No adaptation found for ID {adaptation_id}")
+                return f"A children's book illustration for Chapter {chapter.get('chapter_number', 1)}"
+            
             chapter_text = chapter.get('original_chapter_text', '')[:2000]  # Limit text length
-            age_group = adaptation.get('target_age_group', 'Ages 6-8')
-            style = adaptation.get('transformation_style', 'Simple & Direct')
+            chapter_number = chapter.get('chapter_number', 1)
             
-            prompt_generation_text = f"""
-            Create a detailed image prompt for a children's book illustration based on this chapter excerpt:
+            # Get character consistency reference for this adaptation
+            from services.character_helper import get_formatted_character_reference
+            char_ref = await get_formatted_character_reference(
+                adaptation_id=adaptation_id,
+                chapter_number=chapter_number,
+                total_chapters=1  # Will be ignored for now (always include reference)
+            )
             
-            Chapter Text: {chapter_text}
+            if char_ref:
+                logger.info(f"Including character reference for chapter {chapter_number} of adaptation {adaptation_id}")
+            else:
+                logger.info(f"No character reference available for adaptation {adaptation_id}")
             
-            Target Age Group: {age_group}
-            Style: {style}
-            
-            Generate a prompt that describes a single, engaging scene from this chapter that would be perfect for a children's book illustration. Focus on:
-            - Main characters and their actions
-            - Setting and environment
-            - Mood and atmosphere appropriate for {age_group}
-            - Visual elements that support the story
-            
-            Keep the prompt under 200 words and make it vivid and descriptive.
-            """
-            
-            # Use modern chat helper
+            # Use modern chat helper with character reference
             from services import chat_helper
             messages = chat_helper.build_chapter_prompt_template(
                 chapter_text,
-                chapter.get('chapter_number', 1),
+                chapter_number,
                 adaptation,
+                formatted_char_ref=char_ref,  # Pass formatted character reference
             )
+            
             text, err = await chat_helper.generate_chat_text(messages, temperature=0.7, max_tokens=500)
+            
+            if err:
+                logger.error(f"Chat helper error: {err}")
+            
             if text:
                 return text.strip()
+            
             # Fallback to basic prompt
-            return f"A children's book illustration showing characters from Chapter {chapter.get('chapter_number', 1)}, colorful and engaging for {age_group}"
+            age_group = adaptation.get('target_age_group', 'Ages 6-8')
+            return f"A children's book illustration showing characters from Chapter {chapter_number}, colorful and engaging for {age_group}"
         
         except Exception as e:
             from services.logger import get_logger

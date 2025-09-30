@@ -115,6 +115,13 @@
                         </ul>
                     </li>
                     
+                    <!-- Help -->
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" data-bs-toggle="modal" data-bs-target="#helpModal">
+                            <i class="bi bi-question-circle"></i> Help
+                        </a>
+                    </li>
+                    
                     <!-- Settings -->
                     <li class="nav-item">
                         <a class="nav-link {% if request.url.path == '/settings' %}active{% endif %}" href="/settings">
@@ -185,18 +192,17 @@
                 </div>
             </div>
             <hr>
-            <div class="text-center text-muted small">
-                <div class="mb-2">
-                    © <span id="copyright-year"></span> <a href="https://digitalgods.ai" target="_blank" class="text-decoration-none text-muted">DigitalGods.ai</a>. All Rights Reserved.
+            <div class="text-center small">
+                <div class="mb-2 text-muted">
+                    © <span id="copyright-year"></span> <a href="https://digitalgods.ai" target="_blank" class="text-decoration-none text-primary fw-semibold">DigitalGods.ai</a>. All Rights Reserved.
                 </div>
                 <div>
-                    <a href="#" class="text-muted text-decoration-none me-3" data-bs-toggle="modal" data-bs-target="#termsModal">
+                    <a href="#" class="text-primary text-decoration-none me-3 fw-semibold" data-bs-toggle="modal" data-bs-target="#termsModal">
                         <i class="bi bi-file-text"></i> Terms of Service
                     </a>
-                    <a href="#" class="text-muted text-decoration-none me-3" data-bs-toggle="modal" data-bs-target="#privacyModal">
+                    <a href="#" class="text-primary text-decoration-none me-3 fw-semibold" data-bs-toggle="modal" data-bs-target="#privacyModal">
                         <i class="bi bi-shield-check"></i> Privacy Policy
                     </a>
-                    <span class="text-muted">Powered by FastAPI + HTMX</span>
                 </div>
             </div>
         </div>
@@ -347,6 +353,368 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Help Modal -->
+    <div class="modal fade" id="helpModal" tabindex="-1" aria-labelledby="helpModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-xl modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title" id="helpModalLabel">
+                        <i class="bi bi-question-circle"></i> KidsKlassiks User Guide
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="p-3">
+                        <div class="alert alert-info">
+                            <i class="bi bi-info-circle"></i>
+                            <strong>Welcome to KidsKlassiks!</strong> This comprehensive guide will help you transform classic literature into engaging children's stories using AI.
+                        </div>
+
+                        <nav class="nav nav-pills flex-column flex-sm-row mb-4">
+                            <a class="flex-sm-fill text-sm-center nav-link active" data-bs-toggle="tab" href="#help-overview">Overview</a>
+                            <a class="flex-sm-fill text-sm-center nav-link" data-bs-toggle="tab" href="#help-books">Books</a>
+                            <a class="flex-sm-fill text-sm-center nav-link" data-bs-toggle="tab" href="#help-adaptations">Adaptations</a>
+                            <a class="flex-sm-fill text-sm-center nav-link" data-bs-toggle="tab" href="#help-images">Images</a>
+                            <a class="flex-sm-fill text-sm-center nav-link" data-bs-toggle="tab" href="#help-publish">Publishing</a>
+                            <a class="flex-sm-fill text-sm-center nav-link" data-bs-toggle="tab" href="#help-tips">Tips & FAQ</a>
+                        </nav>
+
+                        <div class="tab-content">
+                            <!-- Overview Tab -->
+                            <div class="tab-pane fade show active" id="help-overview">
+                                <h5 class="mb-3"><i class="bi bi-book"></i> What is KidsKlassiks?</h5>
+                                <p>KidsKlassiks is an AI-powered platform that transforms classic literature into age-appropriate children's stories. Using advanced artificial intelligence, you can:</p>
+                                <ul>
+                                    <li>Import classic books from Project Gutenberg or upload your own</li>
+                                    <li>Automatically adapt text for different age groups (3-5, 6-8, 9-12 years)</li>
+                                    <li>Generate AI-powered illustrations for chapters and covers</li>
+                                    <li>Preview and publish complete adapted books</li>
+                                </ul>
+
+                                <h6 class="mt-4 mb-2">Quick Start Workflow</h6>
+                                <ol class="mb-3">
+                                    <li><strong>Import a Book</strong> - Start with a classic from Project Gutenberg or upload your own</li>
+                                    <li><strong>Create Adaptation</strong> - Choose age group, style, and transformation options</li>
+                                    <li><strong>Generate Content</strong> - AI transforms the text into child-friendly chapters</li>
+                                    <li><strong>Add Illustrations</strong> - Generate cover and chapter images using AI</li>
+                                    <li><strong>Preview & Publish</strong> - Review your adaptation and export as PDF</li>
+                                </ol>
+
+                                <div class="alert alert-success">
+                                    <i class="bi bi-lightbulb"></i>
+                                    <strong>Pro Tip:</strong> Start with a well-known classic like "The Wonderful Wizard of Oz" to get familiar with the workflow.
+                                </div>
+                            </div>
+
+                            <!-- Books Tab -->
+                            <div class="tab-pane fade" id="help-books">
+                                <h5 class="mb-3"><i class="bi bi-collection"></i> Managing Books</h5>
+                                
+                                <h6 class="mt-3 mb-2">Importing from Project Gutenberg</h6>
+                                <ol>
+                                    <li>Go to <strong>Books > Project Gutenberg</strong></li>
+                                    <li>Search for a classic book by title or author</li>
+                                    <li>Click <strong>"Import"</strong> on your chosen book</li>
+                                    <li>The system downloads and processes the book automatically</li>
+                                </ol>
+                                <p class="text-muted small"><i class="bi bi-info-circle"></i> Project Gutenberg offers over 70,000 free public domain books.</p>
+
+                                <h6 class="mt-4 mb-2">Uploading Your Own Books</h6>
+                                <ol>
+                                    <li>Go to <strong>Books > Import New Book</strong></li>
+                                    <li>Enter book title and author</li>
+                                    <li>Upload a text file (.txt) or paste content directly</li>
+                                    <li>Click <strong>"Import Book"</strong> to add to your library</li>
+                                </ol>
+                                <div class="alert alert-warning">
+                                    <i class="bi bi-exclamation-triangle"></i>
+                                    <strong>Copyright Notice:</strong> Only upload books that are in the public domain or for which you have permission. You are responsible for copyright compliance.
+                                </div>
+
+                                <h6 class="mt-4 mb-2">Browsing Your Library</h6>
+                                <p>Access <strong>Books > Browse Library</strong> to:</p>
+                                <ul>
+                                    <li>View all imported books</li>
+                                    <li>See book details (title, author, word count, chapter count)</li>
+                                    <li>Create new adaptations from existing books</li>
+                                    <li>Delete books you no longer need</li>
+                                </ul>
+                            </div>
+
+                            <!-- Adaptations Tab -->
+                            <div class="tab-pane fade" id="help-adaptations">
+                                <h5 class="mb-3"><i class="bi bi-layers"></i> Creating Adaptations</h5>
+                                
+                                <h6 class="mt-3 mb-2">Step 1: Start New Adaptation</h6>
+                                <ol>
+                                    <li>Go to <strong>Adaptations > New Adaptation</strong></li>
+                                    <li>Select a book from your library</li>
+                                    <li>Configure adaptation settings</li>
+                                </ol>
+
+                                <h6 class="mt-4 mb-2">Configuration Options</h6>
+                                <ul>
+                                    <li><strong>Target Age Group:</strong>
+                                        <ul>
+                                            <li><em>3-5 years:</em> Very simple vocabulary, short sentences, repetitive patterns</li>
+                                            <li><em>6-8 years:</em> Simple vocabulary, moderate sentence length, clear storylines</li>
+                                            <li><em>9-12 years:</em> Advanced vocabulary, complex sentences, detailed narratives</li>
+                                        </ul>
+                                    </li>
+                                    <li><strong>Transformation Style:</strong> Fairy Tale, Adventure, Educational, Whimsical, etc.</li>
+                                    <li><strong>Theme/Tone:</strong> Happy, Adventurous, Magical, Exciting, etc.</li>
+                                    <li><strong>Key Characters:</strong> Which characters to preserve from the original</li>
+                                </ul>
+
+                                <h6 class="mt-4 mb-2">Step 2: Process Chapters</h6>
+                                <ol>
+                                    <li>After configuration, click <strong>"Process Chapters"</strong></li>
+                                    <li>AI analyzes the book and creates chapter breakdowns</li>
+                                    <li>Text is transformed to match the target age group</li>
+                                    <li>Wait for processing to complete (usually 1-5 minutes)</li>
+                                </ol>
+
+                                <h6 class="mt-4 mb-2">Step 3: Review & Edit</h6>
+                                <p>Once processing completes:</p>
+                                <ul>
+                                    <li>View all adapted chapters</li>
+                                    <li>Read through transformed text</li>
+                                    <li>Edit any chapter text directly in the interface</li>
+                                    <li>Proceed to image generation when satisfied</li>
+                                </ul>
+
+                                <div class="alert alert-info">
+                                    <i class="bi bi-clock"></i>
+                                    <strong>Processing Time:</strong> Chapter processing typically takes 1-5 minutes depending on book length and complexity.
+                                </div>
+                            </div>
+
+                            <!-- Images Tab -->
+                            <div class="tab-pane fade" id="help-images">
+                                <h5 class="mb-3"><i class="bi bi-image"></i> Generating Illustrations</h5>
+                                
+                                <h6 class="mt-3 mb-2">Cover Images</h6>
+                                <ol>
+                                    <li>Navigate to your adaptation's image page</li>
+                                    <li>In the <strong>Cover Image</strong> section:</li>
+                                    <li>Click <strong>"Generate Prompt"</strong> - AI creates a detailed image description</li>
+                                    <li>Review and edit the prompt if desired</li>
+                                    <li>Click <strong>"Save Prompt"</strong> to save without generating (optional)</li>
+                                    <li>Click <strong>"Generate Image"</strong> to create the cover</li>
+                                    <li>Wait 10-15 seconds for AI image generation</li>
+                                </ol>
+
+                                <h6 class="mt-4 mb-2">Chapter Images</h6>
+                                <ol>
+                                    <li>Scroll to the <strong>Chapter Images</strong> section</li>
+                                    <li>For each chapter:
+                                        <ul>
+                                            <li>Click <strong>"Generate Prompt"</strong> to create image description</li>
+                                            <li>Edit the prompt to match your vision</li>
+                                            <li>Click <strong>"Generate Image"</strong> to create illustration</li>
+                                        </ul>
+                                    </li>
+                                    <li>Images appear immediately after generation</li>
+                                    <li>Regenerate any image if you're not satisfied</li>
+                                </ol>
+
+                                <h6 class="mt-4 mb-2">AI Backend Options</h6>
+                                <p>Configure in <strong>Settings</strong>:</p>
+                                <ul>
+                                    <li><strong>DALL-E 3 (OpenAI):</strong> High quality, consistent style, good text rendering</li>
+                                    <li><strong>Vertex AI Imagen 4 (Google):</strong> Exceptional quality, photorealistic, superior text rendering</li>
+                                </ul>
+
+                                <h6 class="mt-4 mb-2">Image Settings</h6>
+                                <p>In <strong>Settings</strong>, configure:</p>
+                                <ul>
+                                    <li><strong>Default Backend:</strong> Choose your preferred AI service</li>
+                                    <li><strong>Image Size:</strong> Select aspect ratio (1024x1024, 1792x1024, etc.)</li>
+                                    <li><strong>API Keys:</strong> Configure your OpenAI or Google Cloud credentials</li>
+                                </ul>
+
+                                <div class="alert alert-success">
+                                    <i class="bi bi-magic"></i>
+                                    <strong>Best Practice:</strong> Generate the cover first, then chapter images. This ensures consistent style throughout your book.
+                                </div>
+
+                                <div class="alert alert-warning">
+                                    <i class="bi bi-hourglass-split"></i>
+                                    <strong>Generation Time:</strong> Each image takes 10-15 seconds. For a 25-chapter book, budget 5-10 minutes for all illustrations.
+                                </div>
+                            </div>
+
+                            <!-- Publishing Tab -->
+                            <div class="tab-pane fade" id="help-publish">
+                                <h5 class="mb-3"><i class="bi bi-file-earmark-pdf"></i> Publishing Your Adaptation</h5>
+                                
+                                <h6 class="mt-3 mb-2">Publish Page Overview</h6>
+                                <p>Go to <strong>Publish</strong> to see all your adaptations with:</p>
+                                <ul>
+                                    <li><strong>Cover thumbnails</strong> (if generated)</li>
+                                    <li><strong>Content statistics:</strong> Chapter count, image count, word count</li>
+                                    <li><strong>Completion percentage:</strong> Visual progress indicator</li>
+                                    <li><strong>Status badges:</strong> Cover status, illustration percentage</li>
+                                </ul>
+
+                                <h6 class="mt-4 mb-2">Preview Your Book</h6>
+                                <ol>
+                                    <li>Click <strong>"Preview"</strong> on any adaptation</li>
+                                    <li>View a beautiful book-style layout with:
+                                        <ul>
+                                            <li>Cover image and title page</li>
+                                            <li>All chapters with images</li>
+                                            <li>Complete formatted text</li>
+                                        </ul>
+                                    </li>
+                                    <li>Use <strong>"Print"</strong> button for browser print</li>
+                                    <li>Scroll through to review entire book</li>
+                                </ol>
+
+                                <h6 class="mt-4 mb-2">Export as PDF</h6>
+                                <ol>
+                                    <li>From the Publish page, click <strong>"Export PDF"</strong></li>
+                                    <li>Or from Preview page, click <strong>"Export PDF"</strong></li>
+                                    <li>PDF is generated with all content and images</li>
+                                    <li>Download and share your adapted book!</li>
+                                </ol>
+
+                                <h6 class="mt-4 mb-2">Publishing Checklist</h6>
+                                <div class="card bg-light">
+                                    <div class="card-body">
+                                        <p class="mb-2">Before publishing, ensure:</p>
+                                        <ul class="mb-0">
+                                            <li>✓ All chapters have been processed and reviewed</li>
+                                            <li>✓ Cover image has been generated</li>
+                                            <li>✓ Chapter images are complete (or as desired)</li>
+                                            <li>✓ Text has been proofread and edited</li>
+                                            <li>✓ Content is appropriate for target age group</li>
+                                            <li>✓ Copyright compliance verified</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Tips & FAQ Tab -->
+                            <div class="tab-pane fade" id="help-tips">
+                                <h5 class="mb-3"><i class="bi bi-lightbulb"></i> Tips & Best Practices</h5>
+                                
+                                <h6 class="mt-3 mb-2">Optimization Tips</h6>
+                                <ul>
+                                    <li><strong>Choose the Right Age Group:</strong> Consider reading level and attention span</li>
+                                    <li><strong>Edit AI-Generated Content:</strong> Review and refine text for clarity</li>
+                                    <li><strong>Consistent Style:</strong> Generate all images with the same AI backend</li>
+                                    <li><strong>Batch Processing:</strong> Generate multiple chapter images in sequence</li>
+                                    <li><strong>Save Prompts:</strong> Save good prompts before generating images</li>
+                                </ul>
+
+                                <h6 class="mt-4 mb-2">Common Issues & Solutions</h6>
+                                <div class="accordion" id="faqAccordion">
+                                    <div class="accordion-item">
+                                        <h2 class="accordion-header">
+                                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq1">
+                                                Images not showing after generation?
+                                            </button>
+                                        </h2>
+                                        <div id="faq1" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                                            <div class="accordion-body">
+                                                <strong>Solution:</strong> Refresh the page to clear browser cache. Images are cached with timestamps but may need a manual refresh.
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="accordion-item">
+                                        <h2 class="accordion-header">
+                                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq2">
+                                                Chapter processing taking too long?
+                                            </button>
+                                        </h2>
+                                        <div id="faq2" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                                            <div class="accordion-body">
+                                                <strong>Solution:</strong> Processing time depends on book length. Books with 20+ chapters may take 3-5 minutes. Be patient and don't refresh the page during processing.
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="accordion-item">
+                                        <h2 class="accordion-header">
+                                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq3">
+                                                Want to change image backend?
+                                            </button>
+                                        </h2>
+                                        <div id="faq3" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                                            <div class="accordion-body">
+                                                <strong>Solution:</strong> Go to Settings and change the "Default Image Backend". Configure API keys if switching to a new service. Settings persist across sessions.
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="accordion-item">
+                                        <h2 class="accordion-header">
+                                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq4">
+                                                How to ensure copyright compliance?
+                                            </button>
+                                        </h2>
+                                        <div id="faq4" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                                            <div class="accordion-body">
+                                                <strong>Solution:</strong> Only use books that are:
+                                                <ul>
+                                                    <li>In the public domain (published before 1928 in most cases)</li>
+                                                    <li>From Project Gutenberg (all public domain)</li>
+                                                    <li>Licensed for adaptation (get written permission)</li>
+                                                </ul>
+                                                You are solely responsible for copyright compliance.
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="accordion-item">
+                                        <h2 class="accordion-header">
+                                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq5">
+                                                Can I edit the adapted text?
+                                            </button>
+                                        </h2>
+                                        <div id="faq5" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                                            <div class="accordion-body">
+                                                <strong>Yes!</strong> All chapter text is editable. Click on any chapter text field, make your changes, and they're automatically saved. This allows you to refine AI-generated content.
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <h6 class="mt-4 mb-2">Keyboard Shortcuts</h6>
+                                <table class="table table-sm">
+                                    <tbody>
+                                        <tr>
+                                            <td><code>Ctrl/Cmd + S</code></td>
+                                            <td>Save current changes (when editing)</td>
+                                        </tr>
+                                        <tr>
+                                            <td><code>Esc</code></td>
+                                            <td>Close modal windows</td>
+                                        </tr>
+                                        <tr>
+                                            <td><code>Ctrl/Cmd + P</code></td>
+                                            <td>Print preview page</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+
+                                <div class="alert alert-info mt-4">
+                                    <i class="bi bi-envelope"></i>
+                                    <strong>Need More Help?</strong> Contact support through <a href="https://digitalgods.ai" target="_blank">DigitalGods.ai</a> for technical assistance.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
                 </div>
             </div>
         </div>

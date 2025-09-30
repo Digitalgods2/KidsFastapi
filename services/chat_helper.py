@@ -86,15 +86,35 @@ def build_chapter_prompt_template(
     chapter_number: int,
     adaptation: Dict[str, Any],
     character_reference: Optional[Dict[str, Any]] = None,
+    formatted_char_ref: Optional[str] = None,
 ) -> List[Dict[str, str]]:
+    """
+    Build chapter image prompt with optional character consistency reference
+    
+    Args:
+        chapter_text: The chapter text excerpt
+        chapter_number: Chapter number
+        adaptation: Adaptation details
+        character_reference: Raw character reference dict (legacy support)
+        formatted_char_ref: Pre-formatted character reference string (preferred)
+    """
     age_group = adaptation.get('target_age_group', '6-8')
     style = adaptation.get('transformation_style', 'Simple & Direct')
 
     system = (
         "You are an expert prompt engineer and children's book illustrator. "
-        "Create visually rich, child-friendly prompts that produce a single cohesive illustration."
+        "Create visually rich, child-friendly prompts that produce a single cohesive illustration. "
+        "When character consistency guides are provided, maintain exact visual descriptions across all chapters."
     )
-    char_ref = f"\nCharacter Reference (JSON excerpt):\n{str(character_reference)[:1500]}\n" if character_reference else ""
+    
+    # Use formatted reference if provided (preferred), otherwise fallback to raw dict
+    char_ref = ""
+    if formatted_char_ref:
+        char_ref = f"\n{formatted_char_ref}\n"
+    elif character_reference:
+        # Legacy fallback: format the raw dict
+        char_ref = f"\nCharacter Reference (JSON excerpt):\n{str(character_reference)[:1500]}\n"
+    
     user = f"""
 Create a detailed DALL-E image prompt for Chapter {chapter_number}.
 
@@ -107,7 +127,7 @@ Chapter Excerpt (trimmed):
 Guidelines:
 - One single, engaging scene from this chapter
 - Friendly, whimsical tone; bright colors; clear subject and background
-- Consistent character depiction (names, looks) across chapters
+- CRITICAL: If character consistency guide provided above, use EXACT physical descriptions for any characters shown
 - Describe characters (appearance, pose, expression), setting, mood, palette, composition
 - Avoid text in the image; avoid violence/scary content
 - Keep under 180 words; no extra commentary
@@ -128,6 +148,23 @@ async def generate_chapter_image_prompt(
     chapter_number: int,
     adaptation: Dict[str, Any],
     character_reference: Optional[Dict[str, Any]] = None,
+    formatted_char_ref: Optional[str] = None,
 ) -> Tuple[Optional[str], Optional[str]]:
-    messages = build_chapter_prompt_template(transformed_text, chapter_number, adaptation, character_reference)
+    """
+    Generate chapter image prompt with optional character consistency
+    
+    Args:
+        transformed_text: Chapter text
+        chapter_number: Chapter number
+        adaptation: Adaptation details
+        character_reference: Raw character dict (legacy)
+        formatted_char_ref: Pre-formatted character reference (preferred)
+    """
+    messages = build_chapter_prompt_template(
+        transformed_text, 
+        chapter_number, 
+        adaptation, 
+        character_reference,
+        formatted_char_ref
+    )
     return await generate_chat_text(messages, temperature=0.7, max_tokens=500)
