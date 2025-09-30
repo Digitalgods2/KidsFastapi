@@ -14,20 +14,74 @@
         </div>
     </div>
 
+    <!-- Filter Controls -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <form method="get" action="/gallery/" class="row g-3">
+                        <div class="col-md-4">
+                            <label for="bookFilter" class="form-label">
+                                <i class="bi bi-book"></i> Filter by Book
+                            </label>
+                            <select class="form-select" id="bookFilter" name="book" onchange="this.form.submit()">
+                                <option value="">All Books</option>
+                                {% for book in available_books %}
+                                <option value="{{ book.id }}" {% if filter_book == book.id|string %}selected{% endif %}>
+                                    {{ book.title }}{% if book.author %} by {{ book.author }}{% endif %}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="adaptationFilter" class="form-label">
+                                <i class="bi bi-layers"></i> Filter by Adaptation
+                            </label>
+                            <select class="form-select" id="adaptationFilter" name="adaptation" onchange="this.form.submit()">
+                                <option value="">All Adaptations</option>
+                                {% for adaptation in available_adaptations %}
+                                <option value="{{ adaptation.id }}" {% if filter_adaptation == adaptation.id|string %}selected{% endif %}>
+                                    {{ adaptation.book_title }} (Age {{ adaptation.target_age }})
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label d-block">&nbsp;</label>
+                            {% if filter_book or filter_adaptation %}
+                            <a href="/gallery/" class="btn btn-outline-secondary">
+                                <i class="bi bi-x-circle"></i> Clear Filters
+                            </a>
+                            {% endif %}
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Statistics -->
     <div class="row mb-4">
         <div class="col-md-3">
             <div class="card border-0 shadow-sm">
                 <div class="card-body text-center">
                     <h3 class="text-primary mb-1">{{ images|length }}</h3>
-                    <small class="text-muted">Total Images</small>
+                    <small class="text-muted">{% if filter_book or filter_adaptation %}Filtered{% else %}Total{% endif %} Images</small>
                 </div>
             </div>
         </div>
         <div class="col-md-3">
             <div class="card border-0 shadow-sm">
                 <div class="card-body text-center">
-                    <h3 class="text-success mb-1">{{ adaptations_count|default(0) }}</h3>
+                    <h3 class="text-success mb-1">{{ books_count|default(0) }}</h3>
+                    <small class="text-muted">Books</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body text-center">
+                    <h3 class="text-info mb-1">{{ adaptations_count|default(0) }}</h3>
                     <small class="text-muted">Adaptations</small>
                 </div>
             </div>
@@ -35,16 +89,8 @@
         <div class="col-md-3">
             <div class="card border-0 shadow-sm">
                 <div class="card-body text-center">
-                    <h3 class="text-info mb-1">{{ chapters_count|default(0) }}</h3>
+                    <h3 class="text-warning mb-1">{{ chapters_count|default(0) }}</h3>
                     <small class="text-muted">Chapters</small>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="card border-0 shadow-sm">
-                <div class="card-body text-center">
-                    <h3 class="text-warning mb-1">AI</h3>
-                    <small class="text-muted">Generated</small>
                 </div>
             </div>
         </div>
@@ -76,13 +122,19 @@
                                     <div class="position-relative">
                                         <img src="{{ image.image_url }}" class="card-img-top" alt="Generated Image" style="height: 200px; object-fit: cover;">
                                         <div class="position-absolute top-0 end-0 m-2">
-                                            <span class="badge bg-primary">ID: {{ image.id }}</span>
+                                            <span class="badge bg-primary">Age {{ image.target_age_group }}</span>
                                         </div>
                                     </div>
                                     <div class="card-body">
-                                        <h6 class="card-title">Chapter {{ image.chapter_number|default('N/A') }}</h6>
+                                        <h6 class="card-title text-truncate" title="{{ image.book_title }}">
+                                            {{ image.book_title }}
+                                        </h6>
+                                        <p class="small mb-1">
+                                            <span class="badge bg-secondary">Chapter {{ image.chapter_number|default('N/A') }}</span>
+                                            <span class="badge bg-info">Adaptation #{{ image.adaptation_id }}</span>
+                                        </p>
                                         <p class="card-text small text-muted">
-                                            {{ image.prompt[:100] }}{% if image.prompt|length > 100 %}...{% endif %}
+                                            {{ image.prompt[:80] }}{% if image.prompt|length > 80 %}...{% endif %}
                                         </p>
                                         <div class="d-flex justify-content-between align-items-center">
                                             <small class="text-muted">
@@ -111,6 +163,7 @@
                                     <thead>
                                         <tr>
                                             <th>Image</th>
+                                            <th>Book</th>
                                             <th>Adaptation</th>
                                             <th>Chapter</th>
                                             <th>Prompt</th>
@@ -124,8 +177,15 @@
                                             <td>
                                                 <img src="{{ image.image_url }}" alt="Generated Image" style="width: 60px; height: 60px; object-fit: cover;" class="rounded">
                                             </td>
-                                            <td>{{ image.adaptation_id|default('N/A') }}</td>
-                                            <td>{{ image.chapter_number|default('N/A') }}</td>
+                                            <td>
+                                                <strong>{{ image.book_title }}</strong><br>
+                                                <small class="text-muted">{{ image.book_author }}</small>
+                                            </td>
+                                            <td>
+                                                <span class="badge bg-info">ID: {{ image.adaptation_id }}</span><br>
+                                                <small class="text-muted">Age {{ image.target_age_group }}</small>
+                                            </td>
+                                            <td><span class="badge bg-secondary">{{ image.chapter_number|default('N/A') }}</span></td>
                                             <td>
                                                 <span class="text-truncate d-inline-block" style="max-width: 300px;">
                                                     {{ image.prompt }}

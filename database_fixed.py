@@ -1275,9 +1275,11 @@ async def get_generated_images() -> List[Dict]:
     try:
         cur.execute('''
             SELECT c.chapter_id, c.chapter_number, c.adaptation_id, c.image_url, c.ai_prompt, c.created_at,
-                   a.book_id, a.target_age_group
+                   a.book_id, a.target_age_group, a.transformation_goal,
+                   b.title AS book_title, b.author AS book_author
             FROM chapters c
             JOIN adaptations a ON c.adaptation_id = a.adaptation_id
+            JOIN books b ON a.book_id = b.book_id
             WHERE c.image_url IS NOT NULL
             ORDER BY c.created_at DESC
         ''')
@@ -1292,6 +1294,9 @@ async def get_generated_images() -> List[Dict]:
                 'created_at': row[5],
                 'book_id': row[6],
                 'target_age_group': row[7],
+                'transformation_goal': row[8],
+                'book_title': row[9],
+                'book_author': row[10],
             })
         return out
     finally:
