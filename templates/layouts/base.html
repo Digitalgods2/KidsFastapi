@@ -11,6 +11,162 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
     <!-- Custom CSS -->
     <link href="/static/css/style.css" rel="stylesheet">
+    
+    <!-- Theme Styles -->
+    <style>
+        /* Theme Switcher Icon Styling */
+        #themeToggle {
+            cursor: pointer;
+            transition: transform 0.3s ease;
+        }
+        
+        #themeToggle:hover {
+            transform: scale(1.1);
+        }
+        
+        #themeIcon {
+            font-size: 1.2rem;
+            transition: all 0.3s ease;
+        }
+        
+        /* System Theme (uses Bootstrap default or dark based on system preference) */
+        .theme-system {
+            /* No additional styles - uses Bootstrap's built-in theming */
+        }
+        
+        /* Pure Dark Theme - True black background */
+        .theme-dark {
+            --bs-body-bg: #000000;
+            --bs-body-color: #ffffff;
+            --bs-card-bg: #111111;
+            --bs-border-color: #333333;
+            background-color: #000000 !important;
+        }
+        
+        .theme-dark .card {
+            background-color: #111111;
+            border-color: #333333;
+        }
+        
+        .theme-dark .navbar {
+            background-color: #000000 !important;
+            border-bottom: 1px solid #333333;
+        }
+        
+        .theme-dark .modal-content {
+            background-color: #111111;
+            color: #ffffff;
+        }
+        
+        .theme-dark .form-control,
+        .theme-dark .form-select {
+            background-color: #1a1a1a;
+            border-color: #333333;
+            color: #ffffff;
+        }
+        
+        .theme-dark .form-control:focus,
+        .theme-dark .form-select:focus {
+            background-color: #1a1a1a;
+            border-color: #555555;
+            color: #ffffff;
+        }
+        
+        .theme-dark .btn-outline-primary {
+            color: #6ea8fe;
+            border-color: #6ea8fe;
+        }
+        
+        .theme-dark .btn-outline-primary:hover {
+            background-color: #6ea8fe;
+            color: #000000;
+        }
+        
+        /* Charcoal Theme - Dark gray background */
+        .theme-charcoal {
+            --bs-body-bg: #1a1a1a;
+            --bs-body-color: #e0e0e0;
+            --bs-card-bg: #2a2a2a;
+            --bs-border-color: #404040;
+            background-color: #1a1a1a !important;
+        }
+        
+        .theme-charcoal .card {
+            background-color: #2a2a2a;
+            border-color: #404040;
+        }
+        
+        .theme-charcoal .navbar {
+            background-color: #0d0d0d !important;
+            border-bottom: 1px solid #404040;
+        }
+        
+        .theme-charcoal .modal-content {
+            background-color: #2a2a2a;
+            color: #e0e0e0;
+        }
+        
+        .theme-charcoal .form-control,
+        .theme-charcoal .form-select {
+            background-color: #353535;
+            border-color: #404040;
+            color: #e0e0e0;
+        }
+        
+        .theme-charcoal .form-control:focus,
+        .theme-charcoal .form-select:focus {
+            background-color: #353535;
+            border-color: #555555;
+            color: #e0e0e0;
+        }
+        
+        .theme-charcoal .btn-outline-primary {
+            color: #8ab4f8;
+            border-color: #8ab4f8;
+        }
+        
+        .theme-charcoal .btn-outline-primary:hover {
+            background-color: #8ab4f8;
+            color: #1a1a1a;
+        }
+        
+        .theme-charcoal .text-muted {
+            color: #999999 !important;
+        }
+        
+        /* Common dark theme adjustments */
+        .theme-dark .dropdown-menu,
+        .theme-charcoal .dropdown-menu {
+            background-color: var(--bs-card-bg);
+            border-color: var(--bs-border-color);
+        }
+        
+        .theme-dark .dropdown-item,
+        .theme-charcoal .dropdown-item {
+            color: var(--bs-body-color);
+        }
+        
+        .theme-dark .dropdown-item:hover,
+        .theme-charcoal .dropdown-item:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+        
+        .theme-dark .table,
+        .theme-charcoal .table {
+            --bs-table-bg: transparent;
+            --bs-table-striped-bg: rgba(255, 255, 255, 0.05);
+            --bs-table-hover-bg: rgba(255, 255, 255, 0.075);
+            color: var(--bs-body-color);
+        }
+        
+        .theme-dark .alert-info,
+        .theme-charcoal .alert-info {
+            background-color: rgba(13, 110, 253, 0.2);
+            border-color: rgba(13, 110, 253, 0.3);
+            color: #8ab4f8;
+        }
+    </style>
+    
     <!-- HTMX -->
     <script src="https://unpkg.com/htmx.org@1.9.10"></script>
     <!-- Alpine.js for reactive components -->
@@ -119,6 +275,13 @@
                     <li class="nav-item">
                         <a class="nav-link" href="#" data-bs-toggle="modal" data-bs-target="#helpModal">
                             <i class="bi bi-question-circle"></i> Help
+                        </a>
+                    </li>
+                    
+                    <!-- Theme Switcher -->
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" id="themeToggle" title="Change theme">
+                            <i class="bi bi-moon-stars-fill" id="themeIcon"></i>
                         </a>
                     </li>
                     
@@ -779,16 +942,102 @@
         const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
         const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl));
 
-        // Dark mode toggle (if needed)
-        function toggleDarkMode() {
-            document.body.classList.toggle('dark-mode');
-            localStorage.setItem('darkMode', document.body.classList.contains('dark-mode'));
+        // Theme System - 3 themes: system (default), dark, charcoal
+        const themes = ['system', 'dark', 'charcoal'];
+        const themeIcons = {
+            'system': 'bi-circle-half',           // Half moon for system theme
+            'dark': 'bi-moon-stars-fill',         // Full moon with stars for dark
+            'charcoal': 'bi-moon-fill'            // Solid moon for charcoal
+        };
+        
+        function getStoredTheme() {
+            return localStorage.getItem('theme') || 'system';
         }
-
-        // Check for saved dark mode preference
-        if (localStorage.getItem('darkMode') === 'true') {
-            document.body.classList.add('dark-mode');
+        
+        function setStoredTheme(theme) {
+            localStorage.setItem('theme', theme);
         }
+        
+        function getSystemTheme() {
+            return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+        }
+        
+        function applyTheme(theme) {
+            // Remove all theme classes
+            document.documentElement.removeAttribute('data-bs-theme');
+            document.body.classList.remove('theme-system', 'theme-dark', 'theme-charcoal');
+            
+            if (theme === 'system') {
+                // Use system preference
+                const systemTheme = getSystemTheme();
+                document.documentElement.setAttribute('data-bs-theme', systemTheme);
+                document.body.classList.add('theme-system');
+            } else if (theme === 'dark') {
+                // Pure dark theme (black background)
+                document.documentElement.setAttribute('data-bs-theme', 'dark');
+                document.body.classList.add('theme-dark');
+            } else if (theme === 'charcoal') {
+                // Charcoal theme (dark gray background)
+                document.documentElement.setAttribute('data-bs-theme', 'dark');
+                document.body.classList.add('theme-charcoal');
+            }
+            
+            // Update icon
+            const themeIcon = document.getElementById('themeIcon');
+            if (themeIcon) {
+                // Remove all icon classes
+                themeIcon.className = '';
+                // Add new icon class
+                themeIcon.classList.add('bi', themeIcons[theme]);
+            }
+        }
+        
+        function cycleTheme() {
+            const currentTheme = getStoredTheme();
+            const currentIndex = themes.indexOf(currentTheme);
+            const nextIndex = (currentIndex + 1) % themes.length;
+            const nextTheme = themes[nextIndex];
+            
+            setStoredTheme(nextTheme);
+            applyTheme(nextTheme);
+            
+            // Show toast notification
+            showThemeToast(nextTheme);
+        }
+        
+        function showThemeToast(theme) {
+            const themeNames = {
+                'system': 'System Theme',
+                'dark': 'Dark Theme',
+                'charcoal': 'Charcoal Theme'
+            };
+            
+            const toast = document.getElementById('liveToast');
+            if (toast) {
+                const toastBody = toast.querySelector('.toast-body');
+                if (toastBody) {
+                    toastBody.textContent = `Switched to ${themeNames[theme]}`;
+                }
+                const bsToast = new bootstrap.Toast(toast);
+                bsToast.show();
+            }
+        }
+        
+        // Initialize theme on page load
+        applyTheme(getStoredTheme());
+        
+        // Listen for system theme changes
+        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+            if (getStoredTheme() === 'system') {
+                applyTheme('system');
+            }
+        });
+        
+        // Attach theme toggle to button
+        document.getElementById('themeToggle')?.addEventListener('click', (e) => {
+            e.preventDefault();
+            cycleTheme();
+        });
     </script>
     
     {% block extra_js %}{% endblock %}
