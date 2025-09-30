@@ -40,6 +40,8 @@
             --bs-body-color: #ffffff;
             --bs-card-bg: #111111;
             --bs-border-color: #333333;
+            --bs-link-color: #58a6ff;
+            --bs-link-hover-color: #79c0ff;
             background-color: #000000 !important;
         }
         
@@ -82,12 +84,46 @@
             color: #000000;
         }
         
+        /* Enhanced text colors for dark theme */
+        .theme-dark .text-muted {
+            color: #b0b0b0 !important;
+        }
+        
+        .theme-dark a:not(.btn):not(.nav-link):not(.dropdown-item) {
+            color: #58a6ff;
+            text-decoration: none;
+        }
+        
+        .theme-dark a:not(.btn):not(.nav-link):not(.dropdown-item):hover {
+            color: #79c0ff;
+            text-decoration: underline;
+        }
+        
+        .theme-dark footer {
+            background-color: #0a0a0a !important;
+            border-top: 1px solid #333333;
+        }
+        
+        .theme-dark footer .text-muted {
+            color: #b0b0b0 !important;
+        }
+        
+        .theme-dark footer a {
+            color: #58a6ff !important;
+        }
+        
+        .theme-dark footer a:hover {
+            color: #79c0ff !important;
+        }
+        
         /* Charcoal Theme - Dark gray background */
         .theme-charcoal {
             --bs-body-bg: #1a1a1a;
             --bs-body-color: #e0e0e0;
             --bs-card-bg: #2a2a2a;
             --bs-border-color: #404040;
+            --bs-link-color: #6eb4ff;
+            --bs-link-hover-color: #8fc9ff;
             background-color: #1a1a1a !important;
         }
         
@@ -130,8 +166,36 @@
             color: #1a1a1a;
         }
         
+        /* Enhanced text colors for charcoal theme */
         .theme-charcoal .text-muted {
-            color: #999999 !important;
+            color: #b8b8b8 !important;
+        }
+        
+        .theme-charcoal a:not(.btn):not(.nav-link):not(.dropdown-item) {
+            color: #6eb4ff;
+            text-decoration: none;
+        }
+        
+        .theme-charcoal a:not(.btn):not(.nav-link):not(.dropdown-item):hover {
+            color: #8fc9ff;
+            text-decoration: underline;
+        }
+        
+        .theme-charcoal footer {
+            background-color: #121212 !important;
+            border-top: 1px solid #404040;
+        }
+        
+        .theme-charcoal footer .text-muted {
+            color: #b8b8b8 !important;
+        }
+        
+        .theme-charcoal footer a {
+            color: #6eb4ff !important;
+        }
+        
+        .theme-charcoal footer a:hover {
+            color: #8fc9ff !important;
         }
         
         /* Common dark theme adjustments */
@@ -164,6 +228,56 @@
             background-color: rgba(13, 110, 253, 0.2);
             border-color: rgba(13, 110, 253, 0.3);
             color: #8ab4f8;
+        }
+        
+        /* Enhanced contrast for badges and pills */
+        .theme-dark .badge,
+        .theme-charcoal .badge {
+            color: #ffffff;
+            font-weight: 600;
+        }
+        
+        /* Better visibility for small text */
+        .theme-dark small,
+        .theme-charcoal small {
+            color: #c0c0c0;
+        }
+        
+        .theme-dark .small,
+        .theme-charcoal .small {
+            color: #c0c0c0;
+        }
+        
+        /* Nav link enhancements for better visibility */
+        .theme-dark .nav-link,
+        .theme-charcoal .nav-link {
+            color: rgba(255, 255, 255, 0.85) !important;
+        }
+        
+        .theme-dark .nav-link:hover,
+        .theme-charcoal .nav-link:hover {
+            color: rgba(255, 255, 255, 1) !important;
+        }
+        
+        /* Better contrast for status indicators */
+        .theme-dark .text-success,
+        .theme-charcoal .text-success {
+            color: #4ade80 !important;
+        }
+        
+        .theme-dark .text-danger,
+        .theme-charcoal .text-danger {
+            color: #f87171 !important;
+        }
+        
+        .theme-dark .text-warning,
+        .theme-charcoal .text-warning {
+            color: #fbbf24 !important;
+        }
+        
+        .theme-dark .text-info,
+        .theme-charcoal .text-info {
+            color: #60a5fa !important;
         }
     </style>
     
