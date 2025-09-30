@@ -294,14 +294,16 @@ class ImageGenerationService:
                     "error": gen_error or "OpenAI generation failed"
                 }
 
-            # Resolve book-scoped directory
+            # Resolve book-scoped directory and get chapter number
             import database_fixed as database
             adaptation = await database.get_adaptation_details(adaptation_id)
+            chapter = await database.get_chapter_details(chapter_id)
             book_id = adaptation.get('book_id') if adaptation else None
+            chapter_number = chapter.get('chapter_number') if chapter else chapter_id
             target_dir = os.path.join("generated_images", str(book_id)) if book_id else "generated_images"
 
-            # Save image locally under per-book directory
-            filename = f"adaptation_{adaptation_id}_chapter_{chapter_id}_{model}.png"
+            # Save image locally under per-book directory (use chapter_number for filename)
+            filename = f"adaptation_{adaptation_id}_chapter_{chapter_number}_{model}.png"
             # Download bytes then write under target_dir
             image_bytes_path = await self._save_image_from_url(upstream_url, filename)
             if isinstance(image_bytes_path, str) and os.path.exists(image_bytes_path):
@@ -416,16 +418,18 @@ class ImageGenerationService:
             if image_url and not error:
                 logger.info(f"✨ Image URL received: {image_url}")
                 
-                # Resolve per-book directory
+                # Resolve per-book directory and get chapter number
                 import database_fixed as database
                 adaptation = await database.get_adaptation_details(adaptation_id)
+                chapter = await database.get_chapter_details(chapter_id)
                 book_id = adaptation.get('book_id') if adaptation else None
+                chapter_number = chapter.get('chapter_number') if chapter else chapter_id
                 target_dir = os.path.join("generated_images", str(book_id)) if book_id else "generated_images"
                 logger.info(f"📁 Target directory: {target_dir}, book_id={book_id}")
 
                 # Vertex AI already saved the image locally - image_url is a local path like /generated_images/filename.png
-                # We need to move it to the per-book directory
-                filename = f"adaptation_{adaptation_id}_chapter_{chapter_id}_vertex.png"
+                # We need to move it to the per-book directory (use chapter_number for filename)
+                filename = f"adaptation_{adaptation_id}_chapter_{chapter_number}_vertex.png"
                 
                 # Convert URL path to filesystem path
                 source_path = image_url.lstrip('/')  # Remove leading slash to get relative path
