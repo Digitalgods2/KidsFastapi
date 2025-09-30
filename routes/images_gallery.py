@@ -54,17 +54,33 @@ async def images_gallery(request: Request):
             book_id = img.get('book_id')
             adaptation_id = img.get('adaptation_id')
             if book_id and book_id not in books:
+                # Format import date if available
+                book_imported = img.get('book_imported', '')
+                import_date = ''
+                if book_imported:
+                    # Extract date portion (YYYY-MM-DD)
+                    import_date = book_imported[:10] if len(book_imported) >= 10 else book_imported
+                
                 books[book_id] = {
                     'id': book_id,
                     'title': img.get('book_title', f'Book {book_id}'),
-                    'author': img.get('book_author', '')
+                    'author': img.get('book_author', ''),
+                    'imported_at': import_date
                 }
             if adaptation_id and adaptation_id not in adaptations:
+                # Format adaptation created date if available
+                adaptation_created = img.get('adaptation_created', '')
+                created_date = ''
+                if adaptation_created:
+                    # Extract date portion (YYYY-MM-DD)
+                    created_date = adaptation_created[:10] if len(adaptation_created) >= 10 else adaptation_created
+                
                 adaptations[adaptation_id] = {
                     'id': adaptation_id,
                     'book_title': img.get('book_title', ''),
                     'target_age': img.get('target_age_group', ''),
-                    'style': img.get('transformation_style', '')[:50] + '...' if img.get('transformation_style', '') else ''
+                    'style': img.get('transformation_style', '')[:50] + '...' if img.get('transformation_style', '') else '',
+                    'created_at': created_date
                 }
         
         context["available_books"] = list(books.values())

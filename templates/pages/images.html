@@ -28,7 +28,7 @@
                                 <option value="">All Books</option>
                                 {% for book in available_books %}
                                 <option value="{{ book.id }}" {% if filter_book == book.id|string %}selected{% endif %}>
-                                    {{ book.title }}{% if book.author %} by {{ book.author }}{% endif %}
+                                    {{ book.title }}{% if book.author %} by {{ book.author }}{% endif %}{% if book.imported_at %} ({{ book.imported_at }}){% endif %}
                                 </option>
                                 {% endfor %}
                             </select>
@@ -41,7 +41,7 @@
                                 <option value="">All Adaptations</option>
                                 {% for adaptation in available_adaptations %}
                                 <option value="{{ adaptation.id }}" {% if filter_adaptation == adaptation.id|string %}selected{% endif %}>
-                                    {{ adaptation.book_title }} (Age {{ adaptation.target_age }})
+                                    {{ adaptation.book_title }} (Age {{ adaptation.target_age }}){% if adaptation.created_at %} - {{ adaptation.created_at }}{% endif %}
                                 </option>
                                 {% endfor %}
                             </select>
