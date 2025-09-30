@@ -86,7 +86,7 @@
                                         </p>
                                         <div class="d-flex justify-content-between align-items-center">
                                             <small class="text-muted">
-                                                <i class="bi bi-calendar"></i> {{ image.created_at.strftime('%Y-%m-%d') if image.created_at else 'Unknown' }}
+                                                <i class="bi bi-calendar"></i> {{ image.created_at[:10] if image.created_at else 'Unknown' }}
                                             </small>
                                             <div class="btn-group btn-group-sm">
                                                 <button class="btn btn-outline-primary" onclick="viewImage('{{ image.image_url }}', '{{ image.prompt }}')">
@@ -129,7 +129,7 @@
                                                     {{ image.prompt }}
                                                 </span>
                                             </td>
-                                            <td>{{ image.created_at.strftime('%Y-%m-%d %H:%M') if image.created_at else 'Unknown' }}</td>
+                                            <td>{{ image.created_at[:16] if image.created_at else 'Unknown' }}</td>
                                             <td>
                                                 <div class="btn-group btn-group-sm">
                                                     <button class="btn btn-outline-primary" onclick="viewImage('{{ image.image_url }}', '{{ image.prompt }}')">
