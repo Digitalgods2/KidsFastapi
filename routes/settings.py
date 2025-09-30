@@ -37,7 +37,7 @@ async def settings_page(request: Request):
             "openai_api_key": await database.get_setting("openai_api_key", config.OPENAI_API_KEY or ""),
             "vertex_project_id": await database.get_setting("vertex_project_id", config.VERTEX_PROJECT_ID or ""),
             "vertex_location": await database.get_setting("vertex_location", config.VERTEX_LOCATION or "us-central1"),
-            "image_api_preference": await database.get_setting("image_api_preference", "dall-e-3"),
+            "default_image_backend": await database.get_setting("default_image_backend", "dall-e-3"),
             "default_age_group": await database.get_setting("default_age_group", "6-8"),
             "default_transformation_style": await database.get_setting("default_transformation_style", "Simple & Direct"),
             "chapter_words_3_5": await database.get_setting("chapter_words_3_5", "500"),

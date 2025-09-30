@@ -69,10 +69,12 @@ Key Characters (if any): {characters or 'N/A'}
 Guidelines:
 - One single, engaging scene suitable for a cover
 - Friendly, whimsical tone; bright colors; clear focal point
-- Include subtle space for title/author text (no literal text in image)
+- Include the book title "{title}" and author name "{author}" as clear, legible text prominently displayed on the cover
+- Position the title at the top or center, and author name at the bottom
+- Use child-friendly, easy-to-read fonts for the text
 - Avoid violence or scary elements; suitable for children
 - Describe characters (appearance, expressions), setting, mood, color palette, composition
-- Keep under 180 words; no extra commentary
+- Keep under 200 words; no extra commentary
 """
     return [
         {"role": "system", "content": system},

@@ -62,12 +62,15 @@
                                     rows="4" 
                                     id="cover-prompt"
                                     placeholder="AI will generate a cover prompt based on your book..."
-                                >{{ adaptation.cover_image_prompt or '' }}</textarea>
+                                >{{ adaptation.cover_prompt or '' }}</textarea>
                                 <small class="form-text text-muted">Edit this prompt to customize the cover image</small>
                             </div>
                             <div class="btn-group" role="group">
                                 <button class="btn btn-primary" onclick="generateCoverPrompt()">
                                     <i class="fas fa-magic"></i> Generate Prompt
+                                </button>
+                                <button class="btn btn-outline-warning" onclick="saveCoverPrompt()">
+                                    <i class="fas fa-save"></i> Save Prompt
                                 </button>
                                 <button class="btn btn-success" onclick="generateCoverImage()" id="generate-cover-btn">
                                     <i class="fas fa-image"></i> Generate Cover
@@ -79,8 +82,8 @@
                         </div>
                         <div class="col-md-4">
                             <div id="cover-image-container">
-                                {% if adaptation.cover_image_url %}
-                                    <img src="{{ adaptation.cover_image_url }}" class="img-fluid rounded" alt="Book Cover">
+                                {% if adaptation.cover_url %}
+                                    <img src="{{ adaptation.cover_url }}" class="img-fluid rounded" alt="Book Cover">
                                     <div class="mt-2">
                                         <button class="btn btn-sm btn-outline-primary" onclick="regenerateCoverImage()">
                                             <i class="fas fa-redo"></i> Regenerate
@@ -132,13 +135,16 @@
                         <div class="row">
                             <!-- Text and Prompt Column -->
                             <div class="col-md-8">
-                                <!-- Transformed Text Preview -->
+                                <!-- Transformed Text Editor -->
                                 <div class="mb-3">
-                                    <label class="form-label">Transformed Chapter Text (Preview)</label>
-                                    <div class="form-control" style="height: 120px; overflow-y: auto; background-color: #f8f9fa;">
-                                        {{ (chapter.transformed_chapter_text or 'No transformed text available')[:500] }}
-                                        {% if chapter.transformed_chapter_text and chapter.transformed_chapter_text|length > 500 %}...{% endif %}
-                                    </div>
+                                    <label class="form-label">Transformed Chapter Text</label>
+                                    <textarea 
+                                        class="form-control" 
+                                        rows="6" 
+                                        id="chapter-text-{{ chapter.id }}"
+                                        placeholder="Original or transformed chapter text will appear here..."
+                                    >{{ chapter.transformed_chapter_text or chapter.original_text_segment or '' }}</textarea>
+                                    <small class="form-text text-muted">Edit and save changes to customize the chapter text</small>
                                 </div>
                                 
                                 <!-- Image Prompt -->
@@ -259,12 +265,17 @@ async function generateAllImages() {
 // Individual Chapter Image Generation Functions
 async function generateChapterPrompt(chapterId) {
     try {
+        // Show loading overlay
+        showLoadingOverlay('Generating Chapter Prompt...');
+        
         const response = await fetch(`/images/generate-chapter-prompt/${chapterId}`, {
             method: 'POST',
             headers: {'Content-Type': 'application/json'}
         });
         
         const result = await response.json();
+        hideLoadingOverlay();
+        
         if (result.success) {
             document.getElementById(`chapter-prompt-${chapterId}`).value = result.prompt;
             showToast('Prompt generated successfully!', 'success');
@@ -272,6 +283,7 @@ async function generateChapterPrompt(chapterId) {
             showToast('Failed to generate prompt: ' + result.error, 'error');
         }
     } catch (error) {
+        hideLoadingOverlay();
         showToast('Error generating prompt: ' + error.message, 'error');
     }
 }
@@ -287,6 +299,10 @@ async function generateChapterImage(chapterId) {
     const originalText = btn.innerHTML;
     
     try {
+        // Show prominent loading overlay
+        showLoadingOverlay(`Generating Chapter Image...`);
+        
+        // Also disable button
         btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating...';
         btn.disabled = true;
         
@@ -298,10 +314,11 @@ async function generateChapterImage(chapterId) {
         
         const result = await response.json();
         if (result.success) {
-            // Update the image container
+            // Update the image container with cache-busting timestamp
             const container = document.getElementById(`chapter-image-container-${chapterId}`);
+            const cacheBuster = new Date().getTime();
             container.innerHTML = `
-                <img src="${result.image_url}" class="img-fluid rounded" alt="Chapter Image">
+                <img src="${result.image_url}?t=${cacheBuster}" class="img-fluid rounded" alt="Chapter Image">
                 <div class="mt-2 text-center">
                     <button class="btn btn-sm btn-outline-primary" onclick="regenerateChapterImage(${chapterId})">
                         <i class="fas fa-redo"></i> Regenerate
@@ -311,11 +328,14 @@ async function generateChapterImage(chapterId) {
                     </button>
                 </div>
             `;
+            hideLoadingOverlay();
             showToast('Image generated successfully!', 'success');
         } else {
+            hideLoadingOverlay();
             showToast('Failed to generate image: ' + result.error, 'error');
         }
     } catch (error) {
+        hideLoadingOverlay();
         showToast('Error generating image: ' + error.message, 'error');
     } finally {
         btn.innerHTML = originalText;
@@ -399,12 +419,17 @@ async function deleteChapterImage(chapterId) {
 // Cover Image Functions
 async function generateCoverPrompt() {
     try {
+        // Show loading overlay
+        showLoadingOverlay('Generating Cover Prompt...');
+        
         const response = await fetch(`/images/generate-cover-prompt/{{ adaptation.adaptation_id }}`, {
             method: 'POST',
             headers: {'Content-Type': 'application/json'}
         });
         
         const result = await response.json();
+        hideLoadingOverlay();
+        
         if (result.success) {
             document.getElementById('cover-prompt').value = result.prompt;
             showToast('Cover prompt generated successfully!', 'success');
@@ -412,7 +437,33 @@ async function generateCoverPrompt() {
             showToast('Failed to generate cover prompt: ' + result.error, 'error');
         }
     } catch (error) {
+        hideLoadingOverlay();
         showToast('Error generating cover prompt: ' + error.message, 'error');
+    }
+}
+
+async function saveCoverPrompt() {
+    const prompt = document.getElementById('cover-prompt').value.trim();
+    if (!prompt) {
+        showToast('Please enter a cover prompt to save', 'warning');
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/images/save-cover-prompt/{{ adaptation.adaptation_id }}`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({prompt: prompt})
+        });
+        
+        const result = await response.json();
+        if (result.success) {
+            showToast('Cover prompt saved successfully!', 'success');
+        } else {
+            showToast('Failed to save cover prompt: ' + result.error, 'error');
+        }
+    } catch (error) {
+        showToast('Error saving cover prompt: ' + error.message, 'error');
     }
 }
 
@@ -427,6 +478,10 @@ async function generateCoverImage() {
     const originalText = btn.innerHTML;
     
     try {
+        // Show prominent loading overlay
+        showLoadingOverlay('Generating Cover Image...');
+        
+        // Also disable button
         btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating...';
         btn.disabled = true;
         
@@ -438,21 +493,25 @@ async function generateCoverImage() {
         
         const result = await response.json();
         if (result.success) {
-            // Update the cover image container
+            // Update the cover image container with cache-busting timestamp
             const container = document.getElementById('cover-image-container');
+            const cacheBuster = new Date().getTime();
             container.innerHTML = `
-                <img src="${result.image_url}" class="img-fluid rounded" alt="Book Cover">
+                <img src="${result.image_url}?t=${cacheBuster}" class="img-fluid rounded" alt="Book Cover">
                 <div class="mt-2">
                     <button class="btn btn-sm btn-outline-primary" onclick="regenerateCoverImage()">
                         <i class="fas fa-redo"></i> Regenerate
                     </button>
                 </div>
             `;
+            hideLoadingOverlay();
             showToast('Cover image generated successfully!', 'success');
         } else {
+            hideLoadingOverlay();
             showToast('Failed to generate cover image: ' + result.error, 'error');
         }
     } catch (error) {
+        hideLoadingOverlay();
         showToast('Error generating cover image: ' + error.message, 'error');
     } finally {
         btn.innerHTML = originalText;
@@ -477,6 +536,32 @@ function showToast(message, type) {
             toast.remove();
         }
     }, 5000);
+}
+
+// Loading overlay functions
+function showLoadingOverlay(message) {
+    // Remove any existing overlay
+    const existing = document.getElementById('loading-overlay');
+    if (existing) existing.remove();
+    
+    const overlay = document.createElement('div');
+    overlay.id = 'loading-overlay';
+    overlay.style.cssText = 'position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 10000; display: flex; align-items: center; justify-content: center;';
+    overlay.innerHTML = `
+        <div style="background: white; padding: 30px 50px; border-radius: 10px; text-align: center; box-shadow: 0 4px 20px rgba(0,0,0,0.3);">
+            <div class="spinner-border text-primary mb-3" role="status" style="width: 3rem; height: 3rem;">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <h4>${message}</h4>
+            <p class="text-muted mb-0">This usually takes 10-15 seconds</p>
+        </div>
+    `;
+    document.body.appendChild(overlay);
+}
+
+function hideLoadingOverlay() {
+    const overlay = document.getElementById('loading-overlay');
+    if (overlay) overlay.remove();
 }
 </script>
 {% endblock %}

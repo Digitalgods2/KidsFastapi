@@ -25,13 +25,13 @@ def get_base_context(request):
 
 @router.get("/", response_class=HTMLResponse)
 async def publish_page(request: Request):
-    """Publish page - shows completed adaptations ready for publishing"""
+    """Publish page - shows all adaptations ready for publishing"""
     context = get_base_context(request)
     
     try:
-        # Get completed adaptations
-        completed_adaptations = await database.get_completed_adaptations()
-        context["adaptations"] = completed_adaptations
+        # Get all adaptations (user can publish anytime with content)
+        all_adaptations = await database.get_all_adaptations()
+        context["adaptations"] = all_adaptations
         
     except Exception as e:
         from services.logger import get_logger
