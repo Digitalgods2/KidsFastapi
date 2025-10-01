@@ -287,3 +287,101 @@ async def regenerate_chapter_image(
             "success": False,
             "error": str(e)
         }, status_code=500)
+
+
+@router.post("/{chapter_id}/transform")
+async def transform_chapter_text(chapter_id: int):
+    """Transform chapter text to age-appropriate version using AI"""
+    try:
+        from services.chat_helper import transform_chapter_text as transform_text
+        from services.logger import get_logger
+        log = get_logger("routes.chapters")
+        
+        # Get chapter
+        chapter = await database.get_chapter_details(chapter_id)
+        if not chapter:
+            raise HTTPException(status_code=404, detail="Chapter not found")
+        
+        # Get adaptation details
+        adaptation_id = chapter.get("adaptation_id")
+        adaptation = await database.get_adaptation_details(adaptation_id)
+        if not adaptation:
+            raise HTTPException(status_code=404, detail="Adaptation not found")
+        
+        # Get book details
+        book = await database.get_book_details(adaptation["book_id"])
+        if not book:
+            raise HTTPException(status_code=404, detail="Book not found")
+        
+        # Get original text
+        original_text = chapter.get("original_text_segment") or chapter.get("content")
+        if not original_text or not original_text.strip():
+            return JSONResponse({
+                "success": False,
+                "error": "No original text found for this chapter"
+            }, status_code=400)
+        
+        log.info("transform_chapter_start", extra={
+            "component": "routes.chapters",
+            "chapter_id": chapter_id,
+            "adaptation_id": adaptation_id,
+            "age_group": adaptation.get("target_age_group"),
+            "original_length": len(original_text)
+        })
+        
+        # Transform the text
+        transformed_text, error = await transform_text(original_text, adaptation, book)
+        
+        if error or not transformed_text:
+            log.error("transform_chapter_failed", extra={
+                "component": "routes.chapters",
+                "chapter_id": chapter_id,
+                "error": error
+            })
+            return JSONResponse({
+                "success": False,
+                "error": error or "Transformation failed"
+            }, status_code=500)
+        
+        # Update chapter with transformed text
+        success = await database.update_chapter(
+            chapter_id=chapter_id,
+            transformed_text=transformed_text,
+            ai_prompt=chapter.get("ai_prompt") or chapter.get("image_prompt")
+        )
+        
+        if not success:
+            return JSONResponse({
+                "success": False,
+                "error": "Failed to save transformed text"
+            }, status_code=500)
+        
+        log.info("transform_chapter_complete", extra={
+            "component": "routes.chapters",
+            "chapter_id": chapter_id,
+            "original_length": len(original_text),
+            "transformed_length": len(transformed_text),
+            "reduction_pct": int((1 - len(transformed_text)/len(original_text)) * 100)
+        })
+        
+        return JSONResponse({
+            "success": True,
+            "transformed_text": transformed_text,
+            "original_length": len(original_text),
+            "transformed_length": len(transformed_text)
+        })
+    
+    except HTTPException:
+        raise
+    except Exception as e:
+        from services.logger import get_logger
+        log = get_logger("routes.chapters")
+        log.error("transform_chapter_error", extra={
+            "error": str(e),
+            "component": "routes.chapters",
+            "chapter_id": chapter_id
+        })
+        return JSONResponse({
+            "success": False,
+            "error": str(e)
+        }, status_code=500)

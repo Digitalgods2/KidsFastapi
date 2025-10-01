@@ -142,6 +142,118 @@ Guidelines:
         {"role": "user", "content": user},
     ]
 
+# ---------- Text transformation ----------
+
+def build_text_transformation_template(
+    original_text: str,
+    adaptation: Dict[str, Any],
+    book: Dict[str, Any]
+) -> List[Dict[str, str]]:
+    """Build prompt for transforming original text to age-appropriate version"""
+    age_group = adaptation.get('target_age_group', '6-8')
+    style = adaptation.get('transformation_style', 'Simple & Direct')
+    theme = adaptation.get('overall_theme_tone', '')
+    title = book.get('title', 'Unknown')
+    
+    # Age-specific guidelines
+    age_guidelines = {
+        '3-5': {
+            'vocabulary': 'very simple words (1-2 syllables)',
+            'sentence_length': 'very short sentences (3-5 words)',
+            'concepts': 'concrete, familiar concepts only',
+            'length': 'significantly shorter - aim for 30-40% of original'
+        },
+        '6-8': {
+            'vocabulary': 'simple, everyday words',
+            'sentence_length': 'short sentences (5-10 words)',
+            'concepts': 'simple concepts with clear explanations',
+            'length': 'moderately shorter - aim for 50-60% of original'
+        },
+        '9-12': {
+            'vocabulary': 'age-appropriate vocabulary with some challenging words',
+            'sentence_length': 'varied sentence length (10-15 words average)',
+            'concepts': 'more complex ideas with context',
+            'length': 'similar length to original, 70-80%'
+        }
+    }
+    
+    guidelines = age_guidelines.get(age_group, age_guidelines['6-8'])
+    
+    system = (
+        f"You are an expert children's book adapter specializing in rewriting classic literature "
+        f"for ages {age_group}. You maintain the story's essence while making it accessible and engaging "
+        f"for young readers."
+    )
+    
+    user = f"""
+Rewrite this excerpt from "{title}" for children ages {age_group}.
+
+TARGET AGE GROUP: {age_group}
+STYLE: {style}
+THEME/TONE: {theme or 'Maintain the original story\'s mood'}
+
+AGE-APPROPRIATE GUIDELINES:
+- Vocabulary: {guidelines['vocabulary']}
+- Sentence Length: {guidelines['sentence_length']}
+- Concepts: {guidelines['concepts']}
+- Target Length: {guidelines['length']}
+
+CRITICAL RULES:
+1. Preserve the core story events and plot
+2. Keep character names and main actions
+3. Simplify complex vocabulary and sentence structures
+4. Replace archaic or difficult words with modern equivalents
+5. Break long paragraphs into shorter ones
+6. Maintain the emotional tone appropriate for the age group
+7. Remove or simplify overly complex descriptions
+8. Use active voice and direct language
+9. Keep dialogue but simplify the language
+10. Make it engaging and readable for the target age
+
+ORIGINAL TEXT:
+{original_text}
+
+REWRITTEN TEXT (for ages {age_group}):"""
+    
+    return [
+        {"role": "system", "content": system},
+        {"role": "user", "content": user},
+    ]
+
+async def transform_chapter_text(
+    original_text: str,
+    adaptation: Dict[str, Any],
+    book: Dict[str, Any]
+) -> Tuple[Optional[str], Optional[str]]:
+    """
+    Transform original chapter text to age-appropriate version
+    
+    Args:
+        original_text: Original chapter text
+        adaptation: Adaptation details (target_age_group, style, etc.)
+        book: Book details (title, author)
+        
+    Returns:
+        Tuple of (transformed_text, error_message)
+    """
+    if not original_text or not original_text.strip():
+        return None, "No text provided for transformation"
+    
+    messages = build_text_transformation_template(original_text, adaptation, book)
+    
+    # Use higher max_tokens for text transformation (can be long)
+    # Calculate based on original length
+    original_tokens = len(original_text.split()) * 1.3  # Rough token estimate
+    max_tokens = min(16000, int(original_tokens * 0.8))  # 80% of original as max
+    max_tokens = max(4000, max_tokens)  # At least 4000 tokens
+    
+    return await generate_chat_text(
+        messages, 
+        model='gpt-4o-mini',  # Fast and cost-effective for text transformation
+        temperature=0.7,
+        max_tokens=max_tokens
+    )
+
 # ---------- High-level helpers ----------
 
 async def generate_cover_prompt(book: Dict[str, Any], adaptation: Dict[str, Any]) -> Tuple[Optional[str], Optional[str]]:
