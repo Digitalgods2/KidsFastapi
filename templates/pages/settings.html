@@ -456,15 +456,13 @@ function resetToDefaults() {
 // Aspect ratio configuration for each backend
 const backendAspectRatios = {
     'gpt-image-1': {
-        ratios: ['1:1', '16:9', '9:16', '4:3', '3:4'],
+        ratios: ['1:1', '16:9', '9:16'],  // Only officially supported ratios
         sizes: {
             '1:1': '1024x1024',
             '16:9': '1792x1024',
-            '9:16': '1024x1792',
-            '4:3': '1365x1024',
-            '3:4': '1024x1365'
+            '9:16': '1024x1792'
         },
-        default: '4:3'
+        default: '16:9'  // Use landscape as default
     },
     'dall-e-3': {
         ratios: ['1:1', '16:9', '9:16'],

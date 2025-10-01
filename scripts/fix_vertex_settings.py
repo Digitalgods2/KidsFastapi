@@ -57,8 +57,8 @@ def fix_vertex_settings():
             ('vertex_project_id', project_id, 'Google Cloud Project ID for Vertex AI'),
             ('vertex_credentials', json.dumps(creds), 'Vertex AI service account credentials'),
             ('vertex_location', 'us-central1', 'Vertex AI service location'),
-            ('default_image_backend', 'gpt-image-1', 'Default image generation backend'),
-            ('default_aspect_ratio', '4:3', 'Default aspect ratio for images')
+            ('default_image_backend', 'vertex-imagen', 'Default image generation backend'),
+            ('default_aspect_ratio', '16:9', 'Default aspect ratio for images')
         ]
         
         for key, value, desc in settings_to_save:
