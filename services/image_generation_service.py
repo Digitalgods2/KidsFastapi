@@ -295,7 +295,7 @@ class ImageGenerationService:
                 }
 
             # Resolve book-scoped directory and get chapter number
-            import database_fixed as database
+            import database
             adaptation = await database.get_adaptation_details(adaptation_id)
             chapter = await database.get_chapter_details(chapter_id)
             book_id = adaptation.get('book_id') if adaptation else None
@@ -380,7 +380,7 @@ class ImageGenerationService:
                 }
             
             # Get aspect ratio from settings
-            import database_fixed as database
+            import database
             size_setting = await database.get_setting("default_image_size", "1024x1024")
             aspect_ratio = self._size_to_aspect_ratio(size_setting)
             logger.info(f"📐 Aspect ratio: {aspect_ratio} (from size setting: {size_setting})")
@@ -419,7 +419,7 @@ class ImageGenerationService:
                 logger.info(f"✨ Image URL received: {image_url}")
                 
                 # Resolve per-book directory and get chapter number
-                import database_fixed as database
+                import database
                 adaptation = await database.get_adaptation_details(adaptation_id)
                 chapter = await database.get_chapter_details(chapter_id)
                 book_id = adaptation.get('book_id') if adaptation else None
@@ -493,7 +493,7 @@ class ImageGenerationService:
         """
         try:
             # Get adaptation details for context
-            import database_fixed as database
+            import database
             adaptation = await database.get_adaptation_details(adaptation_id)
             
             if not adaptation:
@@ -563,7 +563,7 @@ class ImageGenerationService:
                         return b"".join(chunks)
                 image_data = await self._retry_async(_getter)
                 # Determine per-book directory for this adaptation
-                import database_fixed as database
+                import database
                 adaptation = await database.get_adaptation_details(self._current_adaptation_id if hasattr(self, "_current_adaptation_id") else None) if False else None
                 # Fallback: caller should pass adaptation_id through context; using filename to extract as last resort is unsafe, so we rely on generate_single_image to place correctly.
                 # Here, just write to root; generate_single_image reads bytes and re-writes to the per-book directory.
@@ -621,7 +621,7 @@ class ImageGenerationService:
             
             if result["success"]:
                 # Move to per-book directory
-                import database_fixed as database, shutil
+                import database, shutil
                 adaptation = await database.get_adaptation_details(adaptation_id)
                 book_id = adaptation.get('book_id') if adaptation else None
                 target_dir = os.path.join("generated_images", str(book_id)) if book_id else "generated_images"

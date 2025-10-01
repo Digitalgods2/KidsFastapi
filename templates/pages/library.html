@@ -30,7 +30,7 @@
                 <div class="card-body">
                     <div class="d-flex justify-content-between align-items-center">
                         <div>
-                            <h6 class="text-muted mb-1">Total Books</h6>
+                            <h6 class="text-secondary fw-semibold mb-1">Total Books</h6>
                             <h3 class="mb-0">{{ stats.total_books|default(0) }}</h3>
                         </div>
                         <i class="bi bi-book-fill text-primary fs-2"></i>
@@ -44,7 +44,7 @@
                 <div class="card-body">
                     <div class="d-flex justify-content-between align-items-center">
                         <div>
-                            <h6 class="text-muted mb-1">Total Adaptations</h6>
+                            <h6 class="text-secondary fw-semibold mb-1">Total Adaptations</h6>
                             <h3 class="mb-0">{{ stats.total_adaptations|default(0) }}</h3>
                         </div>
                         <i class="bi bi-layers-fill text-success fs-2"></i>
@@ -58,7 +58,7 @@
                 <div class="card-body">
                     <div class="d-flex justify-content-between align-items-center">
                         <div>
-                            <h6 class="text-muted mb-1">Active Projects</h6>
+                            <h6 class="text-secondary fw-semibold mb-1">Active Projects</h6>
                             <h3 class="mb-0">{{ stats.active_books|default(0) }}</h3>
                         </div>
                         <i class="bi bi-lightning-charge-fill text-warning fs-2"></i>
@@ -72,7 +72,7 @@
                 <div class="card-body">
                     <div class="d-flex justify-content-between align-items-center">
                         <div>
-                            <h6 class="text-muted mb-1">Images Generated</h6>
+                            <h6 class="text-secondary fw-semibold mb-1">Images Generated</h6>
                             <h3 class="mb-0">{{ stats.total_images|default(0) }}</h3>
                         </div>
                         <i class="bi bi-image-fill text-info fs-2"></i>
@@ -126,7 +126,7 @@
                         <div class="d-flex justify-content-between align-items-start mb-3">
                             <div class="flex-grow-1">
                                 <h5 class="card-title mb-1">{{ book.title }}</h5>
-                                <p class="text-muted mb-2">
+                                <p class="text-secondary mb-2">
                                     <i class="bi bi-person"></i> {{ book.author|default('Unknown Author') }}
                                 </p>
                                 <div class="d-flex gap-2 flex-wrap">
@@ -165,7 +165,7 @@
                         <!-- Adaptations Section -->
                         {% if book.adaptations %}
                         <div class="mb-3">
-                            <h6 class="text-muted mb-2">Adaptations:</h6>
+                            <h6 class="text-secondary fw-semibold mb-2">Adaptations:</h6>
                             <div class="list-group list-group-flush">
                                 {% for adaptation in book.adaptations[:2] %}
                                 <a href="/adaptations/{{ adaptation.adaptation_id }}/review" 
@@ -181,7 +181,7 @@
                                 </a>
                                 {% endfor %}
                                 {% if book.adaptations|length > 2 %}
-                                <small class="text-muted px-2">
+                                <small class="text-secondary px-2">
                                     and {{ book.adaptations|length - 2 }} more...
                                 </small>
                                 {% endif %}
@@ -189,7 +189,7 @@
                         </div>
                         {% else %}
                         <div class="alert alert-light mb-3" role="alert">
-                            <small class="text-muted">No adaptations yet</small>
+                            <small class="text-secondary">No adaptations yet</small>
                         </div>
                         {% endif %}
 

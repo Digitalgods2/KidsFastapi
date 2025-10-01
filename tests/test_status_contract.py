@@ -19,6 +19,13 @@ mod2 = pytypes.ModuleType('services.chat_helper')
 async def _gen(messages, model=None, temperature=0.7, max_tokens=800):
     return ("", None)
 mod2.generate_chat_text = _gen
+
+def _build_template(*args, **kwargs):
+    return [
+        {"role": "system", "content": ""},
+        {"role": "user", "content": ""},
+    ]
+mod2.build_chapter_prompt_template = _build_template
 sys.modules['services.chat_helper'] = mod2
 
 import routes.adaptations as routes

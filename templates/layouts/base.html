@@ -279,6 +279,11 @@
         .theme-charcoal .text-info {
             color: #60a5fa !important;
         }
+        
+        .theme-dark .text-secondary,
+        .theme-charcoal .text-secondary {
+            color: #a8a8a8 !important;
+        }
     </style>
     
     <!-- HTMX -->
@@ -439,38 +444,38 @@
             <div class="row">
                 <div class="col-md-4">
                     <h5 class="mb-3">KidsKlassiks</h5>
-                    <p class="text-muted small">
+                    <p class="text-dark small" style="opacity: 0.75;">
                         Transform classic literature into magical children's stories with AI.
                     </p>
                 </div>
                 <div class="col-md-4">
                     <h6 class="mb-3">Quick Links</h6>
                     <ul class="list-unstyled">
-                        <li><a href="/books/import" class="text-muted text-decoration-none">Import Book</a></li>
-                        <li><a href="/adaptations/create" class="text-muted text-decoration-none">New Adaptation</a></li>
-                        <li><a href="/settings" class="text-muted text-decoration-none">Settings</a></li>
-                        <li><a href="/help" class="text-muted text-decoration-none">Help</a></li>
+                        <li class="mb-1"><a href="/books/import" class="text-dark text-decoration-none" style="opacity: 0.75;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.75'">Import Book</a></li>
+                        <li class="mb-1"><a href="/adaptations/create" class="text-dark text-decoration-none" style="opacity: 0.75;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.75'">New Adaptation</a></li>
+                        <li class="mb-1"><a href="/settings" class="text-dark text-decoration-none" style="opacity: 0.75;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.75'">Settings</a></li>
+                        <li class="mb-1"><a href="/help" class="text-dark text-decoration-none" style="opacity: 0.75;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.75'">Help</a></li>
                     </ul>
                 </div>
                 <div class="col-md-4">
                     <h6 class="mb-3">AI Services Status</h6>
                     <div class="d-flex align-items-center mb-2">
                         <i class="bi bi-circle-fill text-{{ 'success' if openai_status else 'danger' }} me-2 small"></i>
-                        <span class="text-muted small">OpenAI API</span>
+                        <span class="text-dark small" style="opacity: 0.75;">OpenAI API</span>
                     </div>
                     <div class="d-flex align-items-center mb-2">
                         <i class="bi bi-circle-fill text-{{ 'success' if vertex_status else 'danger' }} me-2 small"></i>
-                        <span class="text-muted small">Google Vertex AI</span>
+                        <span class="text-dark small" style="opacity: 0.75;">Google Vertex AI</span>
                     </div>
                     <div class="d-flex align-items-center">
                         <i class="bi bi-circle-fill text-success me-2 small"></i>
-                        <span class="text-muted small">Database Connected</span>
+                        <span class="text-dark small" style="opacity: 0.75;">Database Connected</span>
                     </div>
                 </div>
             </div>
             <hr>
             <div class="text-center small">
-                <div class="mb-2 text-muted">
+                <div class="mb-2 text-dark" style="opacity: 0.75;">
                     © <span id="copyright-year"></span> <a href="https://digitalgods.ai" target="_blank" class="text-decoration-none text-primary fw-semibold">DigitalGods.ai</a>. All Rights Reserved.
                 </div>
                 <div>
@@ -1021,16 +1026,16 @@
                                 </div>
 
                                 <h6 class="mt-4 mb-2">Publishing Checklist</h6>
-                                <div class="card bg-light">
+                                <div class="card bg-light border">
                                     <div class="card-body">
-                                        <p class="mb-2">Before publishing, ensure:</p>
-                                        <ul class="mb-0">
-                                            <li>✓ All chapters have been processed and reviewed</li>
-                                            <li>✓ Cover image has been generated</li>
-                                            <li>✓ Chapter images are complete (or as desired)</li>
-                                            <li>✓ Text has been proofread and edited</li>
-                                            <li>✓ Content is appropriate for target age group</li>
-                                            <li>✓ Copyright compliance verified</li>
+                                        <p class="mb-2 fw-semibold text-dark">Before publishing, ensure:</p>
+                                        <ul class="mb-0 text-dark">
+                                            <li class="mb-1"><strong class="text-success">✓</strong> All chapters have been processed and reviewed</li>
+                                            <li class="mb-1"><strong class="text-success">✓</strong> Cover image has been generated</li>
+                                            <li class="mb-1"><strong class="text-success">✓</strong> Chapter images are complete (or as desired)</li>
+                                            <li class="mb-1"><strong class="text-success">✓</strong> Text has been proofread and edited</li>
+                                            <li class="mb-1"><strong class="text-success">✓</strong> Content is appropriate for target age group</li>
+                                            <li class="mb-1"><strong class="text-success">✓</strong> Copyright compliance verified</li>
                                         </ul>
                                     </div>
                                 </div>

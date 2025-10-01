@@ -7,6 +7,13 @@ stub = types.ModuleType('services.chat_helper')
 async def generate_chat_text(*a, **k):
     return ("", None)
 stub.generate_chat_text = generate_chat_text
+
+def _build_template(*args, **kwargs):
+    return [
+        {"role": "system", "content": ""},
+        {"role": "user", "content": ""},
+    ]
+stub.build_chapter_prompt_template = _build_template
 sys.modules['services.chat_helper'] = stub
 
 import os, importlib.util

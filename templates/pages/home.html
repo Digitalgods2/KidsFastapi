@@ -2,284 +2,333 @@
 
 {% block title %}Home - KidsKlassiks AI Story Transformer{% endblock %}
 
+{% block extra_css %}
+<link rel="stylesheet" href="/static/css/home.css">
+{% endblock %}
+
+{% block main_class %}home-page{% endblock %}
+
 {% block content %}
-<!-- Hero Section -->
-<div class="hero-section bg-gradient py-5">
-    <div class="container">
-        <div class="row align-items-center min-vh-50">
+<section class="home-hero position-relative">
+    <div class="container position-relative">
+        <div class="row align-items-center gy-5">
             <div class="col-lg-6">
-                <h1 class="display-3 fw-bold text-white mb-4">
-                    Transform Classic Literature into 
-                    <span class="text-warning">Magical Children's Stories</span>
+                <span class="home-flag">
+                    <i class="bi bi-stars"></i>
+                    AI Story Studio
+                </span>
+                <h1 class="home-hero__title">
+                    Transform Classic Literature into Joyful, Kid-Friendly Adventures
                 </h1>
-                <p class="lead text-white-50 mb-4">
-                    Using advanced AI technology, KidsKlassiks reimagines timeless tales for young readers, 
-                    complete with age-appropriate language and stunning AI-generated illustrations.
+                <p class="home-hero__subtitle">
+                    KidsKlassiks rewrites timeless tales with modern, age-appropriate language, vivid illustrations, and thoughtful chapter pacing—so you can publish enchanting stories in minutes.
                 </p>
-                <div class="d-flex gap-3 flex-wrap">
-                    <a href="/books/import" class="btn btn-warning btn-lg px-4">
-                        <i class="bi bi-magic"></i> Start Creating
+                <div class="d-flex flex-wrap align-items-center gap-3 mb-4">
+                    <a href="/books/import" class="btn btn-lg btn-primary-gradient">
+                        <i class="bi bi-magic"></i>
+                        Start Creating
                     </a>
-                    <a href="/books/library" class="btn btn-outline-light btn-lg px-4">
-                        <i class="bi bi-collection"></i> Browse Library
+                    <a href="/books/library" class="btn btn-lg btn-outline-soft">
+                        <i class="bi bi-collection"></i>
+                        Browse Library
                     </a>
                 </div>
-                
-                <!-- Quick Stats -->
-                <div class="row mt-5 text-white">
-                    <div class="col-4">
-                        <h3 class="mb-0">{{ stats.total_books|default(0) }}</h3>
-                        <small class="text-white-50">Books Imported</small>
+                <div class="home-hero__stat-grid">
+                    <div class="home-stat">
+                        <span class="home-stat__label">Books Imported</span>
+                        <div class="d-flex align-items-end gap-2">
+                            <span class="home-stat__value">{{ stats.total_books|default(0) }}</span>
+                            <span class="home-stat__unit">ready to adapt</span>
+                        </div>
                     </div>
-                    <div class="col-4">
-                        <h3 class="mb-0">{{ stats.total_adaptations|default(0) }}</h3>
-                        <small class="text-white-50">Adaptations Created</small>
+                    <div class="home-stat">
+                        <span class="home-stat__label">Stories Created</span>
+                        <div class="d-flex align-items-end gap-2">
+                            <span class="home-stat__value">{{ stats.total_adaptations|default(0) }}</span>
+                            <span class="home-stat__unit">child-approved</span>
+                        </div>
                     </div>
-                    <div class="col-4">
-                        <h3 class="mb-0">{{ stats.total_images|default(0) }}</h3>
-                        <small class="text-white-50">Images Generated</small>
+                    <div class="home-stat">
+                        <span class="home-stat__label">Images Generated</span>
+                        <div class="d-flex align-items-end gap-2">
+                            <span class="home-stat__value">{{ stats.total_images|default(0) }}</span>
+                            <span class="home-stat__unit">storybook visuals</span>
+                        </div>
                     </div>
                 </div>
+                <ul class="hero-highlights">
+                    <li><i class="bi bi-check-circle"></i> Age-specific language rules built in</li>
+                    <li><i class="bi bi-check-circle"></i> Consistent character art across chapters</li>
+                    <li><i class="bi bi-check-circle"></i> Instant PDF export for print or sharing</li>
+                </ul>
             </div>
-            
             <div class="col-lg-6">
-                <div class="position-relative">
-                    <img src="/static/images/hero-illustration.svg" alt="Children reading" class="img-fluid">
-                    <!-- Floating cards animation -->
-                    <div class="floating-card position-absolute" style="top: 10%; right: 10%;">
-                        <div class="card shadow-lg border-0 p-2">
-                            <small class="text-muted">AI Powered</small>
+                <div class="hero-visual">
+                    <span class="hero-visual__glow"></span>
+                    <div class="hero-visual__frame">
+                        <img src="https://page.gensparksite.com/v1/base64_upload/3dce70dcee147a0b67a53f4953cdcd14" alt="KidsKlassiks hero interface" class="hero-visual__image">
+                    </div>
+                    <div class="hero-visual__gallery">
+                        <img src="https://page.gensparksite.com/v1/base64_upload/102d7d92e1f50b15e1e8b8fa3d6b89fd" alt="Dashboard preview" class="hero-visual__thumb">
+                        <img src="https://page.gensparksite.com/v1/base64_upload/d2e4634803e1af46cd4ca7eb39c07688" alt="How it works preview" class="hero-visual__thumb">
+                        <img src="https://page.gensparksite.com/v1/base64_upload/6cd4f3074d33c4a912dc1fe20c5fa271" alt="Feature preview" class="hero-visual__thumb">
+                    </div>
+                    <div class="hero-visual__badge hero-visual__badge--top">
+                        <i class="bi bi-lightning-charge-fill text-warning"></i>
+                        <div>
+                            <p class="mb-0 fw-semibold">Transform chapters 60% faster</p>
+                            <small class="text-muted">Batch process Victorian prose into kid-friendly language</small>
                         </div>
                     </div>
-                    <div class="floating-card position-absolute" style="bottom: 20%; left: 10%;">
-                        <div class="card shadow-lg border-0 p-2">
-                            <small class="text-muted">Age Appropriate</small>
+                    <div class="hero-visual__badge hero-visual__badge--bottom">
+                        <i class="bi bi-palette-fill text-primary"></i>
+                        <div>
+                            <p class="mb-0 fw-semibold">Chapter art that matches your cast</p>
+                            <small class="text-muted">Prompt layering keeps outfits, faces, and moods consistent</small>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
-</div>
+</section>
 
-<!-- How It Works Section -->
-<div class="container py-5">
-    <div class="text-center mb-5">
-        <h2 class="display-5 fw-bold">How It Works</h2>
-        <p class="lead text-muted">Transform any classic book in four simple steps</p>
-    </div>
-    
-    <div class="row g-4">
-        <div class="col-md-3">
-            <div class="text-center">
-                <div class="rounded-circle bg-primary bg-opacity-10 p-4 d-inline-flex mb-3">
-                    <i class="bi bi-upload fs-1 text-primary"></i>
-                </div>
-                <h5>1. Import Book</h5>
-                <p class="text-muted">Upload a text file or fetch from Project Gutenberg</p>
-            </div>
-        </div>
-        
-        <div class="col-md-3">
-            <div class="text-center">
-                <div class="rounded-circle bg-success bg-opacity-10 p-4 d-inline-flex mb-3">
-                    <i class="bi bi-sliders fs-1 text-success"></i>
-                </div>
-                <h5>2. Configure</h5>
-                <p class="text-muted">Choose age group, style, and key characters</p>
-            </div>
-        </div>
-        
-        <div class="col-md-3">
-            <div class="text-center">
-                <div class="rounded-circle bg-warning bg-opacity-10 p-4 d-inline-flex mb-3">
-                    <i class="bi bi-cpu fs-1 text-warning"></i>
-                </div>
-                <h5>3. AI Transform</h5>
-                <p class="text-muted">AI adapts text and generates illustrations</p>
-            </div>
-        </div>
-        
-        <div class="col-md-3">
-            <div class="text-center">
-                <div class="rounded-circle bg-info bg-opacity-10 p-4 d-inline-flex mb-3">
-                    <i class="bi bi-file-earmark-pdf fs-1 text-info"></i>
-                </div>
-                <h5>4. Publish</h5>
-                <p class="text-muted">Export as PDF or digital book format</p>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Features Section -->
-<div class="bg-light py-5">
+<section class="home-how-it-works">
     <div class="container">
-        <div class="row align-items-center">
-            <div class="col-lg-6">
-                <h2 class="display-5 fw-bold mb-4">Powerful AI Features</h2>
-                
-                <div class="d-flex mb-3">
-                    <div class="flex-shrink-0">
-                        <i class="bi bi-check-circle-fill text-success fs-4"></i>
+        <div class="section-heading text-center">
+            <span class="section-flag">How it works</span>
+            <h2>From Classic Novel to Kid-Ready Story in Four Delightful Steps</h2>
+            <p class="text-secondary">Guided workflows, smart defaults, and gentle automation keep you in control while the AI does the heavy lifting.</p>
+        </div>
+        <div class="row g-4">
+            <div class="col-md-3">
+                <div class="step-card h-100">
+                    <span class="step-number">1</span>
+                    <div class="step-icon">
+                        <i class="bi bi-upload"></i>
                     </div>
-                    <div class="flex-grow-1 ms-3">
-                        <h6 class="mb-1">Age-Appropriate Adaptation</h6>
-                        <p class="text-muted small">Automatically adjusts vocabulary, sentence structure, and complexity for different age groups</p>
-                    </div>
-                </div>
-                
-                <div class="d-flex mb-3">
-                    <div class="flex-shrink-0">
-                        <i class="bi bi-check-circle-fill text-success fs-4"></i>
-                    </div>
-                    <div class="flex-grow-1 ms-3">
-                        <h6 class="mb-1">Character Analysis</h6>
-                        <p class="text-muted small">AI identifies and preserves key characters while maintaining consistency</p>
-                    </div>
-                </div>
-                
-                <div class="d-flex mb-3">
-                    <div class="flex-shrink-0">
-                        <i class="bi bi-check-circle-fill text-success fs-4"></i>
-                    </div>
-                    <div class="flex-grow-1 ms-3">
-                        <h6 class="mb-1">Multiple Image APIs</h6>
-                        <p class="text-muted small">Support for DALL-E 2/3, Google Vertex Imagen, and specialized children's modes</p>
-                    </div>
-                </div>
-                
-                <div class="d-flex mb-3">
-                    <div class="flex-shrink-0">
-                        <i class="bi bi-check-circle-fill text-success fs-4"></i>
-                    </div>
-                    <div class="flex-grow-1 ms-3">
-                        <h6 class="mb-1">Chapter Detection</h6>
-                        <p class="text-muted small">Smart chapter detection or custom segmentation based on word count</p>
-                    </div>
+                    <h5>Import</h5>
+                    <p>Upload a clean text file or fetch from Project Gutenberg’s curated library of classics.</p>
                 </div>
             </div>
-            
-            <div class="col-lg-6">
-                <div class="card border-0 shadow-lg">
-                    <div class="card-body p-4">
-                        <h5 class="card-title mb-3">Transformation Styles</h5>
-                        <div class="list-group list-group-flush">
-                            <div class="list-group-item px-0">
-                                <strong>Simple & Direct</strong>
-                                <p class="mb-0 small text-muted">Clear, straightforward storytelling</p>
-                            </div>
-                            <div class="list-group-item px-0">
-                                <strong>Playful & Whimsical</strong>
-                                <p class="mb-0 small text-muted">Fun, imaginative language with humor</p>
-                            </div>
-                            <div class="list-group-item px-0">
-                                <strong>Adventurous & Exciting</strong>
-                                <p class="mb-0 small text-muted">Action-packed with thrilling elements</p>
-                            </div>
-                            <div class="list-group-item px-0 border-0">
-                                <strong>Gentle & Poetic</strong>
-                                <p class="mb-0 small text-muted">Soft, lyrical prose with beautiful imagery</p>
-                            </div>
-                        </div>
+            <div class="col-md-3">
+                <div class="step-card h-100">
+                    <span class="step-number">2</span>
+                    <div class="step-icon step-icon--mint">
+                        <i class="bi bi-sliders2"></i>
                     </div>
+                    <h5>Configure</h5>
+                    <p>Choose age range, tone, chapter length, and the characters you want AI to protect.</p>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="step-card h-100">
+                    <span class="step-number">3</span>
+                    <div class="step-icon step-icon--sunrise">
+                        <i class="bi bi-cpu"></i>
+                    </div>
+                    <h5>Transform</h5>
+                    <p>Let GPT-4o-mini simplify vocabulary, shorten sentences, and keep narrative beats intact.</p>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="step-card h-100">
+                    <span class="step-number">4</span>
+                    <div class="step-icon step-icon--aqua">
+                        <i class="bi bi-filetype-pdf"></i>
+                    </div>
+                    <h5>Publish</h5>
+                    <p>Export a beautifully typeset PDF or share online with matching cover and chapter art.</p>
                 </div>
             </div>
         </div>
     </div>
-</div>
+</section>
 
-<!-- Recent Activity Section -->
+<section class="home-features">
+    <div class="container">
+        <div class="row align-items-center g-5">
+            <div class="col-lg-5">
+                <span class="section-flag">Powerful AI features</span>
+                <h2>Built for educators, storytellers, and parents who care about craft</h2>
+                <p class="text-secondary">Every adaptation blends the warmth of traditional storytelling with precision AI tooling—so young readers get stories they can truly understand.</p>
+                <div class="feature-callout">
+                    <i class="bi bi-emoji-smile"></i>
+                    <div>
+                        <h6 class="mb-1">Adaptive tone controls</h6>
+                        <p class="mb-0">Switch between gentle bedtime cadence, adventurous pacing, or whimsical narration with a single toggle.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-7">
+                <div class="feature-grid">
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <i class="bi bi-magic"></i>
+                        </div>
+                        <h5>Age-Appropriate Adaptation</h5>
+                        <p>Sentence length, vocabulary, and story density adjust automatically for ages 3-5, 6-8, or 9-12.</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon feature-icon--berry">
+                            <i class="bi bi-people"></i>
+                        </div>
+                        <h5>Smart Character Tracking</h5>
+                        <p>Two-layer prompts keep heroes and sidekicks recognizable—no more costume changes mid-story.</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon feature-icon--sky">
+                            <i class="bi bi-palette"></i>
+                        </div>
+                        <h5>Multiple Image Backends</h5>
+                        <p>Choose DALL·E 3, Vertex Imagen, or whimsical illustration styles tailored for kids’ books.</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon feature-icon--amber">
+                            <i class="bi bi-journal-check"></i>
+                        </div>
+                        <h5>Intelligent Chapter Detection</h5>
+                        <p>Auto-detect chapters or set your own pacing with word-count aware segmentation suggestions.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="style-showcase mt-5">
+            <div class="card shadow-sm border-0">
+                <div class="card-body p-4 p-lg-5">
+                    <div class="d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-4">
+                        <div>
+                            <span class="section-flag section-flag--subtle">Story personalities</span>
+                            <h3 class="mb-2">Dial in your perfect storytelling voice</h3>
+                            <p class="mb-0 text-secondary">Mix and match tone, pacing, and descriptive density to match your reader’s attention span and imagination.</p>
+                        </div>
+                        <div class="home-style-grid">
+                            <div class="style-card">
+                                <i class="bi bi-brightness-high"></i>
+                                <h6>Simple &amp; Direct</h6>
+                                <p>Clear sentences and familiar words for emerging readers.</p>
+                            </div>
+                            <div class="style-card">
+                                <i class="bi bi-stars"></i>
+                                <h6>Playful &amp; Whimsical</h6>
+                                <p>Sprinkle silliness, sound effects, and delightful surprises.</p>
+                            </div>
+                            <div class="style-card">
+                                <i class="bi bi-lightning-charge"></i>
+                                <h6>Adventurous &amp; Exciting</h6>
+                                <p>Keep pages turning with fast-paced action and cliffhangers.</p>
+                            </div>
+                            <div class="style-card">
+                                <i class="bi bi-heart"></i>
+                                <h6>Gentle &amp; Poetic</h6>
+                                <p>Soft rhythms, rich imagery, and mindful reflections.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
 {% if stats.recent_adaptations or stats.recent_books %}
-<div class="container py-5">
-    <div class="text-center mb-5">
-        <h2 class="display-5 fw-bold">Recent Activity</h2>
-        <p class="lead text-muted">Latest books and adaptations in your library</p>
-    </div>
-    
-    <div class="row">
-        {% if stats.recent_adaptations %}
-        <div class="col-lg-6 mb-4">
-            <h5 class="mb-3">Latest Adaptations</h5>
-            <div class="list-group">
-                {% for adaptation in stats.recent_adaptations[:3] %}
-                <a href="/adaptations/{{ adaptation.adaptation_id }}/review" class="list-group-item list-group-item-action">
-                    <div class="d-flex w-100 justify-content-between">
-                        <div>
-                            <h6 class="mb-1">{{ adaptation.book_title }}</h6>
-                            <p class="mb-1 small">Age {{ adaptation.target_age_group }} · {{ adaptation.transformation_style }}</p>
-                        </div>
-                        <small class="text-muted">{{ adaptation.created_at }}</small>
-                    </div>
-                    <span class="badge bg-{{ 'success' if adaptation.status == 'completed' else 'warning' }}">
-                        {{ adaptation.status|title }}
-                    </span>
-                </a>
-                {% endfor %}
-            </div>
+<section class="home-activity">
+    <div class="container">
+        <div class="section-heading text-center">
+            <span class="section-flag">Recent activity</span>
+            <h2>Keep Momentum with Your Latest Projects</h2>
+            <p class="text-secondary">Jump back into works-in-progress or celebrate what you have already published.</p>
         </div>
-        {% endif %}
-        
-        {% if stats.recent_books %}
-        <div class="col-lg-6 mb-4">
-            <h5 class="mb-3">Recently Imported Books</h5>
-            <div class="list-group">
-                {% for book in stats.recent_books[:3] %}
-                <a href="/books/{{ book.book_id }}/details" class="list-group-item list-group-item-action">
-                    <div class="d-flex w-100 justify-content-between">
-                        <div>
-                            <h6 class="mb-1">{{ book.title }}</h6>
-                            <p class="mb-1 small text-muted">by {{ book.author }}</p>
-                        </div>
-                        <small class="text-muted">{{ book.imported_at }}</small>
+        <div class="row g-5">
+            {% if stats.recent_adaptations %}
+            <div class="col-lg-6">
+                <div class="activity-card">
+                    <div class="activity-card__header">
+                        <h5 class="mb-0"><i class="bi bi-journals me-2"></i>Latest Adaptations</h5>
                     </div>
-                </a>
-                {% endfor %}
+                    <div class="list-group list-group-flush">
+                        {% for adaptation in stats.recent_adaptations[:3] %}
+                        <a href="/adaptations/{{ adaptation.adaptation_id }}/review" class="list-group-item list-group-item-action activity-item">
+                            <div class="d-flex w-100 justify-content-between">
+                                <div>
+                                    <h6 class="mb-1">{{ adaptation.book_title }}</h6>
+                                    <p class="mb-1 small text-secondary">Age {{ adaptation.target_age_group }} · {{ adaptation.transformation_style }}</p>
+                                </div>
+                                <small class="text-muted">{{ adaptation.created_at }}</small>
+                            </div>
+                            <span class="badge rounded-pill {{ 'bg-success-subtle text-success' if adaptation.status == 'completed' else 'bg-warning-subtle text-warning' }}">
+                                {{ adaptation.status|title }}
+                            </span>
+                        </a>
+                        {% endfor %}
+                    </div>
+                </div>
             </div>
+            {% endif %}
+
+            {% if stats.recent_books %}
+            <div class="col-lg-6">
+                <div class="activity-card">
+                    <div class="activity-card__header">
+                        <h5 class="mb-0"><i class="bi bi-bookmark-star me-2"></i>Recently Imported Books</h5>
+                    </div>
+                    <div class="list-group list-group-flush">
+                        {% for book in stats.recent_books[:3] %}
+                        <a href="/books/{{ book.book_id }}/details" class="list-group-item list-group-item-action activity-item">
+                            <div class="d-flex w-100 justify-content-between">
+                                <div>
+                                    <h6 class="mb-1">{{ book.title }}</h6>
+                                    <p class="mb-1 small text-secondary">by {{ book.author }}</p>
+                                </div>
+                                <small class="text-muted">{{ book.imported_at }}</small>
+                            </div>
+                        </a>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+            {% endif %}
         </div>
-        {% endif %}
     </div>
-</div>
+</section>
 {% endif %}
 
-<!-- CTA Section -->
-<div class="bg-primary text-white py-5">
-    <div class="container text-center">
-        <h2 class="display-5 fw-bold mb-4">Ready to Transform Your First Book?</h2>
-        <p class="lead mb-4">Join the magical journey of reimagining classic literature for young minds</p>
-        <div class="d-flex gap-3 justify-content-center flex-wrap">
-            <a href="/books/import" class="btn btn-warning btn-lg px-5">
-                <i class="bi bi-rocket-takeoff"></i> Get Started Now
-            </a>
-            <a href="/dashboard" class="btn btn-light btn-lg px-5">
-                <i class="bi bi-speedometer2"></i> View Dashboard
-            </a>
+<section class="home-cta">
+    <div class="container">
+        <div class="home-cta__card text-center">
+            <span class="home-flag home-flag--on-dark">
+                <i class="bi bi-rocket-takeoff"></i>
+                Launch in minutes
+            </span>
+            <h2 class="home-cta__title">Ready to Share Your First Classic Reimagined for Young Minds?</h2>
+            <p class="home-cta__subtitle">Move from manuscript to beautifully illustrated children’s story without losing the heart of the original. Your readers—and their grown-ups—will thank you.</p>
+            <div class="d-flex gap-3 justify-content-center flex-wrap">
+                <a href="/books/import" class="btn btn-lg btn-primary-gradient">
+                    <i class="bi bi-gem"></i>
+                    Get Started
+                </a>
+                <a href="/dashboard" class="btn btn-lg btn-outline-soft btn-outline-soft--on-dark">
+                    <i class="bi bi-speedometer2"></i>
+                    View Dashboard
+                </a>
+            </div>
+            <div class="home-cta__trust mt-5">
+                <div>
+                    <i class="bi bi-shield-check"></i>
+                    <span>Safe &amp; age-appropriate output</span>
+                </div>
+                <div>
+                    <i class="bi bi-graph-up"></i>
+                    <span>Fast, reliable AI processing</span>
+                </div>
+                <div>
+                    <i class="bi bi-award"></i>
+                    <span>Professional publishing quality</span>
+                </div>
+            </div>
         </div>
     </div>
-</div>
+</section>
 
-<style>
-.hero-section {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    min-height: 60vh;
-}
-
-.min-vh-50 {
-    min-height: 50vh;
-}
-
-.floating-card {
-    animation: float 3s ease-in-out infinite;
-}
-
-@keyframes float {
-    0% { transform: translateY(0px); }
-    50% { transform: translateY(-20px); }
-    100% { transform: translateY(0px); }
-}
-
-.floating-card:nth-child(2) {
-    animation-delay: 1.5s;
-}
-</style>
 {% endblock %}

@@ -21,7 +21,7 @@
                 <div class="card-body">
                     <div class="d-flex justify-content-between align-items-center mb-3">
                         <div>
-                            <h6 class="text-muted mb-1">Total Books</h6>
+                            <h6 class="text-secondary mb-1 fw-semibold">Total Books</h6>
                             <h2 class="mb-0 text-primary">{{ stats.total_books|default(0) }}</h2>
                         </div>
                         <div class="rounded-circle bg-primary bg-opacity-10 p-3">
@@ -31,7 +31,7 @@
                     <div class="progress" style="height: 4px;">
                         <div class="progress-bar bg-primary" style="width: {% if stats.total_books > 0 %}100{% else %}0{% endif %}%"></div>
                     </div>
-                    <small class="text-muted">
+                    <small class="text-secondary">
                         {% if stats.recent_books and stats.recent_books|length > 0 %}
                             Latest: {{ stats.recent_books[0].title[:30] }}{% if stats.recent_books[0].title|length > 30 %}...{% endif %}
                         {% elif stats.total_books > 0 %}
@@ -49,7 +49,7 @@
                 <div class="card-body">
                     <div class="d-flex justify-content-between align-items-center mb-3">
                         <div>
-                            <h6 class="text-muted mb-1">Adaptations</h6>
+                            <h6 class="text-secondary mb-1 fw-semibold">Adaptations</h6>
                             <h2 class="mb-0 text-success">{{ stats.total_adaptations|default(0) }}</h2>
                         </div>
                         <div class="rounded-circle bg-success bg-opacity-10 p-3">
@@ -59,7 +59,7 @@
                     <div class="progress" style="height: 4px;">
                         <div class="progress-bar bg-success" style="width: {{ (stats.total_adaptations / (stats.total_books|default(1)) * 100) if stats.total_books else 0 }}%"></div>
                     </div>
-                    <small class="text-muted">
+                    <small class="text-secondary">
                         {{ stats.completed_adaptations|default(0) }} completed, {{ stats.in_progress_adaptations|default(0) }} in progress
                     </small>
                 </div>
@@ -71,7 +71,7 @@
                 <div class="card-body">
                     <div class="d-flex justify-content-between align-items-center mb-3">
                         <div>
-                            <h6 class="text-muted mb-1">Active Books</h6>
+                            <h6 class="text-secondary mb-1 fw-semibold">Active Books</h6>
                             <h2 class="mb-0 text-warning">{{ stats.active_books|default(0) }}</h2>
                         </div>
                         <div class="rounded-circle bg-warning bg-opacity-10 p-3">
@@ -81,7 +81,7 @@
                     <div class="progress" style="height: 4px;">
                         <div class="progress-bar bg-warning" style="width: {{ (stats.active_books / (stats.total_books|default(1)) * 100) if stats.total_books else 0 }}%"></div>
                     </div>
-                    <small class="text-muted">Books with ongoing adaptations</small>
+                    <small class="text-secondary">Books with ongoing adaptations</small>
                 </div>
             </div>
         </div>
@@ -91,7 +91,7 @@
                 <div class="card-body">
                     <div class="d-flex justify-content-between align-items-center mb-3">
                         <div>
-                            <h6 class="text-muted mb-1">Images Generated</h6>
+                            <h6 class="text-secondary mb-1 fw-semibold">Images Generated</h6>
                             <h2 class="mb-0 text-info">
                                 <a href="/gallery" class="text-decoration-none text-info">{{ stats.total_images|default(0) }}</a>
                             </h2>
@@ -103,7 +103,7 @@
                     <div class="progress" style="height: 4px;">
                         <div class="progress-bar bg-info" style="width: 100%"></div>
                     </div>
-                    <small class="text-muted">
+                    <small class="text-secondary">
                         <a href="/gallery" class="text-decoration-none">Click to view gallery</a>
                     </small>
                 </div>
@@ -182,9 +182,9 @@
                                 <div class="d-flex w-100 justify-content-between">
                                     <div>
                                         <h6 class="mb-1">{{ book.title }}</h6>
-                                        <small class="text-muted">by {{ book.author }}</small>
+                                        <small class="text-secondary">by {{ book.author }}</small>
                                     </div>
-                                    <small class="text-muted">{{ book.imported_at }}</small>
+                                    <small class="text-secondary">{{ book.imported_at }}</small>
                                 </div>
                             </a>
                             {% endfor %}
@@ -214,7 +214,7 @@
                                 <div class="d-flex w-100 justify-content-between">
                                     <div>
                                         <h6 class="mb-1">{{ adaptation.book_title }}</h6>
-                                        <small class="text-muted">Age {{ adaptation.target_age_group }} · {{ adaptation.transformation_style }}</small>
+                                        <small class="text-secondary">Age {{ adaptation.target_age_group }} · {{ adaptation.transformation_style }}</small>
                                     </div>
                                     <div class="text-end">
                                         <span class="badge bg-{{ 'success' if adaptation.status == 'completed' else 'warning' if adaptation.status == 'in_progress' else 'secondary' }}">
