@@ -7,10 +7,12 @@
     <!-- Header -->
     <div class="row mb-4">
         <div class="col-12">
-            <h1 class="display-4 mb-3">
-                <i class="bi bi-file-earmark-pdf"></i> Publish
-            </h1>
-            <p class="text-muted lead">Export your completed adaptations as beautiful PDFs</p>
+            <div class="p-4 rounded" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                <h1 class="display-4 mb-3 text-white">
+                    <i class="bi bi-file-earmark-pdf"></i> Publish
+                </h1>
+                <p class="text-white lead mb-0">Export your completed adaptations as beautiful PDFs</p>
+            </div>
         </div>
     </div>
 
@@ -18,8 +20,8 @@
     <div class="row">
         <div class="col-12">
             <div class="card border-0 shadow-sm">
-                <div class="card-header bg-white border-bottom-0 pt-4 pb-3">
-                    <h4 class="mb-0"><i class="bi bi-check-circle text-success"></i> Ready to Publish</h4>
+                <div class="card-header bg-success text-white border-bottom-0 pt-4 pb-3">
+                    <h4 class="mb-0"><i class="bi bi-check-circle"></i> Ready to Publish</h4>
                 </div>
                 <div class="card-body">
                     {% if adaptations %}
@@ -138,8 +140,8 @@
     <div class="row mt-4">
         <div class="col-md-6">
             <div class="card border-0 shadow-sm">
-                <div class="card-header bg-white border-bottom-0 pt-4 pb-3">
-                    <h5 class="mb-0"><i class="bi bi-gear text-primary"></i> Export Settings</h5>
+                <div class="card-header bg-primary text-white border-bottom-0 pt-4 pb-3">
+                    <h5 class="mb-0"><i class="bi bi-gear"></i> Export Settings</h5>
                 </div>
                 <div class="card-body">
                     <div class="mb-3">
@@ -174,8 +176,8 @@
         
         <div class="col-md-6">
             <div class="card border-0 shadow-sm">
-                <div class="card-header bg-white border-bottom-0 pt-4 pb-3">
-                    <h5 class="mb-0"><i class="bi bi-info-circle text-info"></i> Publishing Tips</h5>
+                <div class="card-header bg-info text-white border-bottom-0 pt-4 pb-3">
+                    <h5 class="mb-0"><i class="bi bi-info-circle"></i> Publishing Tips</h5>
                 </div>
                 <div class="card-body">
                     <ul class="list-unstyled">
@@ -207,28 +209,47 @@ function exportPDF(adaptationId) {
     // Show loading state
     const button = event.target;
     const originalText = button.innerHTML;
-    button.innerHTML = '<i class="bi bi-hourglass-split"></i> Exporting...';
+    button.innerHTML = '<i class="bi bi-hourglass-split"></i> Generating...';
     button.disabled = true;
     
     // Make request to export endpoint
     fetch(`/publish/export/${adaptationId}`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        }
+        method: 'POST'
     })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            // Show success message
-            alert('PDF export started! You will be notified when it\'s ready for download.');
-        } else {
-            alert('Error exporting PDF: ' + (data.message || 'Unknown error'));
+    .then(response => {
+        if (!response.ok) {
+            return response.json().then(err => {
+                throw new Error(err.detail || 'Export failed');
+            });
         }
+        // Get the filename from headers
+        const contentDisposition = response.headers.get('Content-Disposition');
+        let filename = 'adaptation.pdf';
+        if (contentDisposition) {
+            const match = contentDisposition.match(/filename="(.+)"/);
+            if (match) filename = match[1];
+        }
+        // Return blob and filename
+        return response.blob().then(blob => ({ blob, filename }));
+    })
+    .then(({ blob, filename }) => {
+        // Create download link
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.style.display = 'none';
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+        
+        // Show success message
+        alert('PDF downloaded successfully!');
     })
     .catch(error => {
         console.error('Error:', error);
-        alert('Error exporting PDF. Please try again.');
+        alert('Error exporting PDF: ' + error.message);
     })
     .finally(() => {
         // Restore button state

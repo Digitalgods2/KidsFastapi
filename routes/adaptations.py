@@ -66,7 +66,7 @@ async def adaptations_list(request: Request):
     return templates.TemplateResponse("pages/adaptations.html", context)
 
 @router.get("/create", response_class=HTMLResponse)
-async def create_adaptation_page(request: Request, book_id: Optional[int] = None):
+async def create_adaptation_page(request: Request, book_id: Optional[str] = None):
     """Create new adaptation page"""
     context = get_base_context(request)
     
@@ -77,11 +77,16 @@ async def create_adaptation_page(request: Request, book_id: Optional[int] = None
         
         # If book_id provided, pre-select that book
         if book_id:
-            selected_book = await database.get_book_details(book_id)
-            if selected_book:
-                context["selected_book"] = selected_book
-            else:
-                # Invalid book_id provided, redirect to create page without book_id
+            try:
+                book_id_int = int(book_id)
+                selected_book = await database.get_book_details(book_id_int)
+                if selected_book:
+                    context["selected_book"] = selected_book
+                else:
+                    # Invalid book_id provided, redirect to create page without book_id
+                    return RedirectResponse(url="/adaptations/create", status_code=302)
+            except (ValueError, TypeError):
+                # Invalid book_id format, redirect to create page without book_id
                 return RedirectResponse(url="/adaptations/create", status_code=302)
         else:
             context["selected_book"] = None

@@ -5,9 +5,10 @@ Handles PDF export and publishing functionality
 
 from fastapi import APIRouter, Request, HTTPException
 from fastapi.templating import Jinja2Templates
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, FileResponse
 import database_fixed as database
 import config
+import os
 
 router = APIRouter()
 templates = Jinja2Templates(directory="templates")
@@ -87,17 +88,53 @@ async def get_adaptation_chapters_api(adaptation_id: int):
 
 @router.post("/export/{adaptation_id}")
 async def export_adaptation_pdf(request: Request, adaptation_id: int):
-    """Export adaptation as PDF"""
+    """Export adaptation as PDF and return file for download"""
     try:
+        from services.pdf_generator import PDFGenerator
+        
         # Get adaptation details
         adaptation = await database.get_adaptation_by_id(adaptation_id)
         if not adaptation:
             raise HTTPException(status_code=404, detail="Adaptation not found")
         
-        # TODO: Implement PDF generation
-        # For now, return success message
-        return {"success": True, "message": "PDF export functionality coming soon"}
+        # Get book details
+        book = await database.get_book_details(adaptation['book_id'])
+        if not book:
+            raise HTTPException(status_code=404, detail="Book not found")
         
+        # Get chapters
+        chapters = await database.get_chapters_for_adaptation(adaptation_id)
+        if not chapters:
+            return {"success": False, "message": "No chapters found for this adaptation"}
+        
+        # Generate PDF
+        pdf_generator = PDFGenerator()
+        file_path, error = await pdf_generator.generate_adaptation_pdf(
+            adaptation=adaptation,
+            book=book,
+            chapters=chapters,
+            include_images=True
+        )
+        
+        if error or not file_path:
+            from services.logger import get_logger
+            log = get_logger("routes.publish")
+            log.error("pdf_generation_failed", extra={"error": error, "component": "routes.publish", "adaptation_id": adaptation_id})
+            raise HTTPException(status_code=500, detail=error or "PDF generation failed")
+        
+        # Return file for download
+        filename = os.path.basename(file_path)
+        return FileResponse(
+            path=file_path,
+            filename=filename,
+            media_type='application/pdf',
+            headers={
+                'Content-Disposition': f'attachment; filename="{filename}"'
+            }
+        )
+        
+    except HTTPException:
+        raise
     except Exception as e:
         from services.logger import get_logger
         log = get_logger("routes.publish")
