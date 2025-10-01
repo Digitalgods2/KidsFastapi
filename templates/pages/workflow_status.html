@@ -1,0 +1,414 @@
+{% extends "layouts/base.html" %}
+
+{% block title %}Workflow Progress - {{ book.title }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row">
+        <div class="col-lg-8 mx-auto">
+            <!-- Header -->
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h1 class="h3 mb-3">
+                        <i class="bi bi-gear-fill text-primary spinning"></i>
+                        Processing Your Adaptation
+                    </h1>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p class="mb-1"><strong>Book:</strong> {{ book.title }}</p>
+                            <p class="mb-1"><strong>Author:</strong> {{ book.author | default('Unknown', true) }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <p class="mb-1"><strong>Target Age:</strong> {{ adaptation.target_age_group }}</p>
+                            <p class="mb-1"><strong>Workflow ID:</strong> <code>{{ workflow_id }}</code></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Progress Overview -->
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">Overall Progress</h5>
+                </div>
+                <div class="card-body">
+                    <div class="progress mb-3" style="height: 30px;">
+                        <div id="overall-progress-bar" 
+                             class="progress-bar progress-bar-striped progress-bar-animated" 
+                             role="progressbar" 
+                             style="width: {{ workflow.progress }}%"
+                             aria-valuenow="{{ workflow.progress }}" 
+                             aria-valuemin="0" 
+                             aria-valuemax="100">
+                            {{ workflow.progress }}%
+                        </div>
+                    </div>
+                    <p id="current-status" class="text-center mb-0">
+                        <strong>Current Stage:</strong> 
+                        <span id="stage-name">{{ workflow.stage.value | title | replace('_', ' ') }}</span>
+                    </p>
+                </div>
+            </div>
+
+            <!-- Workflow Stages -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Workflow Stages</h5>
+                </div>
+                <div class="card-body">
+                    <div class="timeline">
+                        <!-- Character Analysis -->
+                        <div class="timeline-item" id="stage-character_analysis">
+                            <div class="timeline-marker {% if 'CHARACTER_ANALYSIS' in workflow.stages_completed %}bg-success{% elif workflow.stage.value == 'character_analysis' %}bg-warning pulse{% else %}bg-secondary{% endif %}">
+                                <i class="bi bi-people-fill"></i>
+                            </div>
+                            <div class="timeline-content">
+                                <h6>Character Analysis</h6>
+                                <p class="text-muted mb-0">Analyzing characters in your book...</p>
+                                <div class="status-indicator" id="status-character_analysis">
+                                    {% if 'CHARACTER_ANALYSIS' in workflow.stages_completed %}
+                                    <span class="badge bg-success">Completed</span>
+                                    {% elif workflow.stage.value == 'character_analysis' %}
+                                    <span class="badge bg-warning">In Progress</span>
+                                    {% else %}
+                                    <span class="badge bg-secondary">Pending</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Text Transformation -->
+                        <div class="timeline-item" id="stage-text_transformation">
+                            <div class="timeline-marker {% if 'TEXT_TRANSFORMATION' in workflow.stages_completed %}bg-success{% elif workflow.stage.value == 'text_transformation' %}bg-warning pulse{% else %}bg-secondary{% endif %}">
+                                <i class="bi bi-text-paragraph"></i>
+                            </div>
+                            <div class="timeline-content">
+                                <h6>Text Transformation</h6>
+                                <p class="text-muted mb-0">Transforming text to age-appropriate content...</p>
+                                <div class="status-indicator" id="status-text_transformation">
+                                    {% if 'TEXT_TRANSFORMATION' in workflow.stages_completed %}
+                                    <span class="badge bg-success">Completed</span>
+                                    {% elif workflow.stage.value == 'text_transformation' %}
+                                    <span class="badge bg-warning">In Progress</span>
+                                    <div class="progress mt-2" style="height: 10px;">
+                                        <div id="transform-progress" class="progress-bar" style="width: 0%"></div>
+                                    </div>
+                                    {% else %}
+                                    <span class="badge bg-secondary">Pending</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Prompt Generation -->
+                        <div class="timeline-item" id="stage-prompt_generation">
+                            <div class="timeline-marker {% if 'PROMPT_GENERATION' in workflow.stages_completed %}bg-success{% elif workflow.stage.value == 'prompt_generation' %}bg-warning pulse{% else %}bg-secondary{% endif %}">
+                                <i class="bi bi-lightbulb-fill"></i>
+                            </div>
+                            <div class="timeline-content">
+                                <h6>Image Prompt Generation</h6>
+                                <p class="text-muted mb-0">Generating prompts for chapter images...</p>
+                                <div class="status-indicator" id="status-prompt_generation">
+                                    {% if 'PROMPT_GENERATION' in workflow.stages_completed %}
+                                    <span class="badge bg-success">Completed</span>
+                                    {% elif workflow.stage.value == 'prompt_generation' %}
+                                    <span class="badge bg-warning">In Progress</span>
+                                    <div class="progress mt-2" style="height: 10px;">
+                                        <div id="prompt-progress" class="progress-bar" style="width: 0%"></div>
+                                    </div>
+                                    {% else %}
+                                    <span class="badge bg-secondary">Pending</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Review & Editing -->
+                        <div class="timeline-item" id="stage-review_editing">
+                            <div class="timeline-marker {% if workflow.stage.value == 'review_editing' %}bg-success{% else %}bg-secondary{% endif %}">
+                                <i class="bi bi-pencil-square"></i>
+                            </div>
+                            <div class="timeline-content">
+                                <h6>Ready for Review</h6>
+                                <p class="text-muted mb-0">Review, edit text, and generate images...</p>
+                                <div class="status-indicator" id="status-review_editing">
+                                    {% if workflow.stage.value == 'review_editing' %}
+                                    <span class="badge bg-success">Ready</span>
+                                    {% else %}
+                                    <span class="badge bg-secondary">Pending</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Notifications -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Activity Log</h5>
+                </div>
+                <div class="card-body" style="max-height: 300px; overflow-y: auto;">
+                    <div id="notifications-container">
+                        {% for notification in workflow.notifications[-10:] | reverse %}
+                        <div class="notification-item">
+                            <small class="text-muted">{{ notification.timestamp }}</small>
+                            <p class="mb-1">{{ notification.message }}</p>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Actions -->
+            <div class="card">
+                <div class="card-body text-center">
+                    {% if workflow.status.value == 'completed' %}
+                    <a href="/adaptations/{{ adaptation.adaptation_id }}/review" class="btn btn-lg btn-success">
+                        <i class="bi bi-arrow-right"></i> Proceed to Review & Edit
+                    </a>
+                    {% elif workflow.status.value == 'failed' %}
+                    <div class="alert alert-danger">
+                        <i class="bi bi-exclamation-triangle"></i>
+                        Workflow failed. Please check the error log.
+                    </div>
+                    <button class="btn btn-warning" onclick="retryWorkflow()">
+                        <i class="bi bi-arrow-clockwise"></i> Retry Workflow
+                    </button>
+                    {% else %}
+                    <button class="btn btn-warning" onclick="pauseWorkflow()" id="pause-btn">
+                        <i class="bi bi-pause"></i> Pause Workflow
+                    </button>
+                    <a href="/adaptations/{{ adaptation.adaptation_id }}" class="btn btn-secondary ms-2">
+                        <i class="bi bi-arrow-left"></i> Back to Adaptation
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.spinning {
+    animation: spin 2s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.timeline {
+    position: relative;
+    padding-left: 50px;
+}
+
+.timeline::before {
+    content: '';
+    position: absolute;
+    left: 20px;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: #dee2e6;
+}
+
+.timeline-item {
+    position: relative;
+    margin-bottom: 30px;
+}
+
+.timeline-marker {
+    position: absolute;
+    left: -30px;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+}
+
+.timeline-content {
+    background: #f8f9fa;
+    padding: 15px;
+    border-radius: 5px;
+}
+
+.pulse {
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% {
+        box-shadow: 0 0 0 0 rgba(255, 193, 7, 0.7);
+    }
+    70% {
+        box-shadow: 0 0 0 10px rgba(255, 193, 7, 0);
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba(255, 193, 7, 0);
+    }
+}
+
+.notification-item {
+    border-left: 3px solid #007bff;
+    padding-left: 10px;
+    margin-bottom: 10px;
+}
+</style>
+
+<script>
+// WebSocket connection for real-time updates
+let ws = null;
+const workflowId = '{{ workflow_id }}';
+
+function connectWebSocket() {
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    ws = new WebSocket(`${protocol}//${window.location.host}/workflow/ws/${workflowId}`);
+    
+    ws.onopen = function() {
+        console.log('WebSocket connected');
+    };
+    
+    ws.onmessage = function(event) {
+        const data = JSON.parse(event.data);
+        if (data.type === 'update') {
+            updateProgress(data.data);
+        }
+    };
+    
+    ws.onerror = function(error) {
+        console.error('WebSocket error:', error);
+    };
+    
+    ws.onclose = function() {
+        console.log('WebSocket disconnected');
+        // Reconnect after 3 seconds
+        setTimeout(connectWebSocket, 3000);
+    };
+}
+
+function updateProgress(data) {
+    // Update overall progress
+    const progressBar = document.getElementById('overall-progress-bar');
+    if (progressBar) {
+        progressBar.style.width = data.progress + '%';
+        progressBar.textContent = data.progress + '%';
+    }
+    
+    // Update current stage
+    const stageElement = document.getElementById('stage-name');
+    if (stageElement) {
+        stageElement.textContent = data.stage.replace(/_/g, ' ').charAt(0).toUpperCase() + 
+                                   data.stage.replace(/_/g, ' ').slice(1);
+    }
+    
+    // Add notification
+    const container = document.getElementById('notifications-container');
+    if (container && data.message) {
+        const notification = document.createElement('div');
+        notification.className = 'notification-item';
+        notification.innerHTML = `
+            <small class="text-muted">${new Date().toLocaleTimeString()}</small>
+            <p class="mb-1">${data.message}</p>
+        `;
+        container.insertBefore(notification, container.firstChild);
+        
+        // Keep only last 10 notifications
+        while (container.children.length > 10) {
+            container.removeChild(container.lastChild);
+        }
+    }
+    
+    // Update stage markers
+    updateStageMarkers(data.stage, data.stages_completed || []);
+    
+    // Check if completed
+    if (data.status === 'completed') {
+        showCompletionActions();
+    }
+}
+
+function updateStageMarkers(currentStage, completedStages) {
+    const stages = ['character_analysis', 'text_transformation', 'prompt_generation', 'review_editing'];
+    
+    stages.forEach(stage => {
+        const marker = document.querySelector(`#stage-${stage} .timeline-marker`);
+        const status = document.querySelector(`#status-${stage} .badge`);
+        
+        if (marker && status) {
+            if (completedStages.includes(stage.toUpperCase())) {
+                marker.className = 'timeline-marker bg-success';
+                status.className = 'badge bg-success';
+                status.textContent = 'Completed';
+            } else if (currentStage === stage) {
+                marker.className = 'timeline-marker bg-warning pulse';
+                status.className = 'badge bg-warning';
+                status.textContent = 'In Progress';
+            } else {
+                marker.className = 'timeline-marker bg-secondary';
+                status.className = 'badge bg-secondary';
+                status.textContent = 'Pending';
+            }
+        }
+    });
+}
+
+function showCompletionActions() {
+    const actionsCard = document.querySelector('.card:last-child .card-body');
+    if (actionsCard) {
+        actionsCard.innerHTML = `
+            <a href="/adaptations/{{ adaptation.adaptation_id }}/review" class="btn btn-lg btn-success">
+                <i class="bi bi-arrow-right"></i> Proceed to Review & Edit
+            </a>
+        `;
+    }
+}
+
+async function pauseWorkflow() {
+    try {
+        const response = await fetch(`/workflow/pause/${workflowId}`, { method: 'POST' });
+        if (response.ok) {
+            document.getElementById('pause-btn').innerHTML = '<i class="bi bi-play"></i> Resume Workflow';
+            document.getElementById('pause-btn').onclick = resumeWorkflow;
+        }
+    } catch (error) {
+        console.error('Error pausing workflow:', error);
+    }
+}
+
+async function resumeWorkflow() {
+    try {
+        const response = await fetch(`/workflow/resume/${workflowId}`, { method: 'POST' });
+        if (response.ok) {
+            document.getElementById('pause-btn').innerHTML = '<i class="bi bi-pause"></i> Pause Workflow';
+            document.getElementById('pause-btn').onclick = pauseWorkflow;
+        }
+    } catch (error) {
+        console.error('Error resuming workflow:', error);
+    }
+}
+
+// Connect WebSocket on page load
+document.addEventListener('DOMContentLoaded', function() {
+    connectWebSocket();
+    
+    // Also poll for updates every 5 seconds as backup
+    setInterval(async () => {
+        try {
+            const response = await fetch(`/workflow/api/status/${workflowId}`);
+            if (response.ok) {
+                const data = await response.json();
+                updateProgress(data);
+            }
+        } catch (error) {
+            console.error('Error polling status:', error);
+        }
+    }, 5000);
+});
+</script>
+{% endblock %}
