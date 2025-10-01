@@ -64,22 +64,10 @@ def build_cover_prompt_template(book: Dict[str, Any], adaptation: Dict[str, Any]
     theme = adaptation.get('overall_theme_tone', '')
     characters = (adaptation.get('key_characters_to_preserve') or '').strip()
     
-    # Try to get character descriptions from the book's character_reference
+    # Build character descriptions based on well-known stories
     character_descriptions = ""
     book_id = book.get('book_id')
-    if book_id and characters:
-        # Get stored character analysis if available
-        import asyncio
-        from database_fixed import get_character_reference
-        try:
-            # Use existing event loop if available, otherwise create new one
-            try:
-                loop = asyncio.get_running_loop()
-                char_ref = await get_character_reference(book_id) if asyncio.iscoroutinefunction(get_character_reference) else get_character_reference(book_id)
-            except RuntimeError:
-                char_ref = asyncio.run(get_character_reference(book_id))
-        except:
-            char_ref = None
+    char_ref = None  # TODO: Fetch character reference if needed
             
         if char_ref:
             # Check for enhanced character descriptions
