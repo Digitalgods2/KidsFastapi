@@ -1269,16 +1269,19 @@ async def update_adaptation_cover(adaptation_id: int, cover_image_url: str, cove
     return await update_adaptation_cover_image(adaptation_id, cover_image_prompt, cover_image_url)
 
 async def get_generated_images() -> List[Dict]:
-    """Return simple list of generated images across chapters AND cover images for gallery."""
+    """Return simple list of generated images across chapters AND cover images for gallery.
+    Covers appear first within each adaptation, then chapters in numerical order."""
     conn = db_manager.get_connection()
     cur = conn.cursor()
     try:
         # Use UNION to combine chapter images with cover images
+        # Sort priority: newest adaptations first, cover before chapters, chapters by number
         cur.execute('''
             SELECT c.chapter_id, c.chapter_number, c.adaptation_id, c.image_url, c.ai_prompt, c.created_at,
                    a.book_id, a.target_age_group, a.transformation_style, a.created_at AS adaptation_created,
                    b.title AS book_title, b.author AS book_author, b.imported_at AS book_imported,
-                   'chapter' as image_type
+                   'chapter' as image_type,
+                   1 as sort_priority
             FROM chapters c
             JOIN adaptations a ON c.adaptation_id = a.adaptation_id
             JOIN books b ON a.book_id = b.book_id
@@ -1286,22 +1289,23 @@ async def get_generated_images() -> List[Dict]:
             
             UNION ALL
             
-            SELECT NULL as chapter_id, 0 as chapter_number, a.adaptation_id, a.cover_url as image_url, 
+            SELECT NULL as chapter_id, -1 as chapter_number, a.adaptation_id, a.cover_url as image_url, 
                    a.cover_prompt as ai_prompt, a.created_at,
                    a.book_id, a.target_age_group, a.transformation_style, a.created_at AS adaptation_created,
                    b.title AS book_title, b.author AS book_author, b.imported_at AS book_imported,
-                   'cover' as image_type
+                   'cover' as image_type,
+                   0 as sort_priority
             FROM adaptations a
             JOIN books b ON a.book_id = b.book_id
             WHERE a.cover_url IS NOT NULL
             
-            ORDER BY created_at DESC
+            ORDER BY adaptation_id DESC, sort_priority ASC, chapter_number ASC
         ''')
         out = []
         for row in cur.fetchall():
             out.append({
                 'chapter_id': row[0],
-                'chapter_number': row[1],
+                'chapter_number': row[1] if row[1] >= 0 else 0,  # Cover has -1, normalize to 0
                 'adaptation_id': row[2],
                 'image_url': row[3],
                 'prompt': row[4],
@@ -1314,6 +1318,7 @@ async def get_generated_images() -> List[Dict]:
                 'book_author': row[11],
                 'book_imported': row[12],
                 'image_type': row[13],  # 'chapter' or 'cover'
+                # Note: row[14] is sort_priority, used for query sorting only
             })
         return out
     finally:
