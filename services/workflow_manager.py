@@ -261,7 +261,7 @@ class WorkflowManager:
                     content = f.read()
             
             # Clean Gutenberg boilerplate if needed
-            content = clean_gutenberg_text(content)
+            content, _ = clean_gutenberg_text(content)  # Unpack tuple, ignore was_gutenberg flag
             
             # Segment chapters based on adaptation settings
             choice = (adaptation.get("chapter_structure_choice") or "auto_wordcount").strip().lower()

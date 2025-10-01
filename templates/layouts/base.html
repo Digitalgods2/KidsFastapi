@@ -329,23 +329,38 @@
             color: #a8a8a8 !important;
         }
         
-        /* Fix badge visibility in dark mode */
-        body.bg-dark .badge.bg-light {
-            background-color: rgba(108, 117, 125, 0.3) !important;
-            color: #d0d0d0 !important;
-            border: 1px solid rgba(108, 117, 125, 0.5) !important;
-        }
-        
-        body.bg-dark .badge.bg-secondary {
-            background-color: rgba(108, 117, 125, 0.3) !important;
-            color: #d0d0d0 !important;
-            border: 1px solid rgba(108, 117, 125, 0.5) !important;
-        }
-        
-        /* Ensure all badges are readable */
+        /* CRITICAL FIX: WHITE ON BLUE for ALL badges - MAXIMUM CONTRAST */
+        body.bg-dark .badge.bg-light,
+        body.bg-dark .badge.bg-secondary,
+        body.bg-dark .badge.text-bg-secondary,
+        body.bg-dark .badge.rounded-pill,
         body.bg-dark .badge {
-            font-weight: 500;
+            background-color: #1e3a5f !important;  /* Dark blue background */
+            color: #ffffff !important;  /* Pure white text */
+            border: 1px solid #4a7fb8 !important;  /* Light blue border */
+            font-weight: 600 !important;
             opacity: 1 !important;
+        }
+        
+        /* Processing page specific badges */
+        body.bg-dark .workflow-stage .badge {
+            background-color: #1e3a5f !important;
+            color: #ffffff !important;
+        }
+        
+        body.bg-dark .workflow-stage.pending .badge {
+            background-color: #5a5a5a !important;  /* Gray for pending */
+            color: #ffffff !important;
+        }
+        
+        body.bg-dark .workflow-stage.running .badge {
+            background-color: #1e3a5f !important;  /* Blue for running */
+            color: #ffffff !important;
+        }
+        
+        body.bg-dark .workflow-stage.completed .badge {
+            background-color: #2d5a2d !important;  /* Green for completed */
+            color: #ffffff !important;
         }
         
         /* Additional dark mode fixes for all pages */

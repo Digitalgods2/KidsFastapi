@@ -259,6 +259,51 @@
     padding-left: 10px;
     margin-bottom: 10px;
 }
+
+/* Dark mode contrast fixes for workflow page */
+body.bg-dark .timeline-content {
+    background: rgba(30, 58, 95, 0.3);  /* Dark blue background */
+    border: 1px solid rgba(74, 127, 184, 0.5);  /* Light blue border */
+}
+
+body.bg-dark .timeline-content h6 {
+    color: #ffffff !important;
+}
+
+body.bg-dark .timeline-content .text-muted {
+    color: #d0d0d0 !important;
+}
+
+/* Ensure ALL badges have white on blue in dark mode */
+body.bg-dark .badge,
+body.bg-dark .badge.bg-secondary,
+body.bg-dark .badge.bg-warning,
+body.bg-dark .badge.bg-success,
+body.bg-dark .status-indicator .badge {
+    background-color: #1e3a5f !important;  /* Blue background */
+    color: #ffffff !important;  /* White text */
+    border: 1px solid #4a7fb8 !important;
+    font-weight: 600 !important;
+}
+
+/* Status-specific colors while maintaining contrast */
+body.bg-dark .badge.bg-success,
+body.bg-dark .status-indicator .badge.bg-success {
+    background-color: #2d5a2d !important;  /* Green */
+    color: #ffffff !important;
+}
+
+body.bg-dark .badge.bg-warning,
+body.bg-dark .status-indicator .badge.bg-warning {
+    background-color: #1e3a5f !important;  /* Blue for in-progress */
+    color: #ffffff !important;
+}
+
+body.bg-dark .badge.bg-secondary,
+body.bg-dark .status-indicator .badge.bg-secondary {
+    background-color: #5a5a5a !important;  /* Gray for pending */
+    color: #ffffff !important;
+}
 </style>
 
 <script>
