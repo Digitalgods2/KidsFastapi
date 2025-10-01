@@ -68,8 +68,8 @@ def build_cover_prompt_template(book: Dict[str, Any], adaptation: Dict[str, Any]
     character_descriptions = ""
     book_id = book.get('book_id')
     char_ref = None  # TODO: Fetch character reference if needed
-            
-        if char_ref:
+    
+    if char_ref:
             # Check for enhanced character descriptions
             if 'characters_with_descriptions' in char_ref:
                 # We have detailed descriptions!
