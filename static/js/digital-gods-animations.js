@@ -122,22 +122,8 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     
     
-    // === PARALLAX EFFECTS ===
-    window.addEventListener('scroll', function() {
-        const scrolled = window.pageYOffset;
-        const parallax = document.querySelector('.hero-section');
-        
-        if (parallax) {
-            const speed = scrolled * 0.5;
-            parallax.style.transform = `translateY(${speed}px)`;
-        }
-        
-        // Circuit overlay animation
-        const circuits = document.querySelectorAll('.circuit-overlay');
-        circuits.forEach(function(circuit) {
-            circuit.style.transform = `translate(${scrolled * 0.1}px, ${scrolled * 0.05}px)`;
-        });
-    });
+    // === PARALLAX EFFECTS DISABLED ===
+    // Removed all parallax and transform effects to prevent sliding panels
     
     
     // === DYNAMIC STATS COUNTER ===
