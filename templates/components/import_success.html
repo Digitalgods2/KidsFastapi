@@ -23,7 +23,7 @@
                 
                 <button 
                     class="btn btn-secondary"
-                    hx-get="/adaptations/create/{{ book_id }}"
+                    hx-get="/adaptations/create?book_id={{ book_id }}"
                     hx-target="body"
                     hx-push-url="true"
                 >

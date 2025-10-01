@@ -11,16 +11,27 @@ import config
 
 logger = logging.getLogger(__name__)
 
-# Initialize a single client instance
-_client: Optional[OpenAI] = None
+# No longer using cached client - create fresh clients with current API key
 
-def get_client() -> OpenAI:
-    global _client
-    if _client is None:
-        if not getattr(config, 'OPENAI_API_KEY', None):
-            raise ValueError("OpenAI API key not configured")
-        _client = OpenAI(api_key=config.OPENAI_API_KEY)
-    return _client
+async def get_client() -> OpenAI:
+    """Get OpenAI client with API key from database settings (preferred) or environment"""
+    api_key = None
+    
+    # Try to get API key from database settings first
+    try:
+        import database_fixed as database
+        api_key = await database.get_setting("openai_api_key", None)
+    except Exception:
+        pass
+    
+    # Fallback to config/environment if not in database
+    if not api_key:
+        api_key = getattr(config, 'OPENAI_API_KEY', None)
+    
+    if not api_key:
+        raise ValueError("OpenAI API key not found in environment variables")
+        
+    return OpenAI(api_key=api_key)
 
 async def generate_chat_text(
     messages: List[Dict[str, str]],
@@ -30,7 +41,7 @@ async def generate_chat_text(
 ) -> Tuple[Optional[str], Optional[str]]:
     """Generic chat generation that returns (text, error)."""
     try:
-        client = get_client()
+        client = await get_client()
         response = client.chat.completions.create(
             model=model or getattr(config, 'DEFAULT_GPT_MODEL', 'gpt-4o-mini'),
             messages=messages,

@@ -322,12 +322,8 @@ async def healthz():
 
     # Chat probe: instantiate client only
     try:
-        if config.OPENAI_API_KEY:
-            _ = get_client()
-            status["checks"]["chat"]["ok"] = True
-        else:
-            status["checks"]["chat"]["error"] = "missing_api_key"
-            status["status"] = "degraded"
+        _ = await get_client()
+        status["checks"]["chat"]["ok"] = True
     except Exception as e:
         status["checks"]["chat"]["error"] = str(e)
         status["status"] = "degraded"

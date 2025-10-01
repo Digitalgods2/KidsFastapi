@@ -1,0 +1,27 @@
+INFO:     Will watch for changes in these directories: ['/home/user/KidsFastapi']
+INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
+INFO:     Started reloader process [30255] using StatReload
+{"ts": "2025-10-01T08:36:02.709071+00:00", "level": "warning", "logger": "config", "msg": "missing_openai_api_key", "process": 30257, "taskName": "Task-1", "component": "config", "request_id": null}
+/home/user/KidsFastapi/legacy/services/openai_service.py:494: RuntimeWarning: services.openai_service_new could not be imported; falling back to legacy implementation.
+  warnings.warn(
+{"ts": "2025-10-01T08:36:02.821715+00:00", "level": "info", "logger": "services.image_generation", "msg": "vertex_unavailable", "process": 30257, "taskName": "Task-1", "component": "services.image_generation", "error": "Vertex AI not properly configured", "request_id": null}
+{"ts": "2025-10-01T08:36:02.852183+00:00", "level": "info", "logger": "services.image_generation", "msg": "vertex_unavailable", "process": 30257, "taskName": "Task-1", "component": "services.image_generation", "error": "Vertex AI not properly configured", "request_id": null}
+INFO:     Started server process [30257]
+INFO:     Waiting for application startup.
+{"ts": "2025-10-01T08:36:02.917463+00:00", "level": "info", "logger": "main", "msg": "startup", "process": 30257, "taskName": "Task-2", "request_id": null}
+{"ts": "2025-10-01T08:36:02.917616+00:00", "level": "info", "logger": "main", "msg": "db_init_start", "process": 30257, "taskName": "Task-2", "request_id": null}
+{"ts": "2025-10-01T08:36:02.924323+00:00", "level": "info", "logger": "main", "msg": "DB -> /home/user/KidsFastapi/kidsklassiks.db", "process": 30257, "taskName": "Task-2", "request_id": null}
+{"ts": "2025-10-01T08:36:02.924517+00:00", "level": "info", "logger": "main", "msg": "db_init_ok", "process": 30257, "taskName": "Task-2", "request_id": null}
+{"ts": "2025-10-01T08:36:02.924686+00:00", "level": "info", "logger": "main", "msg": "dirs_ready", "process": 30257, "taskName": "Task-2", "dirs": ["uploads", "generated_images", "generated_images/chapters", "generated_images/covers", "publications", "exports", "backups"], "request_id": null}
+{"ts": "2025-10-01T08:36:02.924768+00:00", "level": "warning", "logger": "main", "msg": "openai_not_configured", "process": 30257, "taskName": "Task-2", "request_id": null}
+{"ts": "2025-10-01T08:36:02.924827+00:00", "level": "warning", "logger": "main", "msg": "vertex_not_configured", "process": 30257, "taskName": "Task-2", "request_id": null}
+{"ts": "2025-10-01T08:36:02.926288+00:00", "level": "info", "logger": "main", "msg": "default_image_backend", "process": 30257, "taskName": "Task-2", "backend": "vertex-imagen", "request_id": null}
+{"ts": "2025-10-01T08:36:02.926480+00:00", "level": "info", "logger": "main", "msg": "ready", "process": 30257, "taskName": "Task-2", "request_id": null}
+INFO:     Application startup complete.
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+{"ts": "2025-10-01T08:43:45.328015+00:00", "level": "info", "logger": "main", "msg": "shutdown", "process": 30257, "taskName": "Task-2", "request_id": null}
+{"ts": "2025-10-01T08:43:45.328348+00:00", "level": "info", "logger": "main", "msg": "cleanup_complete", "process": 30257, "taskName": "Task-2", "request_id": null}
+INFO:     Application shutdown complete.
+INFO:     Finished server process [30257]
+INFO:     Stopping reloader process [30255]

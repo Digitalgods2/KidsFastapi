@@ -824,7 +824,7 @@ small, .small {
   position: absolute !important;
   z-index: 9999 !important;
   display: none !important;
-  float: left !important;
+  float: none !important;
   min-width: 10rem !important;
   padding: 0.5rem 0 !important;
   margin: 0.125rem 0 0 !important;
@@ -842,7 +842,7 @@ small, .small {
 
 /* Dropdown container */
 .navbar-nav .dropdown {
-  position: static !important;
+  position: relative !important;
 }
 
 .navbar-nav .dropdown-menu {
@@ -850,6 +850,7 @@ small, .small {
   top: 100% !important;
   left: 0 !important;
   transform: none !important;
+  margin-top: 0.125rem !important;
 }
 
 .navbar-nav .dropdown-menu.show {

@@ -74,7 +74,7 @@
                             {% if adaptation.key_characters_to_preserve %}
                                 <div class="mb-2">
                                     <small class="text-muted">Key Characters:</small><br>
-                                    <span class="badge bg-light text-dark me-1 mb-1" style="font-size: 0.8em;">
+                                    <span class="badge bg-primary text-white me-1 mb-1" style="font-size: 0.8em;">
                                         {{ adaptation.key_characters_to_preserve[:100] }}{% if adaptation.key_characters_to_preserve|length > 100 %}...{% endif %}
                                     </span>
                                 </div>
@@ -93,7 +93,7 @@
     <div class="row">
         <div class="col-12">
             <div class="card border-0 shadow-sm">
-                <div class="card-header style="background: linear-gradient(135deg, rgba(65, 105, 225, 0.1), rgba(220, 20, 60, 0.05));">
+                <div class="card-header" style="background: linear-gradient(135deg, rgba(65, 105, 225, 0.1), rgba(220, 20, 60, 0.05));">
                     <h5 class="mb-0">
                         <i class="bi bi-book"></i> Chapters ({{ chapters|length }})
                     </h5>
@@ -118,12 +118,20 @@
                                     </td>
                                     <td>
                                         <strong>{{ chapter.title or 'Chapter ' + chapter.chapter_number|string }}</strong>
-                                        {% if chapter.content %}
+                                        {% if chapter.transformed_text %}
+                                            <br><small class="text-muted">{{ chapter.transformed_text[:100] }}...</small>
+                                        {% elif chapter.original_text_segment %}
+                                            <br><small class="text-muted">{{ chapter.original_text_segment[:100] }}...</small>
+                                        {% elif chapter.content %}
                                             <br><small class="text-muted">{{ chapter.content[:100] }}...</small>
                                         {% endif %}
                                     </td>
                                     <td>
-                                        {% if chapter.content %}
+                                        {% if chapter.transformed_text %}
+                                            {{ chapter.transformed_text.split()|length }} words
+                                        {% elif chapter.original_text_segment %}
+                                            {{ chapter.original_text_segment.split()|length }} words
+                                        {% elif chapter.content %}
                                             {{ chapter.content.split()|length }} words
                                         {% else %}
                                             <span class="text-muted">No content</span>
@@ -245,8 +253,10 @@ function editChapter(chapterId) {
         .then(response => response.json())
         .then(data => {
             document.getElementById('chapterTitle').value = data.title || '';
-            document.getElementById('chapterContent').value = data.content || '';
-            document.getElementById('imagePrompt').value = data.image_prompt || '';
+            // Try different content fields in order of preference
+            const content = data.transformed_text || data.original_text_segment || data.content || '';
+            document.getElementById('chapterContent').value = content;
+            document.getElementById('imagePrompt').value = data.image_prompt || data.user_prompt || '';
             new bootstrap.Modal(document.getElementById('editChapterModal')).show();
         })
         .catch(error => {

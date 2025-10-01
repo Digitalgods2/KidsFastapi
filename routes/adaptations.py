@@ -22,21 +22,37 @@ import config
 router = APIRouter()
 templates = Jinja2Templates(directory="templates")
 
-# Helper function for base context
-def get_base_context(request):
+# Helper function for base context - with database API key support
+async def get_base_context(request):
     """Get base context variables for all templates"""
+    # Check database for current API key settings instead of config module
+    try:
+        openai_key = await database.get_setting("openai_api_key", config.OPENAI_API_KEY or "")
+        vertex_project_id = await database.get_setting("vertex_project_id", config.VERTEX_PROJECT_ID or "")
+        
+        # Check if OpenAI is configured (API key exists and starts with sk-)
+        openai_configured = bool(openai_key and openai_key.startswith('sk-'))
+        
+        # Check if Vertex AI is configured (has project ID)
+        vertex_configured = bool(vertex_project_id and vertex_project_id.strip())
+        
+    except Exception:
+        # Fallback to config module if database read fails
+        openai_configured = bool(config.OPENAI_API_KEY)
+        vertex_configured = config.validate_vertex_ai_config()
+    
     return {
         "request": request,
         "notifications_count": 0,
         "notifications": [],
-        "openai_status": bool(config.OPENAI_API_KEY),
-        "vertex_status": config.validate_vertex_ai_config()
+        "openai_status": openai_configured,
+        "vertex_status": vertex_configured
     }
 
 @router.get("/", response_class=HTMLResponse)
 async def adaptations_list(request: Request):
     """List all adaptations"""
-    context = get_base_context(request)
+    context = await get_base_context(request)
     
     try:
         # Get all adaptations with statistics
@@ -68,7 +84,7 @@ async def adaptations_list(request: Request):
 @router.get("/create", response_class=HTMLResponse)
 async def create_adaptation_page(request: Request, book_id: Optional[str] = None):
     """Create new adaptation page"""
-    context = get_base_context(request)
+    context = await get_base_context(request)
     
     try:
         # Get all books for selection
@@ -161,7 +177,7 @@ async def create_adaptation(
 @router.get("/{adaptation_id}/review", response_class=HTMLResponse)
 async def review_adaptation(request: Request, adaptation_id: int):
     """Review and edit adaptation"""
-    context = get_base_context(request)
+    context = await get_base_context(request)
     
     try:
         # Get adaptation details
@@ -190,7 +206,7 @@ async def review_adaptation(request: Request, adaptation_id: int):
 @router.get("/{adaptation_id}/process", response_class=HTMLResponse)
 async def process_adaptation_page(request: Request, adaptation_id: int):
     """Process adaptation page with step-by-step pipeline"""
-    context = get_base_context(request)
+    context = await get_base_context(request)
     
     try:
         # Get adaptation details
@@ -221,7 +237,7 @@ async def process_adaptation_page(request: Request, adaptation_id: int):
 
 @router.get("/in-progress", response_class=HTMLResponse)
 async def adaptations_in_progress(request: Request):
-    context = get_base_context(request)
+    context = await get_base_context(request)
     try:
         all_items = await database.get_all_adaptations_with_stats()
         
@@ -253,7 +269,7 @@ async def adaptations_in_progress(request: Request):
 
 @router.get("/completed", response_class=HTMLResponse)
 async def adaptations_completed(request: Request):
-    context = get_base_context(request)
+    context = await get_base_context(request)
     try:
         all_items = await database.get_all_adaptations_with_stats()
         
@@ -286,7 +302,7 @@ async def adaptations_completed(request: Request):
 @router.get("/{adaptation_id}", response_class=HTMLResponse)
 async def view_adaptation(request: Request, adaptation_id: int):
     """View a specific adaptation with full details"""
-    context = get_base_context(request)
+    context = await get_base_context(request)
     
     try:
         # Get adaptation details

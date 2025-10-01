@@ -156,9 +156,9 @@
                             <i class="bi bi-eye"></i> Review & Edit
                         </a>
                         {% if chapters|length > 0 %}
-                        <button class="btn btn-outline-info btn-sm" onclick="generateAllImages()">
-                            <i class="bi bi-images"></i> Generate All Images
-                        </button>
+                        <a href="/images/chapter/{{ adaptation.adaptation_id }}" class="btn btn-outline-info btn-sm">
+                            <i class="bi bi-image"></i> Generate Chapter Images
+                        </a>
                         {% endif %}
                         {% if adaptation.status == 'completed' %}
                         <a href="/publish?adaptation_id={{ adaptation.adaptation_id }}" class="btn btn-outline-info btn-sm">
@@ -685,13 +685,18 @@ function deleteCurrentImage() {
 
 function generateAllImages() {
     if (confirm('Generate images for all chapters without images? This may take several minutes.')) {
-        fetch(`/images/adaptation/{{ adaptation.adaptation_id }}/generate-all`, {
-            method: 'POST'
+        // Use FormData to match the expected endpoint signature
+        const formData = new FormData();
+        formData.append('generate_cover', 'false');
+        
+        fetch(`/images/{{ adaptation.adaptation_id }}/generate_batch`, {
+            method: 'POST',
+            body: formData
         })
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                alert(`Started generating ${data.count} images. The page will refresh automatically.`);
+                alert(`Started generating ${data.total_chapters} images. The page will refresh automatically.`);
                 setTimeout(() => location.reload(), 5000);
             } else {
                 alert('Error: ' + (data.error || 'Unknown error'));

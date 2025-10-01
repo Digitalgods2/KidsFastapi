@@ -13,8 +13,8 @@ from datetime import datetime
 import uuid
 
 # Import existing services
-# Using legacy OpenAIService only for image generation backend compatibility
-from legacy.services.openai_service import OpenAIService
+# Using new database-aware OpenAI service for image generation
+from services.openai_service_new import OpenAIService
 from services import VertexService
 from services.logger import get_logger
 
@@ -258,11 +258,14 @@ class ImageGenerationService:
                 quality = "hd"
             
             async def _call_openai():
+                # Convert string model to ImageModel enum
+                from models import ImageModel
+                model_enum = ImageModel.DALLE_3 if model == "dall-e-3" else ImageModel.DALLE_3  # Default to DALLE_3
                 return await self.openai_service.generate_image(
                     prompt=prompt,
+                    model=model_enum,
                     size=size,
-                    quality=quality,
-                    model=model
+                    quality=quality
                 )
             
             async with self._semaphore:
@@ -379,27 +382,22 @@ class ImageGenerationService:
                     "error": "Vertex AI service not available"
                 }
             
-            # Get aspect ratio from settings
+            # Get image settings from database
             import database_fixed as database
             size_setting = await database.get_setting("default_image_size", "1024x1024")
-            aspect_ratio = self._size_to_aspect_ratio(size_setting)
-            logger.info(f"📐 Aspect ratio: {aspect_ratio} (from size setting: {size_setting})")
+            logger.info(f"📐 Using image size: {size_setting}")
             
-            # Configure based on model type
-            if "children" in model:
-                enhanced_prompt = f"A whimsical and colorful children's book illustration of {prompt}, in a friendly cartoon style with bright colors and simple shapes"
-            elif "artistic" in model:
-                enhanced_prompt = f"A masterpiece painting of {prompt}, with artistic brushstrokes and rich colors"
-            else:
-                enhanced_prompt = prompt
-            
-            logger.info(f"📝 Using enhanced prompt: {enhanced_prompt[:100]}...")
+            # Convert string model to ImageModel enum
+            from models import ImageModel
+            model_enum = ImageModel.VERTEX_IMAGEN
             
             async def _call_vertex():
-                logger.info(f"🔧 Calling vertex_service.generate_image with aspect_ratio={aspect_ratio}")
+                logger.info(f"🔧 Calling vertex_service.generate_image with size={size_setting}")
                 return await self.vertex_service.generate_image(
-                    prompt=enhanced_prompt,
-                    aspect_ratio=aspect_ratio
+                    prompt=prompt,
+                    model=model_enum,
+                    size=size_setting,
+                    style="children_illustration"
                 )
             async with self._semaphore:
                 logger.info("🔄 Calling Vertex AI service...")
@@ -489,10 +487,10 @@ class ImageGenerationService:
     async def generate_image_prompt(self, chapter: Dict, adaptation_id: int) -> str:
         """
         Generate an AI-powered image prompt based on chapter content
-        Includes character consistency reference for visual coherence across chapters
+        Uses the new OpenAI service for prompt generation
         """
         try:
-            # Get adaptation details for context
+            # Get adaptation and book details for context
             import database_fixed as database
             adaptation = await database.get_adaptation_details(adaptation_id)
             
@@ -500,38 +498,36 @@ class ImageGenerationService:
                 logger.warning(f"No adaptation found for ID {adaptation_id}")
                 return f"A children's book illustration for Chapter {chapter.get('chapter_number', 1)}"
             
-            chapter_text = chapter.get('original_chapter_text', '')[:2000]  # Limit text length
+            book_id = adaptation.get('book_id')
+            book = await database.get_book_details(book_id) if book_id else None
+            book_title = book.get('title', 'Unknown Book') if book else 'Unknown Book'
+            
+            chapter_text = chapter.get('transformed_text') or chapter.get('original_text_segment', '')
             chapter_number = chapter.get('chapter_number', 1)
+            target_age_group = adaptation.get('target_age_group', 'ages_6_8')
             
-            # Get character consistency reference for this adaptation
-            from services.character_helper import get_formatted_character_reference
-            char_ref = await get_formatted_character_reference(
-                adaptation_id=adaptation_id,
+            # Convert string age group to enum
+            from models import AgeGroup
+            age_group_map = {
+                'ages_3_5': AgeGroup.AGES_3_5,
+                'ages_6_8': AgeGroup.AGES_6_8,
+                'ages_9_12': AgeGroup.AGES_9_12
+            }
+            age_group = age_group_map.get(target_age_group, AgeGroup.AGES_6_8)
+            
+            # Use new OpenAI service for prompt generation
+            prompt, error = await self.openai_service.generate_image_prompt(
+                chapter_text=chapter_text,
                 chapter_number=chapter_number,
-                total_chapters=1  # Will be ignored for now (always include reference)
+                book_context=f"Book: {book_title}, Theme: {adaptation.get('overall_theme_tone', 'Adventure')}",
+                age_group=age_group
             )
             
-            if char_ref:
-                logger.info(f"Including character reference for chapter {chapter_number} of adaptation {adaptation_id}")
-            else:
-                logger.info(f"No character reference available for adaptation {adaptation_id}")
+            if error:
+                logger.error(f"OpenAI prompt generation error: {error}")
             
-            # Use modern chat helper with character reference
-            from services import chat_helper
-            messages = chat_helper.build_chapter_prompt_template(
-                chapter_text,
-                chapter_number,
-                adaptation,
-                formatted_char_ref=char_ref,  # Pass formatted character reference
-            )
-            
-            text, err = await chat_helper.generate_chat_text(messages, temperature=0.7, max_tokens=500)
-            
-            if err:
-                logger.error(f"Chat helper error: {err}")
-            
-            if text:
-                return text.strip()
+            if prompt:
+                return prompt.strip()
             
             # Fallback to basic prompt
             age_group = adaptation.get('target_age_group', 'Ages 6-8')

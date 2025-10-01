@@ -159,7 +159,7 @@ async def _process_batch_generation(adaptation_id: int, chapters: list,
 async def _update_progress(batch_id: str, current: int, total: int, message: str):
     """Progress callback for batch generation"""
     from services.logger import get_logger
-    get_logger("routes.images").info("batch_progress", extra={"batch_id": batch_id, "current": current, "total": total, "msg": message})
+    get_logger("routes.images").info("batch_progress", extra={"batch_id": batch_id, "current": current, "total": total, "progress_message": message})
 
 @router.get("/adaptation/{adaptation_id}/status")
 async def legacy_generation_status(adaptation_id: int):

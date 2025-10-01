@@ -518,20 +518,27 @@ async def analyze_characters(book_id: int = Form(...)):
     log.info("analyze_characters_start", extra={"book_id": book_id})
     
     try:
-        # Step 1: Validate OpenAI configuration
+        # Step 1: Validate OpenAI configuration - check database first, then config
         log.info("validate_openai_config_start", extra={"book_id": book_id})
         
-        if not config.OPENAI_API_KEY:
-            error_msg = "OpenAI API key not found in environment variables"
+        # Try to get API key from database settings first
+        api_key = await database.get_setting("openai_api_key", None)
+        
+        # Fallback to config/environment if not in database
+        if not api_key:
+            api_key = getattr(config, 'OPENAI_API_KEY', None)
+        
+        if not api_key:
+            error_msg = "OpenAI API key not found in database settings or environment variables"
             log.error("openai_missing_api_key", extra={"book_id": book_id, "error": error_msg})
             return JSONResponse({
                 "success": False, 
                 "error": "Configuration Error",
                 "message": error_msg,
-                "debug_info": "Check your .env file for OPENAI_API_KEY"
+                "debug_info": "Configure your OpenAI API key in Settings or check your .env file"
             })
         
-        if config.OPENAI_API_KEY == "YOUR_KEY_HERE" or not config.OPENAI_API_KEY.startswith("sk-"):
+        if api_key == "YOUR_KEY_HERE" or not api_key.startswith("sk-"):
             error_msg = "OpenAI API key appears to be invalid format"
             log.error("openai_api_key_invalid_format", extra={"book_id": book_id, "error": error_msg})
             return JSONResponse({
@@ -541,7 +548,7 @@ async def analyze_characters(book_id: int = Form(...)):
                 "debug_info": "API key should start with 'sk-'"
             })
         
-        log.info("openai_api_key_ok", extra={"book_id": book_id})
+        log.info("openai_api_key_ok", extra={"book_id": book_id, "source": "database" if await database.get_setting("openai_api_key", None) else "config"})
         
         # Step 2: Get book details
         log.info("get_book_details_start", extra={"book_id": book_id})
