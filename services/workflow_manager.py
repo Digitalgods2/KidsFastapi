@@ -576,7 +576,7 @@ class WorkflowManager:
             "workflow_id": workflow_id,
             "stage": stage.value,
             "progress": progress,
-            "message": message
+            "progress_message": message
         })
     
     def get_workflow_status(self, workflow_id: str) -> Optional[Dict[str, Any]]:
