@@ -15,10 +15,11 @@ class OpenAIService:
     
     def __init__(self):
         """Initialize OpenAI client"""
-        if not config.OPENAI_API_KEY:
-            raise ValueError("OpenAI API key not configured")
-        
-        self.client = OpenAI(api_key=config.OPENAI_API_KEY)
+        self.client = None
+        if config.OPENAI_API_KEY and config.OPENAI_API_KEY.startswith('sk-'):
+            self.client = OpenAI(api_key=config.OPENAI_API_KEY)
+        else:
+            print("⚠️  OpenAI API key not configured - AI features disabled")
     
     # ==================== CHARACTER ANALYSIS ====================
     
@@ -27,6 +28,8 @@ class OpenAIService:
         Analyze a story using GPT to extract detailed character descriptions
         and create comprehensive JSON reference for consistent illustrations
         """
+        if not self.client:
+            return None, "OpenAI API not configured"
         try:
             analysis_prompt = f"""
             Analyze the story "{book_title}" and create a comprehensive character reference JSON.
@@ -124,6 +127,8 @@ class OpenAIService:
         adaptation: Dict[str, Any]
     ) -> str:
         """Transform a chapter text for the target age group and style"""
+        if not self.client:
+            return f"[OpenAI unavailable] {chapter_text}"
         try:
             age_group = adaptation['target_age_group']
             style = adaptation['transformation_style']
@@ -360,6 +365,8 @@ class OpenAIService:
         quality: str = "standard"
     ) -> Tuple[Optional[str], Optional[str]]:
         """Generate image using OpenAI Images API. Returns (image_url, error)."""
+        if not self.client:
+            return None, "OpenAI API not configured"
         try:
             # Normalize model input to string name and enum for logic
             model_enum = None
