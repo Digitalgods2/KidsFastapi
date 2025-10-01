@@ -305,6 +305,29 @@
         body.bg-dark .alert-light small {
             color: #c0c0c0 !important;
         }
+        
+        /* Better alert-secondary styling for dark mode */
+        body.bg-dark .alert-secondary {
+            background-color: rgba(108, 117, 125, 0.2) !important;
+            border-color: rgba(108, 117, 125, 0.4) !important;
+            color: #d0d0d0 !important;
+        }
+        
+        /* Ensure all small text in alerts is visible */
+        body.bg-dark .alert small {
+            color: #d0d0d0 !important;
+            opacity: 1 !important;
+        }
+        
+        /* Card content visibility improvements */
+        body.bg-dark .card-body small {
+            color: #c0c0c0 !important;
+        }
+        
+        /* Library page specific fixes */
+        body.bg-dark .book-card .text-muted {
+            color: #a8a8a8 !important;
+        }
     </style>
     
     <!-- HTMX -->
