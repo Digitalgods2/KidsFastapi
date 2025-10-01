@@ -656,6 +656,7 @@
                             <a class="flex-sm-fill text-sm-center nav-link active" data-bs-toggle="tab" href="#help-overview">Overview</a>
                             <a class="flex-sm-fill text-sm-center nav-link" data-bs-toggle="tab" href="#help-books">Books</a>
                             <a class="flex-sm-fill text-sm-center nav-link" data-bs-toggle="tab" href="#help-adaptations">Adaptations</a>
+                            <a class="flex-sm-fill text-sm-center nav-link" data-bs-toggle="tab" href="#help-transform">Transform <span class="badge bg-success ms-1">NEW</span></a>
                             <a class="flex-sm-fill text-sm-center nav-link" data-bs-toggle="tab" href="#help-images">Images</a>
                             <a class="flex-sm-fill text-sm-center nav-link" data-bs-toggle="tab" href="#help-publish">Publishing</a>
                             <a class="flex-sm-fill text-sm-center nav-link" data-bs-toggle="tab" href="#help-tips">Tips & FAQ</a>
@@ -665,26 +666,33 @@
                             <!-- Overview Tab -->
                             <div class="tab-pane fade show active" id="help-overview">
                                 <h5 class="mb-3"><i class="bi bi-book"></i> What is KidsKlassiks?</h5>
-                                <p>KidsKlassiks is an AI-powered platform that transforms classic literature into age-appropriate children's stories. Using advanced artificial intelligence, you can:</p>
+                                <p>KidsKlassiks is an AI-powered platform that transforms classic literature into age-appropriate children's stories. Using advanced artificial intelligence (GPT-4o-mini), you can:</p>
                                 <ul>
-                                    <li>Import classic books from Project Gutenberg or upload your own</li>
-                                    <li>Automatically adapt text for different age groups (3-5, 6-8, 9-12 years)</li>
-                                    <li>Generate AI-powered illustrations for chapters and covers</li>
-                                    <li>Preview and publish complete adapted books</li>
+                                    <li><strong>Import classic books</strong> from Project Gutenberg with automatic text cleaning</li>
+                                    <li><strong>Automatically transform text</strong> - Victorian English becomes child-friendly language</li>
+                                    <li><strong>Age-appropriate adaptation</strong> for 3-5, 6-8, or 9-12 years old</li>
+                                    <li><strong>Character consistency</strong> - Same characters across all illustrations</li>
+                                    <li><strong>Generate AI illustrations</strong> for chapters and covers (DALL-E 3)</li>
+                                    <li><strong>Direct PDF download</strong> - Print-ready books instantly</li>
                                 </ul>
+
+                                <div class="alert alert-info mb-3">
+                                    <i class="bi bi-stars"></i>
+                                    <strong>What's New in v3.0:</strong> AI text transformation automatically simplifies complex Victorian prose into age-appropriate language while preserving the story!
+                                </div>
 
                                 <h6 class="mt-4 mb-2">Quick Start Workflow</h6>
                                 <ol class="mb-3">
-                                    <li><strong>Import a Book</strong> - Start with a classic from Project Gutenberg or upload your own</li>
-                                    <li><strong>Create Adaptation</strong> - Choose age group, style, and transformation options</li>
-                                    <li><strong>Generate Content</strong> - AI transforms the text into child-friendly chapters</li>
-                                    <li><strong>Add Illustrations</strong> - Generate cover and chapter images using AI</li>
-                                    <li><strong>Preview & Publish</strong> - Review your adaptation and export as PDF</li>
+                                    <li><strong>Import a Book</strong> - Use Project Gutenberg (auto-cleaned) or upload your own</li>
+                                    <li><strong>Create Adaptation</strong> - Choose age group (determines text complexity)</li>
+                                    <li><strong>Transform Text</strong> - Click "Transform All Chapters" for AI simplification (NEW!)</li>
+                                    <li><strong>Generate Images</strong> - Create cover and chapter illustrations with character consistency</li>
+                                    <li><strong>Export PDF</strong> - Direct download, print-ready format (NEW!)</li>
                                 </ol>
 
                                 <div class="alert alert-success">
                                     <i class="bi bi-lightbulb"></i>
-                                    <strong>Pro Tip:</strong> Start with a well-known classic like "The Wonderful Wizard of Oz" to get familiar with the workflow.
+                                    <strong>Pro Tip:</strong> Try "A Christmas Carol" - it's auto-detected with proper Stave chapter structure and transforms beautifully for ages 6-8!
                                 </div>
                             </div>
 
@@ -692,13 +700,17 @@
                             <div class="tab-pane fade" id="help-books">
                                 <h5 class="mb-3"><i class="bi bi-collection"></i> Managing Books</h5>
                                 
-                                <h6 class="mt-3 mb-2">Importing from Project Gutenberg</h6>
+                                <h6 class="mt-3 mb-2">Importing from Project Gutenberg <span class="badge bg-success">ENHANCED</span></h6>
                                 <ol>
                                     <li>Go to <strong>Books > Project Gutenberg</strong></li>
                                     <li>Search for a classic book by title or author</li>
                                     <li>Click <strong>"Import"</strong> on your chosen book</li>
-                                    <li>The system downloads and processes the book automatically</li>
+                                    <li>System downloads and <strong>automatically cleans</strong> the text (NEW!)</li>
                                 </ol>
+                                <div class="alert alert-info">
+                                    <i class="bi bi-magic"></i>
+                                    <strong>Automatic Text Cleaning:</strong> Project Gutenberg legal boilerplate, START/END markers, and metadata are automatically removed - only the story remains!
+                                </div>
                                 <p class="text-muted small"><i class="bi bi-info-circle"></i> Project Gutenberg offers over 70,000 free public domain books.</p>
 
                                 <h6 class="mt-4 mb-2">Uploading Your Own Books</h6>
@@ -771,10 +783,143 @@
                                 </div>
                             </div>
 
+                            <!-- Transform Tab (NEW!) -->
+                            <div class="tab-pane fade" id="help-transform">
+                                <h5 class="mb-3"><i class="bi bi-stars"></i> AI Text Transformation <span class="badge bg-success">NEW v3.0</span></h5>
+                                
+                                <div class="alert alert-primary">
+                                    <i class="bi bi-robot"></i>
+                                    <strong>Powered by GPT-4o-mini:</strong> Automatically transforms complex Victorian English into child-friendly language while preserving the story, characters, and plot!
+                                </div>
+
+                                <h6 class="mt-3 mb-2">What Gets Transformed?</h6>
+                                <ul>
+                                    <li><strong>Victorian English → Simple language</strong> appropriate for target age</li>
+                                    <li><strong>Long, complex sentences → Short, clear sentences</strong></li>
+                                    <li><strong>Archaic vocabulary → Modern, everyday words</strong></li>
+                                    <li><strong>Dense paragraphs → Bite-sized chunks</strong></li>
+                                    <li><strong>Preserves:</strong> Story events, character names, plot points</li>
+                                </ul>
+
+                                <h6 class="mt-4 mb-2">Age-Specific Transformation Rules</h6>
+                                <table class="table table-sm table-bordered">
+                                    <thead>
+                                        <tr>
+                                            <th>Age Group</th>
+                                            <th>Vocabulary</th>
+                                            <th>Sentences</th>
+                                            <th>Length</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td><strong>3-5 years</strong></td>
+                                            <td>Very simple (1-2 syllables)</td>
+                                            <td>Very short (3-5 words)</td>
+                                            <td>30-40% of original</td>
+                                        </tr>
+                                        <tr>
+                                            <td><strong>6-8 years</strong></td>
+                                            <td>Simple, everyday words</td>
+                                            <td>Short (5-10 words)</td>
+                                            <td>50-60% of original</td>
+                                        </tr>
+                                        <tr>
+                                            <td><strong>9-12 years</strong></td>
+                                            <td>Age-appropriate with challenges</td>
+                                            <td>Varied (10-15 words)</td>
+                                            <td>70-80% of original</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+
+                                <h6 class="mt-4 mb-2">How to Transform Text</h6>
+                                
+                                <h6 class="mt-3"><strong>Option 1: Transform All Chapters (Recommended)</strong></h6>
+                                <ol>
+                                    <li>Open your adaptation</li>
+                                    <li>Click the <strong>"Transform All Chapters"</strong> button</li>
+                                    <li>AI processes each chapter sequentially</li>
+                                    <li>Watch progress with real-time statistics</li>
+                                    <li>Review results when complete</li>
+                                </ol>
+
+                                <h6 class="mt-3"><strong>Option 2: Transform Individual Chapters</strong></h6>
+                                <ol>
+                                    <li>Navigate to a specific chapter</li>
+                                    <li>Click <strong>"Transform Chapter"</strong></li>
+                                    <li>Review the transformed text</li>
+                                    <li>Edit manually if needed</li>
+                                </ol>
+
+                                <h6 class="mt-4 mb-2">Example Transformation</h6>
+                                <div class="card mb-3">
+                                    <div class="card-header bg-secondary text-white">
+                                        <strong>Original (Victorian English):</strong> A Christmas Carol by Charles Dickens
+                                    </div>
+                                    <div class="card-body">
+                                        <p class="small mb-0">"Marley was dead: to begin with. There is no doubt whatever about that. The register of his burial was signed by the clergyman, the clerk, the undertaker, and the chief mourner. Scrooge signed it: and Scrooge's name was good upon 'Change, for anything he chose to put his hand to."</p>
+                                    </div>
+                                </div>
+
+                                <div class="card mb-3">
+                                    <div class="card-header bg-success text-white">
+                                        <strong>Transformed (Ages 6-8):</strong> Child-Friendly Version
+                                    </div>
+                                    <div class="card-body">
+                                        <p class="small mb-0">"Marley had been dead for seven years. Everyone knew it. Important people had signed the papers that proved he was gone. Scrooge signed them too. People trusted Scrooge's signature because he was a businessman."</p>
+                                    </div>
+                                </div>
+
+                                <div class="row mt-3">
+                                    <div class="col-6">
+                                        <div class="card text-center">
+                                            <div class="card-body">
+                                                <h3 class="text-muted mb-1">158,371</h3>
+                                                <small>Original Characters</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-6">
+                                        <div class="card text-center border-success">
+                                            <div class="card-body">
+                                                <h3 class="text-success mb-1">65,031</h3>
+                                                <small>Transformed Characters</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <p class="text-center text-muted small mt-2">58% reduction - Perfect for ages 6-8!</p>
+
+                                <h6 class="mt-4 mb-2">Manual Editing</h6>
+                                <p>All transformed text is editable:</p>
+                                <ul>
+                                    <li>Click any chapter text to edit</li>
+                                    <li>Refine AI-generated content</li>
+                                    <li>Changes save automatically</li>
+                                    <li>Perfect for adding personal touches</li>
+                                </ul>
+
+                                <div class="alert alert-success">
+                                    <i class="bi bi-check-circle"></i>
+                                    <strong>Real Example:</strong> A Christmas Carol was transformed from complex Victorian prose to simple language - all 17 chapters in about 15 minutes!
+                                </div>
+
+                                <div class="alert alert-warning">
+                                    <i class="bi bi-exclamation-triangle"></i>
+                                    <strong>Note:</strong> Transformation requires OpenAI API key configured in Settings. Uses GPT-4o-mini for cost-effective, high-quality results.
+                                </div>
+                            </div>
+
                             <!-- Images Tab -->
                             <div class="tab-pane fade" id="help-images">
                                 <h5 class="mb-3"><i class="bi bi-image"></i> Generating Illustrations</h5>
                                 
+                                <div class="alert alert-info">
+                                    <i class="bi bi-palette"></i>
+                                    <strong>Character Consistency:</strong> Our two-layer prompt system ensures characters look the same across all images - same face, hair, clothing, and style!
+                                </div>
+
                                 <h6 class="mt-3 mb-2">Cover Images</h6>
                                 <ol>
                                     <li>Navigate to your adaptation's image page</li>
@@ -830,12 +975,19 @@
                             <div class="tab-pane fade" id="help-publish">
                                 <h5 class="mb-3"><i class="bi bi-file-earmark-pdf"></i> Publishing Your Adaptation</h5>
                                 
-                                <h6 class="mt-3 mb-2">Publish Page Overview</h6>
-                                <p>Go to <strong>Publish</strong> to see all your adaptations with:</p>
+                                <div class="alert alert-success">
+                                    <i class="bi bi-download"></i>
+                                    <strong>Direct Download (NEW!):</strong> PDFs download immediately - no more "we'll notify you when ready"!
+                                </div>
+
+                                <h6 class="mt-3 mb-2">Publish Page Overview <span class="badge bg-primary">ENHANCED</span></h6>
+                                <p>Go to <strong>Publish</strong> to see all your adaptations with beautiful new features:</p>
                                 <ul>
-                                    <li><strong>Cover thumbnails</strong> (if generated)</li>
-                                    <li><strong>Content statistics:</strong> Chapter count, image count, word count</li>
-                                    <li><strong>Completion percentage:</strong> Visual progress indicator</li>
+                                    <li><strong>Gradient purple header</strong> - Modern, professional look (NEW!)</li>
+                                    <li><strong>Green "Ready to Publish" indicators</strong> (NEW!)</li>
+                                    <li><strong>Cover thumbnails</strong> displayed prominently</li>
+                                    <li><strong>Progress statistics:</strong> Chapter count, image count with progress bars (NEW!)</li>
+                                    <li><strong>Visual progress bars:</strong> See X/Y completion percentage (NEW!)</li>
                                     <li><strong>Status badges:</strong> Cover status, illustration percentage</li>
                                 </ul>
 
@@ -845,21 +997,28 @@
                                     <li>View a beautiful book-style layout with:
                                         <ul>
                                             <li>Cover image and title page</li>
-                                            <li>All chapters with images</li>
-                                            <li>Complete formatted text</li>
+                                            <li>All chapters with transformed text (NEW!)</li>
+                                            <li>Chapter illustrations</li>
+                                            <li>Complete formatted content</li>
                                         </ul>
                                     </li>
                                     <li>Use <strong>"Print"</strong> button for browser print</li>
                                     <li>Scroll through to review entire book</li>
                                 </ol>
 
-                                <h6 class="mt-4 mb-2">Export as PDF</h6>
+                                <h6 class="mt-4 mb-2">Export as PDF <span class="badge bg-success">ENHANCED</span></h6>
                                 <ol>
                                     <li>From the Publish page, click <strong>"Export PDF"</strong></li>
-                                    <li>Or from Preview page, click <strong>"Export PDF"</strong></li>
-                                    <li>PDF is generated with all content and images</li>
-                                    <li>Download and share your adapted book!</li>
+                                    <li>PDF generates instantly with all content and images</li>
+                                    <li><strong>Downloads immediately</strong> - no waiting! (NEW!)</li>
+                                    <li>Print-ready format with proper cover and chapter mapping</li>
+                                    <li>Share your adapted book with children!</li>
                                 </ol>
+
+                                <div class="alert alert-info">
+                                    <i class="bi bi-check2-all"></i>
+                                    <strong>What's Included:</strong> PDFs contain cover image, all transformed text, chapter illustrations, proper formatting - everything you need for a professional children's book!
+                                </div>
 
                                 <h6 class="mt-4 mb-2">Publishing Checklist</h6>
                                 <div class="card bg-light">
@@ -883,11 +1042,14 @@
                                 
                                 <h6 class="mt-3 mb-2">Optimization Tips</h6>
                                 <ul>
-                                    <li><strong>Choose the Right Age Group:</strong> Consider reading level and attention span</li>
-                                    <li><strong>Edit AI-Generated Content:</strong> Review and refine text for clarity</li>
+                                    <li><strong>Transform First, Then Images:</strong> Transform all chapters before generating images (NEW!)</li>
+                                    <li><strong>Use "Transform All":</strong> Batch transformation is faster than one-by-one (NEW!)</li>
+                                    <li><strong>Choose the Right Age Group:</strong> This affects text transformation complexity (IMPORTANT!)</li>
+                                    <li><strong>Review Transformed Text:</strong> AI is good but manual refinement makes it great</li>
+                                    <li><strong>Character Consistency:</strong> Let the system maintain character descriptions automatically</li>
                                     <li><strong>Consistent Style:</strong> Generate all images with the same AI backend</li>
-                                    <li><strong>Batch Processing:</strong> Generate multiple chapter images in sequence</li>
-                                    <li><strong>Save Prompts:</strong> Save good prompts before generating images</li>
+                                    <li><strong>Project Gutenberg:</strong> Use auto-cleaned books for best results</li>
+                                    <li><strong>Save Prompts:</strong> Save good image prompts before generating</li>
                                 </ul>
 
                                 <h6 class="mt-4 mb-2">Common Issues & Solutions</h6>
@@ -959,6 +1121,88 @@
                                         <div id="faq5" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
                                             <div class="accordion-body">
                                                 <strong>Yes!</strong> All chapter text is editable. Click on any chapter text field, make your changes, and they're automatically saved. This allows you to refine AI-generated content.
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="accordion-item">
+                                        <h2 class="accordion-header">
+                                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq6">
+                                                How does AI text transformation work? (NEW!)
+                                            </button>
+                                        </h2>
+                                        <div id="faq6" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                                            <div class="accordion-body">
+                                                <strong>GPT-4o-mini powered!</strong> Our AI analyzes the original text and transforms it based on your target age group:
+                                                <ul class="mt-2">
+                                                    <li><strong>Ages 3-5:</strong> Very simple words, 3-5 word sentences, 30-40% length</li>
+                                                    <li><strong>Ages 6-8:</strong> Simple words, 5-10 word sentences, 50-60% length</li>
+                                                    <li><strong>Ages 9-12:</strong> Age-appropriate words, 10-15 word sentences, 70-80% length</li>
+                                                </ul>
+                                                The AI preserves story events, character names, and plot while simplifying language. You can then edit the results manually.
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="accordion-item">
+                                        <h2 class="accordion-header">
+                                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq7">
+                                                Do I need to transform text for every book? (NEW!)
+                                            </button>
+                                        </h2>
+                                        <div id="faq7" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                                            <div class="accordion-body">
+                                                <strong>Highly recommended for classics!</strong> Books from Project Gutenberg (Victorian era) have complex language that children find difficult. Transformation makes them accessible. For already-simple books, you can skip transformation and use the original text.
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="accordion-item">
+                                        <h2 class="accordion-header">
+                                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq8">
+                                                Why does PDF download immediately now? (NEW!)
+                                            </button>
+                                        </h2>
+                                        <div id="faq8" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                                            <div class="accordion-body">
+                                                <strong>We upgraded!</strong> The old system used notifications and delayed downloads. v3.0 generates PDFs instantly and downloads directly to your browser - much faster and more convenient!
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="accordion-item">
+                                        <h2 class="accordion-header">
+                                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq9">
+                                                What is character consistency? (NEW!)
+                                            </button>
+                                        </h2>
+                                        <div id="faq9" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                                            <div class="accordion-body">
+                                                <strong>Same characters, every image!</strong> Our two-layer prompt system ensures characters look identical across all illustrations:
+                                                <ul class="mt-2">
+                                                    <li><strong>Layer 1:</strong> Base character description (age, hair, clothing, features)</li>
+                                                    <li><strong>Layer 2:</strong> Scene-specific actions and context</li>
+                                                </ul>
+                                                This means Scrooge looks like Scrooge in every chapter image - professional book quality!
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="accordion-item">
+                                        <h2 class="accordion-header">
+                                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq10">
+                                                How long does text transformation take? (NEW!)
+                                            </button>
+                                        </h2>
+                                        <div id="faq10" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                                            <div class="accordion-body">
+                                                <strong>Pretty fast!</strong> Transformation time depends on chapter count and length:
+                                                <ul class="mt-2">
+                                                    <li><strong>Small book (5-10 chapters):</strong> 2-5 minutes</li>
+                                                    <li><strong>Medium book (10-20 chapters):</strong> 5-15 minutes</li>
+                                                    <li><strong>Large book (20+ chapters):</strong> 15-30 minutes</li>
+                                                </ul>
+                                                Example: A Christmas Carol (17 chapters) transforms in about 15 minutes.
                                             </div>
                                         </div>
                                     </div>
