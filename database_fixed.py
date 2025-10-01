@@ -664,6 +664,32 @@ async def update_book_character_reference(book_id: int, character_reference: str
     finally:
         conn.close()
 
+async def get_character_reference(book_id: int) -> Optional[dict]:
+    """Get character reference data for a book"""
+    conn = db_manager.get_connection()
+    cursor = conn.cursor()
+    
+    try:
+        cursor.execute('''
+            SELECT character_reference FROM books WHERE book_id = ?
+        ''', (book_id,))
+        
+        row = cursor.fetchone()
+        if row and row[0]:
+            try:
+                # Try to parse as JSON if it's a JSON string
+                import json
+                return json.loads(row[0])
+            except (json.JSONDecodeError, TypeError):
+                # Return as-is if not JSON
+                return {"characters": row[0]} if row[0] else None
+        return None
+    except Exception as e:
+        print(f"❌ Get character reference failed: {e}")
+        return None
+    finally:
+        conn.close()
+
 async def delete_book_from_db(book_id: int) -> bool:
     """Delete book and all related records and files.
     - Deletes chapters, adaptations, runs, locks

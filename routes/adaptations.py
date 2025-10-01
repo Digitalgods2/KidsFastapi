@@ -149,16 +149,27 @@ async def create_adaptation(
             
             # Return HTML response for HTMX with redirect to workflow status
             html_response = f"""
-            <div class="alert alert-success">
-                <i class="bi bi-check-circle"></i>
-                <strong>Adaptation Created Successfully!</strong>
-                <p class="mb-0 mt-2">Starting automatic workflow processing...</p>
-                <p class="mb-0">This includes character analysis, text transformation, and prompt generation.</p>
+            <div class="alert alert-success mb-3">
+                <div class="d-flex align-items-center">
+                    <div class="spinner-border spinner-border-sm me-3" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <div>
+                        <h5 class="mb-1"><i class="bi bi-check-circle"></i> Adaptation Created Successfully!</h5>
+                        <p class="mb-0">Starting automatic workflow processing...</p>
+                        <small>Character analysis, text transformation, and prompt generation in progress...</small>
+                    </div>
+                </div>
             </div>
             <script>
+                // Disable the submit button to prevent double submission
+                document.querySelector('button[type="submit"]').disabled = true;
+                document.querySelector('button[type="submit"]').innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Processing...';
+                
+                // Redirect to workflow status page
                 setTimeout(function() {{
                     window.location.href = '/workflow/status/{workflow_id}';
-                }}, 2000);
+                }}, 1500);
             </script>
             """
             return HTMLResponse(content=html_response)
