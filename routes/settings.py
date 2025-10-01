@@ -14,20 +14,37 @@ router = APIRouter()
 templates = Jinja2Templates(directory="templates")
 
 # Helper function for base context
-def get_base_context(request):
+async def get_base_context(request):
     """Get base context variables for all templates"""
+    # Check database for current API key settings instead of config module
+    try:
+        openai_key = await database.get_setting("openai_api_key", config.OPENAI_API_KEY or "")
+        vertex_project_id = await database.get_setting("vertex_project_id", config.VERTEX_PROJECT_ID or "")
+        vertex_location = await database.get_setting("vertex_location", config.VERTEX_LOCATION or "us-central1")
+        
+        # Check if OpenAI is configured (API key exists and starts with sk-)
+        openai_configured = bool(openai_key and openai_key.startswith('sk-'))
+        
+        # Check if Vertex AI is configured (has project ID)
+        vertex_configured = bool(vertex_project_id and vertex_project_id.strip())
+        
+    except Exception:
+        # Fallback to config module if database read fails
+        openai_configured = bool(config.OPENAI_API_KEY)
+        vertex_configured = config.validate_vertex_ai_config()
+    
     return {
         "request": request,
         "notifications_count": 0,
         "notifications": [],
-        "openai_status": bool(config.OPENAI_API_KEY),
-        "vertex_status": config.validate_vertex_ai_config()
+        "openai_status": openai_configured,
+        "vertex_status": vertex_configured
     }
 
 @router.get("/", response_class=HTMLResponse)
 async def settings_page(request: Request):
     """Settings page"""
-    context = get_base_context(request)
+    context = await get_base_context(request)
     
     try:
         settings_data = await database.get_all_settings()

@@ -152,15 +152,32 @@ app.include_router(health_router, tags=["ops"])
 
 # ==================== HELPER FUNCTIONS ====================
 
-def get_base_context(request: Request):
+async def get_base_context(request: Request):
     """Get base context variables for all templates"""
+    # Check database for current API key settings instead of config module
+    try:
+        openai_key = await database.get_setting("openai_api_key", config.OPENAI_API_KEY or "")
+        vertex_project_id = await database.get_setting("vertex_project_id", config.VERTEX_PROJECT_ID or "")
+        vertex_location = await database.get_setting("vertex_location", config.VERTEX_LOCATION or "us-central1")
+        
+        # Check if OpenAI is configured (API key exists and starts with sk-)
+        openai_configured = bool(openai_key and openai_key.startswith('sk-'))
+        
+        # Check if Vertex AI is configured (has project ID)
+        vertex_configured = bool(vertex_project_id and vertex_project_id.strip())
+        
+    except Exception:
+        # Fallback to config module if database read fails
+        openai_configured = bool(config.OPENAI_API_KEY)
+        vertex_configured = config.validate_vertex_ai_config()
+    
     return {
         "request": request,
         "notifications_count": 0,
         "request_id": getattr(request.state, 'request_id', None),
         "notifications": [],
-        "openai_status": bool(config.OPENAI_API_KEY),
-        "vertex_status": config.validate_vertex_ai_config()
+        "openai_status": openai_configured,
+        "vertex_status": vertex_configured
     }
 
 # Request ID middleware (HF3)
@@ -190,7 +207,7 @@ app.add_middleware(RequestIdMiddleware)
 @app.get("/", response_class=HTMLResponse)
 async def root(request: Request):
     """Root page - homepage"""
-    context = get_base_context(request)
+    context = await get_base_context(request)
     
     # Add homepage specific stats
     try:
@@ -213,7 +230,7 @@ async def root(request: Request):
 @app.get("/dashboard")
 async def dashboard(request: Request):
     """Dashboard page"""
-    context = get_base_context(request)
+    context = await get_base_context(request)
     
     try:
         stats = await get_dashboard_stats()
@@ -356,7 +373,7 @@ async def not_found_handler(request: Request, exc: HTTPException):
     if request.url.path.startswith("/api/"):
         return {"error": "Not found", "status_code": 404}
     
-    context = get_base_context(request)
+    context = await get_base_context(request)
     context.update({
         "error_code": 404,
         "error_message": "Page not found"
@@ -377,7 +394,7 @@ async def internal_error_handler(request: Request, exc: Exception):
     if request.url.path.startswith("/api/"):
         return {"error": "Internal server error", "status_code": 500}
     
-    context = get_base_context(request)
+    context = await get_base_context(request)
     context.update({
         "error_code": 500,
         "error_message": "Internal server error"
