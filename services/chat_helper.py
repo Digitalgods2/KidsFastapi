@@ -86,6 +86,7 @@ Guidelines:
 - Avoid violence or scary elements; suitable for children
 - Describe characters (appearance, expressions), setting, mood, color palette, composition
 - Keep under 200 words; no extra commentary
+- IMPORTANT: Return ONLY the image description, do NOT add any prefix like '**Prompt for...**' or headers
 """
     return [
         {"role": "system", "content": system},
@@ -147,6 +148,7 @@ Guidelines:
 - Describe characters (appearance, pose, expression), setting, mood, palette, composition
 - Avoid text in the image; avoid violence/scary content
 - Keep under 200 words; no extra commentary
+- IMPORTANT: Return ONLY the image description, do NOT add any prefix like '**Prompt for...**' or headers
 """
     return [
         {"role": "system", "content": system},

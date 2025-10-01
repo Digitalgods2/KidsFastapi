@@ -347,6 +347,7 @@ class OpenAIService:
             - Has a clear focal point and good composition
             
             Return only the image prompt (under 200 words), no extra commentary.
+            IMPORTANT: Do NOT add any prefix like '**Prompt for...**' or '**Image Prompt:**' - just return the description itself.
             """
             
             response = client.chat.completions.create(
