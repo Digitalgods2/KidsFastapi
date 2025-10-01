@@ -394,3 +394,155 @@
   background: linear-gradient(90deg, transparent, var(--dg-primary), transparent);
   animation: circuitFlow 3s ease-in-out infinite;
 }
+
+/* Form and Card Text Visibility - Dark Theme Support */
+.card {
+  background: rgba(255, 255, 255, 0.05) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  color: #ffffff !important;
+}
+
+.card-header {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+
+.card h4, .card h5, .card h6 {
+  color: #ffffff !important;
+}
+
+.card .text-muted {
+  color: rgba(255, 255, 255, 0.7) !important;
+}
+
+.form-label {
+  color: #ffffff !important;
+  font-weight: 500;
+}
+
+.form-control, .form-select {
+  background: rgba(255, 255, 255, 0.08) !important;
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+  color: #ffffff !important;
+}
+
+.form-control:focus, .form-select:focus {
+  background: rgba(255, 255, 255, 0.12) !important;
+  border-color: var(--dg-primary) !important;
+  box-shadow: 0 0 0 0.2rem rgba(65, 105, 225, 0.25) !important;
+  color: #ffffff !important;
+}
+
+.form-control::placeholder {
+  color: rgba(255, 255, 255, 0.5) !important;
+}
+
+.form-text {
+  color: rgba(255, 255, 255, 0.6) !important;
+}
+
+.form-check-label {
+  color: #ffffff !important;
+}
+
+.form-check-label strong {
+  color: #ffffff !important;
+}
+
+.form-check-label .text-muted {
+  color: rgba(255, 255, 255, 0.7) !important;
+}
+
+.alert {
+  background: rgba(255, 255, 255, 0.08) !important;
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+  color: #ffffff !important;
+}
+
+.alert-info {
+  background: rgba(65, 105, 225, 0.15) !important;
+  border-color: rgba(65, 105, 225, 0.3) !important;
+  color: #ffffff !important;
+}
+
+.alert-light {
+  background: rgba(255, 255, 255, 0.05) !important;
+  border-color: rgba(255, 255, 255, 0.1) !important;
+  color: #ffffff !important;
+}
+
+.alert-success {
+  background: rgba(40, 167, 69, 0.15) !important;
+  border-color: rgba(40, 167, 69, 0.3) !important;
+  color: #ffffff !important;
+}
+
+.alert-warning {
+  background: rgba(255, 193, 7, 0.15) !important;
+  border-color: rgba(255, 193, 7, 0.3) !important;
+  color: #ffffff !important;
+}
+
+/* Badge Styles */
+.badge {
+  color: #ffffff !important;
+}
+
+.badge.bg-primary {
+  background-color: var(--dg-primary) !important;
+}
+
+/* Small text visibility */
+small, .small {
+  color: rgba(255, 255, 255, 0.8) !important;
+}
+
+/* Button text */
+.btn {
+  font-weight: 500;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, var(--dg-primary), var(--dg-secondary)) !important;
+  border-color: var(--dg-primary) !important;
+  color: #ffffff !important;
+}
+
+.btn-outline-primary {
+  border-color: var(--dg-primary) !important;
+  color: var(--dg-primary) !important;
+}
+
+.btn-outline-primary:hover {
+  background-color: var(--dg-primary) !important;
+  color: #ffffff !important;
+}
+
+/* Form check cards */
+.form-check.card {
+  background: rgba(255, 255, 255, 0.03) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  transition: all 0.3s ease;
+}
+
+.form-check.card:hover {
+  background: rgba(255, 255, 255, 0.08) !important;
+  border-color: var(--dg-primary) !important;
+}
+
+.form-check-input:checked + .form-check-label {
+  color: #ffffff !important;
+}
+
+.form-check-input:checked {
+  background-color: var(--dg-primary) !important;
+  border-color: var(--dg-primary) !important;
+}
+
+/* Page title visibility */
+.display-4, h1 {
+  color: #ffffff !important;
+}
+
+.lead {
+  color: rgba(255, 255, 255, 0.8) !important;
+}
