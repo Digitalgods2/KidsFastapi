@@ -727,3 +727,141 @@ small, .small {
 .btn-close {
   filter: invert(1) grayscale(100%) brightness(200%);
 }
+
+/* Dropdown Menus - Navigation Bar */
+.dropdown-menu {
+  background: rgba(26, 26, 26, 0.95) !important;
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+  border-radius: 8px !important;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5) !important;
+  backdrop-filter: blur(10px);
+  z-index: 1050 !important;
+}
+
+.dropdown-item {
+  color: rgba(255, 255, 255, 0.9) !important;
+  background: transparent !important;
+  border: none !important;
+  padding: 8px 16px !important;
+  transition: all 0.3s ease !important;
+}
+
+.dropdown-item:hover,
+.dropdown-item:focus {
+  color: #ffffff !important;
+  background: linear-gradient(135deg, 
+    rgba(65, 105, 225, 0.2) 0%, 
+    rgba(220, 20, 60, 0.1) 100%) !important;
+  border-radius: 4px !important;
+}
+
+.dropdown-item:active {
+  color: #ffffff !important;
+  background: linear-gradient(135deg, var(--dg-primary), var(--dg-secondary)) !important;
+}
+
+.dropdown-divider {
+  border-color: rgba(255, 255, 255, 0.2) !important;
+  margin: 4px 0 !important;
+}
+
+.dropdown-header {
+  color: rgba(255, 255, 255, 0.7) !important;
+  font-size: 0.8rem !important;
+  font-weight: 600 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.5px !important;
+  padding: 8px 16px 4px 16px !important;
+}
+
+/* Dropdown Toggle Arrow */
+.dropdown-toggle::after {
+  border-top-color: rgba(255, 255, 255, 0.8) !important;
+}
+
+/* Navigation Dropdown Specific */
+.navbar .dropdown-menu {
+  margin-top: 0.5rem !important;
+  min-width: 200px !important;
+}
+
+.navbar .dropdown-item i {
+  width: 20px !important;
+  margin-right: 8px !important;
+  color: var(--dg-primary) !important;
+}
+
+.navbar .dropdown-item:hover i {
+  color: #ffffff !important;
+}
+
+/* Ensure dropdowns appear above other content */
+.dropdown {
+  position: relative !important;
+}
+
+.dropdown-menu.show {
+  display: block !important;
+  opacity: 1 !important;
+  transform: translateY(0) !important;
+}
+
+/* Dropdown Animation */
+.dropdown-menu {
+  opacity: 0;
+  transform: translateY(-10px);
+  transition: all 0.3s ease;
+}
+
+/* Notification Dropdown Styling */
+.dropdown-menu .dropdown-item-text {
+  color: rgba(255, 255, 255, 0.6) !important;
+}
+
+/* Force dropdown visibility and positioning */
+.navbar-nav .dropdown-menu {
+  position: absolute !important;
+  z-index: 1060 !important;
+  display: none !important;
+  float: left !important;
+  min-width: 10rem !important;
+  padding: 0.5rem 0 !important;
+  margin: 0.125rem 0 0 !important;
+  font-size: 0.875rem !important;
+  text-align: left !important;
+  list-style: none !important;
+  background-clip: padding-box !important;
+}
+
+.navbar-nav .dropdown-menu.show {
+  display: block !important;
+}
+
+/* Ensure proper dropdown toggle behavior */
+.navbar-nav .dropdown-toggle {
+  cursor: pointer !important;
+}
+
+.navbar-nav .dropdown-toggle:hover {
+  background-color: rgba(255, 255, 255, 0.1) !important;
+  border-radius: 4px !important;
+}
+
+/* Bootstrap dropdown override for dark theme */
+.navbar-dark .dropdown-menu {
+  background-color: rgba(26, 26, 26, 0.95) !important;
+}
+
+.navbar-dark .dropdown-item {
+  color: rgba(255, 255, 255, 0.9) !important;
+}
+
+.navbar-dark .dropdown-item:hover,
+.navbar-dark .dropdown-item:focus {
+  color: #ffffff !important;
+  background-color: rgba(65, 105, 225, 0.2) !important;
+}
+
+.navbar-dark .dropdown-divider {
+  border-top-color: rgba(255, 255, 255, 0.2) !important;
+}
