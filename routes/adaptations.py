@@ -876,10 +876,9 @@ async def transform_all_chapters(adaptation_id: int):
                 continue
             
             # Update chapter with transformed text
-            update_success = await database.update_chapter(
+            update_success = await database.update_chapter_text(
                 chapter_id=chapter_id,
-                transformed_text=transformed_text,
-                ai_prompt=chapter.get("ai_prompt")
+                transformed_text=transformed_text
             )
             
             if not update_success:

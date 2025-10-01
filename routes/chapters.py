@@ -344,10 +344,9 @@ async def transform_chapter_text(chapter_id: int):
             }, status_code=500)
         
         # Update chapter with transformed text
-        success = await database.update_chapter(
+        success = await database.update_chapter_text(
             chapter_id=chapter_id,
-            transformed_text=transformed_text,
-            ai_prompt=chapter.get("ai_prompt") or chapter.get("image_prompt")
+            transformed_text=transformed_text
         )
         
         if not success:
