@@ -609,6 +609,112 @@
         body.bg-dark .form-text {
             color: #909090 !important;
         }
+        
+        /* COMPREHENSIVE CONTRAST FIXES - White on Blue Approach */
+        
+        /* Fix ALL text-muted elements for better visibility */
+        body.bg-dark .text-muted,
+        .theme-dark .text-muted,
+        .theme-charcoal .text-muted {
+            color: #c8d6e5 !important;  /* Light blue-gray for better contrast */
+        }
+        
+        /* Fix ALL badge visibility issues */
+        body.bg-dark .badge {
+            font-weight: 600 !important;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+        }
+        
+        body.bg-dark .badge.bg-secondary,
+        body.bg-dark .badge.bg-dark {
+            background-color: #1e3a5f !important;  /* Blue background */
+            color: #ffffff !important;
+            border: 1px solid #4a9eff !important;
+        }
+        
+        /* Fix ALL placeholder elements */
+        body.bg-dark .placeholder-glow .placeholder,
+        body.bg-dark .border.rounded {
+            background-color: #1e3a5f !important;
+            border-color: #4a9eff !important;
+        }
+        
+        /* Fix image placeholders specifically */
+        body.bg-dark .text-center.p-4.border.rounded {
+            background-color: #1e3a5f !important;
+            border: 2px solid #4a9eff !important;
+        }
+        
+        body.bg-dark .text-center.p-4.border.rounded i {
+            color: #4a9eff !important;
+        }
+        
+        body.bg-dark .text-center.p-4.border.rounded p {
+            color: #ffffff !important;
+        }
+        
+        /* Fix ALL toast notifications */
+        body.bg-dark .toast-container .toast {
+            background-color: #1e3a5f !important;
+            color: #ffffff !important;
+            border: 2px solid #4a9eff !important;
+        }
+        
+        body.bg-dark .toast-container .toast.bg-success {
+            background-color: #1e5f3a !important;
+            border-color: #28a745 !important;
+        }
+        
+        body.bg-dark .toast-container .toast.bg-danger {
+            background-color: #5f1e2b !important;
+            border-color: #dc3545 !important;
+        }
+        
+        body.bg-dark .toast-container .toast.bg-warning {
+            background-color: #5f4a1e !important;
+            border-color: #ffc107 !important;
+        }
+        
+        /* Fix modal overlays and loading screens */
+        body.bg-dark .modal-backdrop {
+            background-color: rgba(0, 0, 0, 0.8) !important;
+        }
+        
+        body.bg-dark .loading-overlay {
+            background-color: rgba(30, 58, 95, 0.95) !important;
+            color: #ffffff !important;
+        }
+        
+        body.bg-dark .spinner-border {
+            color: #4a9eff !important;
+        }
+        
+        /* Fix dropdown menus in dark mode */
+        body.bg-dark .dropdown-menu {
+            background-color: #1e3a5f !important;
+            border: 1px solid #4a9eff !important;
+        }
+        
+        body.bg-dark .dropdown-item {
+            color: #ffffff !important;
+        }
+        
+        body.bg-dark .dropdown-item:hover {
+            background-color: #2b5278 !important;
+        }
+        
+        /* Fix all small text elements */
+        body.bg-dark small,
+        body.bg-dark .small {
+            color: #c8d6e5 !important;
+        }
+        
+        /* Ensure all date/time metadata is visible */
+        body.bg-dark .bi-calendar + span,
+        body.bg-dark .bi-clock + span,
+        body.bg-dark .bi-file-text + span {
+            color: #ffffff !important;
+        }
     </style>
     
     <!-- HTMX -->
