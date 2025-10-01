@@ -107,12 +107,28 @@ async def export_adaptation_pdf(request: Request, adaptation_id: int):
         if not chapters:
             return {"success": False, "message": "No chapters found for this adaptation"}
         
+        # Map database fields to PDF generator expected fields
+        adapted_adaptation = {
+            **adaptation,
+            'cover_image_url': adaptation.get('cover_url')  # Map cover_url to cover_image_url
+        }
+        
+        adapted_chapters = []
+        for ch in chapters:
+            adapted_chapters.append({
+                **ch,
+                # Map transformed_text -> transformed_chapter_text (use original if transformed is empty)
+                'transformed_chapter_text': ch.get('transformed_text') or ch.get('original_text_segment', ''),
+                # Also provide original_chapter_text as fallback
+                'original_chapter_text': ch.get('original_text_segment', '')
+            })
+        
         # Generate PDF
         pdf_generator = PDFGenerator()
         file_path, error = await pdf_generator.generate_adaptation_pdf(
-            adaptation=adaptation,
+            adaptation=adapted_adaptation,
             book=book,
-            chapters=chapters,
+            chapters=adapted_chapters,
             include_images=True
         )
         
