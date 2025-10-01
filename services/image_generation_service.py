@@ -513,7 +513,7 @@ class ImageGenerationService:
                     "image_url": f"/{target_dir}/{os.path.basename(image_path)}",
                     "local_path": image_path,
                     "source_url": image_url,
-                    "prompt": enhanced_prompt,
+                    "prompt": prompt,  # Use the prompt parameter, not undefined enhanced_prompt
                     "backend": "vertex",
                     "model": model,
                     "generated_at": datetime.now().isoformat()
