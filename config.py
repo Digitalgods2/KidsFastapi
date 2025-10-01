@@ -75,11 +75,12 @@ DEFAULT_GPT_MODEL = os.getenv('DEFAULT_GPT_MODEL', 'gpt-4')
 # ==================== IMAGE GENERATION CONFIGURATION ====================
 
 # Default image generation model
-DEFAULT_IMAGE_MODEL = os.getenv('DEFAULT_IMAGE_MODEL', 'dall-e-3')
+DEFAULT_IMAGE_MODEL = os.getenv('DEFAULT_IMAGE_MODEL', 'gpt-image-1')
+DEFAULT_ASPECT_RATIO = os.getenv('DEFAULT_ASPECT_RATIO', '4:3')
 
 # Model-specific character limits for prompt optimization
 MODEL_LIMITS = {
-    "dall-e-2": 1000,
+    "gpt-image-1": 4000,  # NEW: GPT-Image-1 with superior capabilities
     "dall-e-3": 4000,
     "gpt-image-1": 4000,
     "vertex-imagen": 3200,
@@ -159,10 +160,10 @@ LOG_FILE = os.getenv('LOG_FILE')
 def get_image_api_options():
     """Return all available image generation models with descriptions"""
     return {
-        # Original Models
-        "dall-e-3": "DALL-E 3 – generations only; higher maximum resolution (1792×1024 or 1024×1792)",
-        "dall-e-2": "DALL-E 2 – cheapest, fastest, and the only one that still does variations",
-        "gpt-image-1": "GPT-Image-1 (default) – highest fidelity, best at following detailed instructions and rendering text",
+        # OpenAI Models
+        "gpt-image-1": "GPT-Image-1 (DEFAULT) – Highest quality, best instruction following, superior text rendering",
+        "dall-e-3": "DALL-E 3 – High quality generation with multiple size options",
+        # Note: DALL-E 2 has been deprecated and removed
         "vertex-imagen": "Google Vertex Imagen – advanced image generation using Google's latest model",
         
         # New Enhanced Imagen 4 Models

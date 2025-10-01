@@ -221,13 +221,15 @@ class ImageGenerationService:
         return target
     
     async def generate_single_image(self, prompt: str, chapter_id: int, 
-                                  adaptation_id: int, api_type: str = "dall-e-3") -> Dict[str, Any]:
+                                  adaptation_id: int, api_type: str = "gpt-image-1",
+                                  aspect_ratio: Optional[str] = None) -> Dict[str, Any]:
         """
         Generate a single image using the specified API
         """
         try:
-            if api_type.startswith("dall-e"):
-                return await self._generate_openai_image(prompt, chapter_id, adaptation_id, api_type)
+            # Handle OpenAI-based models (including GPT-Image-1)
+            if api_type in ["gpt-image-1", "dall-e-3"]:
+                return await self._generate_openai_image(prompt, chapter_id, adaptation_id, api_type, aspect_ratio)
             elif api_type.startswith("vertex") or api_type.startswith("imagen"):
                 return await self._generate_vertex_image(prompt, chapter_id, adaptation_id, api_type)
             else:
@@ -243,29 +245,41 @@ class ImageGenerationService:
             }
     
     async def _generate_openai_image(self, prompt: str, chapter_id: int, 
-                                   adaptation_id: int, model: str) -> Dict[str, Any]:
-        """Generate image using OpenAI DALL-E"""
+                                   adaptation_id: int, model: str,
+                                   aspect_ratio: Optional[str] = None) -> Dict[str, Any]:
+        """Generate image using OpenAI models (GPT-Image-1 or DALL-E 3)"""
         try:
+            # Get aspect ratio from settings if not provided
+            if not aspect_ratio:
+                import database_fixed as database
+                aspect_ratio = await database.get_setting("default_aspect_ratio", "4:3")
+            
+            # Get size based on aspect ratio
+            from services.backends import get_aspect_ratio_size
+            size = get_aspect_ratio_size(model, aspect_ratio)
+            
             # Configure based on model
-            if model == "dall-e-3":
-                size = "1024x1024"
-                quality = "standard"
-            elif model == "dall-e-2":
-                size = "1024x1024"
-                quality = "standard"
-            else:
-                size = "1024x1024"
+            if model == "gpt-image-1":
+                # GPT-Image-1 uses HD quality and natural style for best results
                 quality = "hd"
+                style = "natural"
+            elif model == "dall-e-3":
+                quality = "standard"
+                style = "vivid"
+            else:
+                # Default settings
+                quality = "standard"
+                style = "vivid"
             
             async def _call_openai():
-                # Convert string model to ImageModel enum
-                from models import ImageModel
-                model_enum = ImageModel.DALLE_3 if model == "dall-e-3" else ImageModel.DALLE_3  # Default to DALLE_3
+                # Use string model directly (no enum needed)
                 return await self.openai_service.generate_image(
                     prompt=prompt,
-                    model=model_enum,
+                    model=model,
                     size=size,
-                    quality=quality
+                    quality=quality,
+                    style=style,
+                    aspect_ratio=aspect_ratio
                 )
             
             async with self._semaphore:

@@ -84,11 +84,11 @@ async def generate_images_batch(
         if not image_api:
             get_setting_fn = getattr(database, "get_setting", None)
             if asyncio.iscoroutinefunction(get_setting_fn):
-                image_api = await get_setting_fn("default_image_backend", "dall-e-3")
+                image_api = await get_setting_fn("default_image_backend", "gpt-image-1")
             elif callable(get_setting_fn):
-                image_api = get_setting_fn("default_image_backend", "dall-e-3")
+                image_api = get_setting_fn("default_image_backend", "gpt-image-1")
             else:
-                image_api = "dall-e-3"
+                image_api = "gpt-image-1"
 
         # Enforce sensible batch caps
         import os

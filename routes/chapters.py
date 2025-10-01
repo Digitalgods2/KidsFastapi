@@ -135,7 +135,7 @@ async def generate_chapter_image(
         
         # Resolve image API backend
         if not image_api:
-            image_api = await database.get_setting("default_image_backend", "dall-e-3")
+            image_api = await database.get_setting("default_image_backend", "gpt-image-1")
         
         # Generate the image
         result = await image_service.generate_single_image(

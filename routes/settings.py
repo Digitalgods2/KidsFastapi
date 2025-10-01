@@ -54,7 +54,8 @@ async def settings_page(request: Request):
             "openai_api_key": await database.get_setting("openai_api_key", config.OPENAI_API_KEY or ""),
             "vertex_project_id": await database.get_setting("vertex_project_id", config.VERTEX_PROJECT_ID or ""),
             "vertex_location": await database.get_setting("vertex_location", config.VERTEX_LOCATION or "us-central1"),
-            "default_image_backend": await database.get_setting("default_image_backend", "dall-e-3"),
+            "default_image_backend": await database.get_setting("default_image_backend", "gpt-image-1"),
+            "default_aspect_ratio": await database.get_setting("default_aspect_ratio", "4:3"),
             "default_age_group": await database.get_setting("default_age_group", "6-8"),
             "default_transformation_style": await database.get_setting("default_transformation_style", "Simple & Direct"),
             "chapter_words_3_5": await database.get_setting("chapter_words_3_5", "500"),
@@ -169,6 +170,35 @@ async def test_connection():
         log = get_logger("routes.settings")
         log.error("test_connection_error", extra={"error": str(e), "component": "routes.settings"})
         return JSONResponse({"success": False, "error": str(e)})
+
+@router.post("/image-preferences")
+async def save_image_preferences(request: Request):
+    """Save image generation preferences"""
+    try:
+        form_data = await request.form()
+        
+        # Save image backend and aspect ratio settings
+        for key, value in form_data.items():
+            await database.update_setting(key, value)
+        
+        # Return HTML success message for HTMX
+        return HTMLResponse("""
+            <div class="alert alert-success alert-dismissible fade show" role="alert">
+                <i class="bi bi-check-circle"></i> Image preferences saved successfully!
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        """)
+        
+    except Exception as e:
+        from services.logger import get_logger
+        log = get_logger("routes.settings")
+        log.error("save_image_preferences_error", extra={"error": str(e), "component": "routes.settings", "request_id": getattr(request.state, 'request_id', None)})
+        return HTMLResponse(f"""
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                <i class="bi bi-exclamation-triangle"></i> Error saving image preferences: {str(e)}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        """, status_code=500)
 
 @router.post("/api/save")
 async def save_api_settings(request: Request):

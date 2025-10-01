@@ -75,7 +75,7 @@ async def lifespan(app: FastAPI):
         # Validate default image backend from DB settings (fail fast)
         try:
             from services.backends import validate_backend
-            default_backend = await database.get_setting("default_image_backend", "dall-e-3")
+            default_backend = await database.get_setting("default_image_backend", "gpt-image-1")
             if not validate_backend(default_backend):
                 raise RuntimeError(f"Invalid default_image_backend in DB: {default_backend}")
             _log.info("default_image_backend", extra={"backend": default_backend})

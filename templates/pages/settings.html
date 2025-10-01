@@ -140,22 +140,24 @@
                                     <label class="form-label fw-bold">Preferred Image Generation API</label>
                                     <div class="row g-3">
                                         <div class="col-md-6">
-                                            <div class="form-check card p-3">
-                                                <input class="form-check-input" type="radio" name="default_image_backend" id="dall-e-3" value="dall-e-3" 
-                                                       {% if settings.default_image_backend == 'dall-e-3' %}checked{% endif %}>
-                                                <label class="form-check-label" for="dall-e-3">
-                                                    <strong>DALL-E 3</strong>
-                                                    <small class="d-block text-muted">Higher resolution (1792×1024), best quality</small>
+                                            <div class="form-check card p-3 border-primary">
+                                                <input class="form-check-input" type="radio" name="default_image_backend" id="gpt-image-1" value="gpt-image-1" 
+                                                       {% if settings.default_image_backend == 'gpt-image-1' or not settings.default_image_backend %}checked{% endif %}
+                                                       onchange="updateAspectRatios()">
+                                                <label class="form-check-label" for="gpt-image-1">
+                                                    <strong>GPT-Image-1</strong> <span class="badge bg-primary">RECOMMENDED</span>
+                                                    <small class="d-block text-muted">Highest quality, best instruction following, superior text rendering</small>
                                                 </label>
                                             </div>
                                         </div>
                                         <div class="col-md-6">
                                             <div class="form-check card p-3">
-                                                <input class="form-check-input" type="radio" name="default_image_backend" id="dall-e-2" value="dall-e-2"
-                                                       {% if settings.default_image_backend == 'dall-e-2' %}checked{% endif %}>
-                                                <label class="form-check-label" for="dall-e-2">
-                                                    <strong>DALL-E 2</strong>
-                                                    <small class="d-block text-muted">Faster, economical, supports variations</small>
+                                                <input class="form-check-input" type="radio" name="default_image_backend" id="dall-e-3" value="dall-e-3" 
+                                                       {% if settings.default_image_backend == 'dall-e-3' %}checked{% endif %}
+                                                       onchange="updateAspectRatios()">
+                                                <label class="form-check-label" for="dall-e-3">
+                                                    <strong>DALL-E 3</strong>
+                                                    <small class="d-block text-muted">High quality, multiple size options</small>
                                                 </label>
                                             </div>
                                         </div>
@@ -183,12 +185,18 @@
                                 </div>
 
                                 <div class="mb-4">
-                                    <label for="image-size" class="form-label">Default Image Size</label>
-                                    <select class="form-select" id="image-size" name="default_image_size">
-                                        <option value="1024x1024" {% if settings.default_image_size == '1024x1024' %}selected{% endif %}>1024×1024 (Square)</option>
-                                        <option value="1792x1024" {% if settings.default_image_size == '1792x1024' %}selected{% endif %}>1792×1024 (Landscape)</option>
-                                        <option value="1024x1792" {% if settings.default_image_size == '1024x1792' %}selected{% endif %}>1024×1792 (Portrait)</option>
+                                    <label for="aspect-ratio" class="form-label">Default Aspect Ratio</label>
+                                    <select class="form-select" id="aspect-ratio" name="default_aspect_ratio" onchange="updateSizeFromRatio()">
+                                        <!-- Options will be populated by JavaScript based on selected backend -->
                                     </select>
+                                    <small class="text-muted">Available aspect ratios depend on the selected image generation API</small>
+                                </div>
+                                
+                                <div class="mb-4">
+                                    <label for="image-size" class="form-label">Resulting Image Size</label>
+                                    <input type="text" class="form-control" id="image-size" name="default_image_size" readonly
+                                           value="{{ settings.default_image_size | default('1365x1024', true) }}">
+                                    <small class="text-muted">Automatically calculated based on backend and aspect ratio</small>
                                 </div>
 
                                 <div class="mb-4">
@@ -444,5 +452,112 @@ function resetToDefaults() {
         });
     }
 }
+
+// Aspect ratio configuration for each backend
+const backendAspectRatios = {
+    'gpt-image-1': {
+        ratios: ['1:1', '16:9', '9:16', '4:3', '3:4'],
+        sizes: {
+            '1:1': '1024x1024',
+            '16:9': '1792x1024',
+            '9:16': '1024x1792',
+            '4:3': '1365x1024',
+            '3:4': '1024x1365'
+        },
+        default: '4:3'
+    },
+    'dall-e-3': {
+        ratios: ['1:1', '16:9', '9:16'],
+        sizes: {
+            '1:1': '1024x1024',
+            '16:9': '1792x1024',
+            '9:16': '1024x1792'
+        },
+        default: '1:1'
+    },
+    'vertex-imagen': {
+        ratios: ['1:1', '16:9', '9:16', '4:3', '3:4'],
+        sizes: {
+            '1:1': '1024x1024',
+            '16:9': '1920x1080',
+            '9:16': '1080x1920',
+            '4:3': '1024x768',
+            '3:4': '768x1024'
+        },
+        default: '4:3'
+    },
+    'vertex-children': {
+        ratios: ['1:1', '4:3', '3:4'],
+        sizes: {
+            '1:1': '1024x1024',
+            '4:3': '1024x768',
+            '3:4': '768x1024'
+        },
+        default: '4:3'
+    },
+    'imagen-artistic': {
+        ratios: ['1:1', '16:9', '9:16'],
+        sizes: {
+            '1:1': '1024x1024',
+            '16:9': '1920x1080',
+            '9:16': '1080x1920'
+        },
+        default: '1:1'
+    }
+};
+
+function updateAspectRatios() {
+    const selectedBackend = document.querySelector('input[name="default_image_backend"]:checked').value;
+    const aspectRatioSelect = document.getElementById('aspect-ratio');
+    const currentValue = aspectRatioSelect.value || '{{ settings.default_aspect_ratio | default("4:3", true) }}';
+    
+    // Clear current options
+    aspectRatioSelect.innerHTML = '';
+    
+    // Get backend config
+    const config = backendAspectRatios[selectedBackend] || backendAspectRatios['gpt-image-1'];
+    
+    // Add new options
+    config.ratios.forEach(ratio => {
+        const option = document.createElement('option');
+        option.value = ratio;
+        option.textContent = ratio + ' (' + getRatioDescription(ratio) + ')';
+        
+        // Select current value if available, otherwise default
+        if (ratio === currentValue || (config.ratios.indexOf(currentValue) === -1 && ratio === config.default)) {
+            option.selected = true;
+        }
+        
+        aspectRatioSelect.appendChild(option);
+    });
+    
+    // Update size display
+    updateSizeFromRatio();
+}
+
+function updateSizeFromRatio() {
+    const selectedBackend = document.querySelector('input[name="default_image_backend"]:checked').value;
+    const selectedRatio = document.getElementById('aspect-ratio').value;
+    const sizeInput = document.getElementById('image-size');
+    
+    const config = backendAspectRatios[selectedBackend] || backendAspectRatios['gpt-image-1'];
+    sizeInput.value = config.sizes[selectedRatio] || '1024x1024';
+}
+
+function getRatioDescription(ratio) {
+    const descriptions = {
+        '1:1': 'Square',
+        '16:9': 'Landscape Wide',
+        '9:16': 'Portrait Tall',
+        '4:3': 'Classic Landscape',
+        '3:4': 'Classic Portrait'
+    };
+    return descriptions[ratio] || ratio;
+}
+
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', function() {
+    updateAspectRatios();
+});
 </script>
 {% endblock %}

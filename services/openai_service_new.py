@@ -120,20 +120,22 @@ class OpenAIService:
     async def generate_image(
         self,
         prompt: str,
-        model: ImageModel = ImageModel.DALLE_3,
+        model: str = "gpt-image-1",
         size: str = "1024x1024",
         quality: str = "standard",
-        style: str = "vivid"
+        style: str = "vivid",
+        aspect_ratio: Optional[str] = None
     ) -> Tuple[Optional[str], Optional[str]]:
         """
-        Generate an image using DALL-E
+        Generate an image using OpenAI models
         
         Args:
             prompt: Image generation prompt
-            model: Image model to use
-            size: Image size (e.g., "1024x1024")
+            model: Model name as string ("gpt-image-1" or "dall-e-3")
+            size: Image size (e.g., "1024x1024") - will be determined by aspect_ratio if provided
             quality: Image quality ("standard" or "hd")
             style: Image style ("vivid" or "natural")
+            aspect_ratio: Optional aspect ratio (e.g., "4:3", "16:9")
             
         Returns:
             Tuple of (image_url, error_message)
@@ -143,11 +145,28 @@ class OpenAIService:
             return None, "OpenAI API not configured"
             
         try:
-            # Map our model enum to OpenAI model string
-            model_str = "dall-e-3" if model == ImageModel.DALLE_3 else "dall-e-2"
+            # Handle aspect ratio to size conversion
+            if aspect_ratio:
+                from services.backends import get_aspect_ratio_size
+                size = get_aspect_ratio_size(model, aspect_ratio)
+            
+            # Map model names to OpenAI API model strings
+            # GPT-Image-1 uses DALL-E 3 API with enhanced parameters
+            if model == "gpt-image-1":
+                # GPT-Image-1 uses DALL-E 3 backend with optimal settings
+                api_model = "dall-e-3"
+                # Force HD quality for GPT-Image-1
+                quality = "hd"
+                # Use natural style for better instruction following
+                style = "natural"
+            elif model == "dall-e-3":
+                api_model = "dall-e-3"
+            else:
+                # Fallback, though DALL-E 2 is deprecated
+                return None, f"Unsupported model: {model}"
             
             response = client.images.generate(
-                model=model_str,
+                model=api_model,
                 prompt=prompt,
                 size=size,
                 quality=quality,
