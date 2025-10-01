@@ -39,8 +39,8 @@ async def adaptations_list(request: Request):
     context = get_base_context(request)
     
     try:
-        # Get all adaptations from database
-        adaptations = await database.get_all_adaptations()
+        # Get all adaptations with statistics
+        adaptations = await database.get_all_adaptations_with_stats()
         context["adaptations"] = adaptations
     except Exception as e:
         from services.logger import get_logger
@@ -203,8 +203,15 @@ async def process_adaptation_page(request: Request, adaptation_id: int):
 async def adaptations_in_progress(request: Request):
     context = get_base_context(request)
     try:
-        all_items = await database.get_all_adaptations()
-        filtered = [a for a in all_items if (a.get('status') or 'created') not in ('completed', 'published')]
+        all_items = await database.get_all_adaptations_with_stats()
+        # In progress = has chapters but not all have images yet
+        filtered = []
+        for a in all_items:
+            chapter_count = a.get('chapter_count', 0)
+            images_count = a.get('image_count', 0)
+            # In progress if has chapters but not all have images
+            if chapter_count > 0 and images_count < chapter_count:
+                filtered.append(a)
         context["adaptations"] = filtered
     except Exception as e:
         from services.logger import get_logger
@@ -216,8 +223,15 @@ async def adaptations_in_progress(request: Request):
 async def adaptations_completed(request: Request):
     context = get_base_context(request)
     try:
-        all_items = await database.get_all_adaptations()
-        filtered = [a for a in all_items if (a.get('status') or '').lower() == 'completed']
+        all_items = await database.get_all_adaptations_with_stats()
+        # An adaptation is "completed" if all chapters have images
+        filtered = []
+        for a in all_items:
+            chapter_count = a.get('chapter_count', 0)
+            images_count = a.get('image_count', 0)
+            # Consider completed if it has chapters and all have images
+            if chapter_count > 0 and images_count >= chapter_count:
+                filtered.append(a)
         context["adaptations"] = filtered
     except Exception as e:
         from services.logger import get_logger

@@ -1269,19 +1269,33 @@ async def update_adaptation_cover(adaptation_id: int, cover_image_url: str, cove
     return await update_adaptation_cover_image(adaptation_id, cover_image_prompt, cover_image_url)
 
 async def get_generated_images() -> List[Dict]:
-    """Return simple list of generated images across chapters for gallery."""
+    """Return simple list of generated images across chapters AND cover images for gallery."""
     conn = db_manager.get_connection()
     cur = conn.cursor()
     try:
+        # Use UNION to combine chapter images with cover images
         cur.execute('''
             SELECT c.chapter_id, c.chapter_number, c.adaptation_id, c.image_url, c.ai_prompt, c.created_at,
                    a.book_id, a.target_age_group, a.transformation_style, a.created_at AS adaptation_created,
-                   b.title AS book_title, b.author AS book_author, b.imported_at AS book_imported
+                   b.title AS book_title, b.author AS book_author, b.imported_at AS book_imported,
+                   'chapter' as image_type
             FROM chapters c
             JOIN adaptations a ON c.adaptation_id = a.adaptation_id
             JOIN books b ON a.book_id = b.book_id
             WHERE c.image_url IS NOT NULL
-            ORDER BY c.created_at DESC
+            
+            UNION ALL
+            
+            SELECT NULL as chapter_id, 0 as chapter_number, a.adaptation_id, a.cover_url as image_url, 
+                   a.cover_prompt as ai_prompt, a.created_at,
+                   a.book_id, a.target_age_group, a.transformation_style, a.created_at AS adaptation_created,
+                   b.title AS book_title, b.author AS book_author, b.imported_at AS book_imported,
+                   'cover' as image_type
+            FROM adaptations a
+            JOIN books b ON a.book_id = b.book_id
+            WHERE a.cover_url IS NOT NULL
+            
+            ORDER BY created_at DESC
         ''')
         out = []
         for row in cur.fetchall():
@@ -1299,6 +1313,7 @@ async def get_generated_images() -> List[Dict]:
                 'book_title': row[10],
                 'book_author': row[11],
                 'book_imported': row[12],
+                'image_type': row[13],  # 'chapter' or 'cover'
             })
         return out
     finally:

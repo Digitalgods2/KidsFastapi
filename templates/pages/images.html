@@ -130,7 +130,11 @@
                                             {{ image.book_title }}
                                         </h6>
                                         <p class="small mb-1">
+                                            {% if image.image_type == 'cover' %}
+                                            <span class="badge bg-warning text-dark"><i class="bi bi-book"></i> COVER</span>
+                                            {% else %}
                                             <span class="badge bg-secondary">Chapter {{ image.chapter_number|default('N/A') }}</span>
+                                            {% endif %}
                                             <span class="badge bg-info">Adaptation #{{ image.adaptation_id }}</span>
                                         </p>
                                         <p class="card-text small text-muted">
@@ -185,7 +189,13 @@
                                                 <span class="badge bg-info">ID: {{ image.adaptation_id }}</span><br>
                                                 <small class="text-muted">Age {{ image.target_age_group }}</small>
                                             </td>
-                                            <td><span class="badge bg-secondary">{{ image.chapter_number|default('N/A') }}</span></td>
+                                            <td>
+                                                {% if image.image_type == 'cover' %}
+                                                <span class="badge bg-warning text-dark"><i class="bi bi-book"></i> COVER</span>
+                                                {% else %}
+                                                <span class="badge bg-secondary">{{ image.chapter_number|default('N/A') }}</span>
+                                                {% endif %}
+                                            </td>
                                             <td>
                                                 <span class="text-truncate d-inline-block" style="max-width: 300px;">
                                                     {{ image.prompt }}
