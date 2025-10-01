@@ -231,16 +231,46 @@
 // Bulk actions
 async function generateAllPrompts() {
     try {
+        // Show loading overlay
+        showLoadingOverlay('Generating prompts for all chapters...');
+        
         const res = await fetch(`/images/generate-all-prompts/{{ adaptation.adaptation_id }}`, { method: 'POST' });
         const result = await res.json();
+        
+        hideLoadingOverlay();
+        
         if (result.success) {
-            showToast(`Generated prompts for ${result.results?.filter(r=>r.success).length || 0} chapters`, 'success');
-            // Refresh page to load prompts
-            location.reload();
+            const summary = result.summary;
+            let message = `Successfully generated ${summary.generated} prompts`;
+            if (summary.skipped > 0) {
+                message += `, skipped ${summary.skipped} (already exists)`;
+            }
+            if (summary.errors > 0) {
+                message += `, ${summary.errors} errors`;
+            }
+            showToast(message, 'success');
+            
+            // Update the prompts in the UI without reloading
+            if (result.results && result.results.length > 0) {
+                result.results.forEach(r => {
+                    if (r.status === 'success' && r.prompt) {
+                        const promptField = document.getElementById(`chapter-prompt-${r.chapter_id}`);
+                        if (promptField && !promptField.value) {
+                            promptField.value = r.prompt;
+                        }
+                    }
+                });
+            }
+            
+            // Optionally reload if many changes
+            if (summary.generated > 5) {
+                setTimeout(() => location.reload(), 1500);
+            }
         } else {
-            showToast('Failed to generate all prompts: ' + (result.error || 'Unknown error'), 'error');
+            showToast('Failed to generate prompts: ' + (result.error || 'Unknown error'), 'error');
         }
     } catch (e) {
+        hideLoadingOverlay();
         showToast('Error generating all prompts: ' + e.message, 'error');
     }
 }

@@ -572,13 +572,15 @@ async def process_chapters(adaptation_id: int, background_tasks: BackgroundTasks
             return len(re.findall(r"\w+", s or ""))
 
         def _wpc_for_age(age: str) -> int:
+            # Original text segmentation - larger chunks that will be simplified
+            # The transformation will reduce these to age-appropriate lengths
             if age == "3-5":
-                return 500
+                return 800   # Will be reduced to ~150 words after transformation
             if age == "6-8":
-                return 1500
+                return 1000  # Will be reduced to ~300 words after transformation
             if age == "9-12":
-                return 2500
-            return 1500
+                return 1500  # Will be reduced to ~500 words after transformation
+            return 1000  # Default
 
         def _segment_by_wordcount(txt: str, wpc: int) -> list[str]:
             import re
@@ -834,6 +836,51 @@ async def process_chapters(adaptation_id: int, background_tasks: BackgroundTasks
         # Ensure Content-Type matches path expectations
         # (HTML for HTMX, JSON for API/tests)
 
+        # After chapters are created, immediately transform them if age group is set
+        if adaptation.get("target_age_group"):
+            from services.chat_helper import transform_chapter_text as transform_text
+            log.info("auto_transforming_chapters", extra={
+                "component": "routes.adaptations",
+                "adaptation_id": adaptation_id,
+                "chapter_count": int(target_count),
+                "age_group": adaptation.get("target_age_group")
+            })
+            
+            # Get the newly created chapters
+            new_chapters = await database.get_chapters_for_adaptation(adaptation_id)
+            transform_count = 0
+            
+            for chapter in new_chapters:
+                chapter_id = chapter.get("chapter_id")
+                original_text = chapter.get("original_text_segment")
+                
+                if original_text and not chapter.get("transformed_text"):
+                    try:
+                        transformed_text, error = await transform_text(original_text, adaptation, book)
+                        if transformed_text and not error:
+                            await database.update_chapter_transformed_text(chapter_id, transformed_text)
+                            transform_count += 1
+                            log.info("chapter_auto_transformed", extra={
+                                "component": "routes.adaptations",
+                                "chapter_id": chapter_id,
+                                "original_words": len(original_text.split()),
+                                "transformed_words": len(transformed_text.split())
+                            })
+                    except Exception as e:
+                        log.error("auto_transform_error", extra={
+                            "component": "routes.adaptations",
+                            "chapter_id": chapter_id,
+                            "error": str(e)
+                        })
+            
+            if transform_count > 0:
+                log.info("auto_transform_complete", extra={
+                    "component": "routes.adaptations",
+                    "adaptation_id": adaptation_id,
+                    "transformed_count": transform_count,
+                    "total_count": int(target_count)
+                })
+        
         # Success HTML fragment. For HTMX requests, return updated chapters table partial
         if wants_html:
             chapters = await database.get_chapters_for_adaptation(adaptation_id)

@@ -323,6 +323,164 @@ async def save_chapter_prompt(chapter_id: int, request: ImagePromptRequest):
             "error": str(e)
         })
 
+@router.post("/generate-all-prompts/{adaptation_id}")
+async def generate_all_prompts(adaptation_id: int):
+    """Generate AI image prompts for all chapters in batch"""
+    try:
+        from services import chat_helper
+        from services.logger import get_logger
+        log = get_logger("routes.images_individual")
+        
+        # Get adaptation details
+        adaptation = await database.get_adaptation_details(adaptation_id)
+        if not adaptation:
+            return JSONResponse({"success": False, "error": "Adaptation not found"})
+        
+        # Get all chapters for this adaptation
+        chapters = await database.get_chapters_for_adaptation(adaptation_id)
+        if not chapters:
+            return JSONResponse({"success": False, "error": "No chapters found for this adaptation"})
+        
+        log.info("batch_prompt_generation_start", extra={
+            "component": "routes.images_individual",
+            "adaptation_id": adaptation_id,
+            "chapter_count": len(chapters)
+        })
+        
+        results = []
+        success_count = 0
+        error_count = 0
+        skipped_count = 0
+        
+        for chapter in chapters:
+            chapter_id = chapter.get('chapter_id')
+            chapter_number = chapter.get('chapter_number')
+            
+            # Skip if prompt already exists
+            existing_prompt = chapter.get('image_prompt') or chapter.get('ai_generated_image_prompt')
+            if existing_prompt:
+                log.info("chapter_prompt_exists", extra={
+                    "component": "routes.images_individual",
+                    "chapter_id": chapter_id,
+                    "chapter_number": chapter_number
+                })
+                results.append({
+                    "chapter_id": chapter_id,
+                    "chapter_number": chapter_number,
+                    "status": "skipped",
+                    "message": "Prompt already exists"
+                })
+                skipped_count += 1
+                continue
+            
+            # Use transformed_text if available, otherwise fallback to original_text_segment
+            text_content = chapter.get('transformed_text', '') or chapter.get('original_text_segment', '')
+            if not text_content:
+                log.warning("chapter_no_text_content", extra={
+                    "component": "routes.images_individual",
+                    "chapter_id": chapter_id,
+                    "chapter_number": chapter_number
+                })
+                results.append({
+                    "chapter_id": chapter_id,
+                    "chapter_number": chapter_number,
+                    "status": "error",
+                    "error": "No text content available"
+                })
+                error_count += 1
+                continue
+            
+            # Generate the prompt
+            try:
+                prompt, err = await chat_helper.generate_chapter_image_prompt(
+                    transformed_text=text_content,
+                    chapter_number=chapter_number,
+                    adaptation=adaptation,
+                )
+                
+                if prompt and not err:
+                    # Save the prompt to database
+                    await database.update_chapter_image_prompt(chapter_id, prompt)
+                    success_count += 1
+                    
+                    log.info("chapter_prompt_generated", extra={
+                        "component": "routes.images_individual",
+                        "chapter_id": chapter_id,
+                        "chapter_number": chapter_number,
+                        "prompt_length": len(prompt)
+                    })
+                    
+                    results.append({
+                        "chapter_id": chapter_id,
+                        "chapter_number": chapter_number,
+                        "status": "success",
+                        "prompt": prompt[:100] + "..." if len(prompt) > 100 else prompt
+                    })
+                else:
+                    error_count += 1
+                    log.error("chapter_prompt_generation_failed", extra={
+                        "component": "routes.images_individual",
+                        "chapter_id": chapter_id,
+                        "chapter_number": chapter_number,
+                        "error": err
+                    })
+                    
+                    results.append({
+                        "chapter_id": chapter_id,
+                        "chapter_number": chapter_number,
+                        "status": "error",
+                        "error": err or "Failed to generate prompt"
+                    })
+                    
+            except Exception as e:
+                error_count += 1
+                log.error("chapter_prompt_generation_exception", extra={
+                    "component": "routes.images_individual",
+                    "chapter_id": chapter_id,
+                    "chapter_number": chapter_number,
+                    "error": str(e)
+                })
+                
+                results.append({
+                    "chapter_id": chapter_id,
+                    "chapter_number": chapter_number,
+                    "status": "error",
+                    "error": str(e)
+                })
+        
+        log.info("batch_prompt_generation_complete", extra={
+            "component": "routes.images_individual",
+            "adaptation_id": adaptation_id,
+            "total_count": len(chapters),
+            "success_count": success_count,
+            "error_count": error_count,
+            "skipped_count": skipped_count
+        })
+        
+        return JSONResponse({
+            "success": True,
+            "summary": {
+                "total": len(chapters),
+                "generated": success_count,
+                "errors": error_count,
+                "skipped": skipped_count
+            },
+            "results": results
+        })
+        
+    except Exception as e:
+        from services.logger import get_logger
+        log = get_logger("routes.images_individual")
+        log.error("batch_prompt_generation_error", extra={
+            "error": str(e),
+            "component": "routes.images_individual",
+            "adaptation_id": adaptation_id
+        })
+        return JSONResponse({
+            "success": False,
+            "error": str(e)
+        })
+
 @router.post("/skip-chapter-image/{chapter_id}")
 async def skip_chapter_image(chapter_id: int):
     """Mark chapter image as skipped"""
