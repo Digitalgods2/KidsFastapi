@@ -1,0 +1,284 @@
+{% extends "layouts/base.html" %}
+
+{% block title %}Preview: {{ adaptation.book_title }} - KidsKlassiks{% endblock %}
+
+{% block extra_css %}
+<style>
+    .preview-container {
+        max-width: 900px;
+        margin: 0 auto;
+        background: white;
+        box-shadow: 0 0 40px rgba(0,0,0,0.1);
+    }
+    
+    .cover-section {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        padding: 60px 40px;
+        text-align: center;
+        color: white;
+    }
+    
+    .cover-image {
+        max-width: 400px;
+        max-height: 500px;
+        border-radius: 10px;
+        box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        margin: 0 auto;
+    }
+    
+    .book-metadata {
+        padding: 30px 40px;
+        background: #f8f9fa;
+        border-bottom: 3px solid #667eea;
+    }
+    
+    .chapter-section {
+        padding: 40px;
+        border-bottom: 1px solid #e9ecef;
+    }
+    
+    .chapter-number {
+        color: #667eea;
+        font-size: 0.9rem;
+        font-weight: 600;
+        letter-spacing: 1px;
+        text-transform: uppercase;
+        margin-bottom: 10px;
+    }
+    
+    .chapter-image {
+        max-width: 100%;
+        border-radius: 10px;
+        margin: 20px 0;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+    }
+    
+    .chapter-text {
+        line-height: 1.8;
+        font-size: 1.05rem;
+        color: #333;
+        text-align: justify;
+    }
+    
+    .no-content-message {
+        padding: 60px 40px;
+        text-align: center;
+    }
+    
+    @media print {
+        .navbar, .btn, .no-print {
+            display: none !important;
+        }
+        .preview-container {
+            box-shadow: none;
+        }
+        .chapter-section {
+            page-break-inside: avoid;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Action Bar -->
+    <div class="row mb-4 no-print">
+        <div class="col">
+            <div class="p-3 rounded shadow-sm" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <a href="/publish" class="btn btn-light">
+                            <i class="bi bi-arrow-left"></i> Back to Publish
+                        </a>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <button class="btn btn-light" onclick="window.print()">
+                            <i class="bi bi-printer"></i> Print
+                        </button>
+                        <button class="btn btn-warning text-dark" onclick="exportPDF({{ adaptation.adaptation_id }})">
+                            <i class="bi bi-download"></i> Export PDF
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Preview Container -->
+    <div class="preview-container">
+        <!-- Cover Section -->
+        <div class="cover-section">
+            {% if adaptation.cover_url %}
+            <img src="{{ adaptation.cover_url }}?t={{ cache_timestamp }}" class="cover-image mb-4" alt="Book Cover">
+            {% else %}
+            <div class="mb-4">
+                <i class="bi bi-book display-1 mb-3 d-block"></i>
+            </div>
+            {% endif %}
+            <h1 class="display-4 fw-bold mb-2">{{ adaptation.book_title }}</h1>
+            <h3 class="mb-3">by {{ adaptation.book_author }}</h3>
+            <p class="lead">
+                <span class="badge bg-light text-dark fs-6">Ages {{ adaptation.target_age_group or 'All' }}</span>
+            </p>
+        </div>
+
+        <!-- Book Metadata -->
+        <div class="book-metadata">
+            <div class="row g-3 text-center">
+                <div class="col-md-3">
+                    <div class="fw-bold text-primary fs-4" id="chapter-count">-</div>
+                    <div class="text-muted small">Chapters</div>
+                </div>
+                <div class="col-md-3">
+                    <div class="fw-bold text-success fs-4" id="image-count">-</div>
+                    <div class="text-muted small">Illustrations</div>
+                </div>
+                <div class="col-md-3">
+                    <div class="fw-bold text-info fs-4" id="word-count">-</div>
+                    <div class="text-muted small">Words</div>
+                </div>
+                <div class="col-md-3">
+                    <div class="fw-bold text-warning fs-4">{{ adaptation.transformation_style or 'Classic' }}</div>
+                    <div class="text-muted small">Style</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Chapters Section -->
+        <div id="chapters-container">
+            <div class="no-content-message">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                <p class="text-muted mt-3">Loading chapters...</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Load chapters dynamically
+async function loadChapters() {
+    const adaptationId = {{ adaptation.adaptation_id }};
+    const container = document.getElementById('chapters-container');
+    
+    try {
+        const response = await fetch(`/publish/api/chapters/${adaptationId}`);
+        if (!response.ok) throw new Error('Failed to load chapters');
+        
+        const data = await response.json();
+        const chapters = data.chapters || [];
+        
+        // Update stats
+        document.getElementById('chapter-count').textContent = chapters.length;
+        const imageCount = chapters.filter(c => c.image_url).length;
+        document.getElementById('image-count').textContent = imageCount;
+        
+        // Calculate word count
+        let totalWords = 0;
+        chapters.forEach(ch => {
+            const text = ch.transformed_text || ch.original_text_segment || '';
+            totalWords += text.split(/\s+/).filter(w => w.length > 0).length;
+        });
+        document.getElementById('word-count').textContent = totalWords.toLocaleString();
+        
+        // Render chapters
+        if (chapters.length === 0) {
+            container.innerHTML = `
+                <div class="no-content-message">
+                    <i class="bi bi-exclamation-circle display-1 text-warning mb-3"></i>
+                    <h4 class="text-muted">No Chapters Found</h4>
+                    <p class="text-muted">This adaptation doesn't have any chapters yet.</p>
+                    <a href="/adaptations/view/${adaptationId}" class="btn btn-primary mt-3">
+                        <i class="bi bi-pencil"></i> Edit Adaptation
+                    </a>
+                </div>
+            `;
+            return;
+        }
+        
+        container.innerHTML = chapters.map(chapter => {
+            const text = chapter.transformed_text || chapter.original_text_segment || '';
+            const hasImage = chapter.image_url && chapter.image_url.trim() !== '';
+            
+            return `
+                <div class="chapter-section">
+                    <div class="chapter-number">Chapter ${chapter.chapter_number}</div>
+                    ${hasImage ? `
+                        <div class="text-center">
+                            <img src="${chapter.image_url}" class="chapter-image" alt="Chapter ${chapter.chapter_number} Illustration">
+                        </div>
+                    ` : ''}
+                    <div class="chapter-text">
+                        ${text ? text.split('\n\n').map(p => `<p>${p}</p>`).join('') : '<p class="text-muted fst-italic">No content available</p>'}
+                    </div>
+                </div>
+            `;
+        }).join('');
+        
+    } catch (error) {
+        console.error('Error loading chapters:', error);
+        container.innerHTML = `
+            <div class="no-content-message">
+                <i class="bi bi-exclamation-triangle display-1 text-danger mb-3"></i>
+                <h4 class="text-muted">Error Loading Chapters</h4>
+                <p class="text-muted">${error.message}</p>
+                <button class="btn btn-primary mt-3" onclick="loadChapters()">
+                    <i class="bi bi-arrow-clockwise"></i> Retry
+                </button>
+            </div>
+        `;
+    }
+}
+
+// Export PDF function
+async function exportPDF(adaptationId) {
+    const button = event.target;
+    const originalText = button.innerHTML;
+    button.innerHTML = '<i class="bi bi-hourglass-split"></i> Generating...';
+    button.disabled = true;
+    
+    try {
+        const response = await fetch(`/publish/export/${adaptationId}`, {
+            method: 'POST'
+        });
+        
+        if (!response.ok) {
+            const err = await response.json();
+            throw new Error(err.detail || 'Export failed');
+        }
+        
+        // Get the filename from headers
+        const contentDisposition = response.headers.get('Content-Disposition');
+        let filename = 'adaptation.pdf';
+        if (contentDisposition) {
+            const match = contentDisposition.match(/filename="(.+)"/);
+            if (match) filename = match[1];
+        }
+        
+        // Download the PDF
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.style.display = 'none';
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+        
+        alert('PDF downloaded successfully!');
+    } catch (error) {
+        console.error('Error exporting PDF:', error);
+        alert('Failed to export PDF: ' + error.message);
+    } finally {
+        button.innerHTML = originalText;
+        button.disabled = false;
+    }
+}
+
+// Load chapters on page load
+document.addEventListener('DOMContentLoaded', loadChapters);
+</script>
+{% endblock %}

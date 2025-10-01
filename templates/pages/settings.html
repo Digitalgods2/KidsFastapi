@@ -141,8 +141,8 @@
                                     <div class="row g-3">
                                         <div class="col-md-6">
                                             <div class="form-check card p-3">
-                                                <input class="form-check-input" type="radio" name="image_api" id="dall-e-3" value="dall-e-3" 
-                                                       {% if settings.image_api_preference == 'dall-e-3' %}checked{% endif %}>
+                                                <input class="form-check-input" type="radio" name="default_image_backend" id="dall-e-3" value="dall-e-3" 
+                                                       {% if settings.default_image_backend == 'dall-e-3' %}checked{% endif %}>
                                                 <label class="form-check-label" for="dall-e-3">
                                                     <strong>DALL-E 3</strong>
                                                     <small class="d-block text-muted">Higher resolution (1792×1024), best quality</small>
@@ -151,8 +151,8 @@
                                         </div>
                                         <div class="col-md-6">
                                             <div class="form-check card p-3">
-                                                <input class="form-check-input" type="radio" name="image_api" id="dall-e-2" value="dall-e-2"
-                                                       {% if settings.image_api_preference == 'dall-e-2' %}checked{% endif %}>
+                                                <input class="form-check-input" type="radio" name="default_image_backend" id="dall-e-2" value="dall-e-2"
+                                                       {% if settings.default_image_backend == 'dall-e-2' %}checked{% endif %}>
                                                 <label class="form-check-label" for="dall-e-2">
                                                     <strong>DALL-E 2</strong>
                                                     <small class="d-block text-muted">Faster, economical, supports variations</small>
@@ -161,8 +161,8 @@
                                         </div>
                                         <div class="col-md-6">
                                             <div class="form-check card p-3">
-                                                <input class="form-check-input" type="radio" name="image_api" id="vertex-imagen" value="vertex-imagen"
-                                                       {% if settings.image_api_preference == 'vertex-imagen' %}checked{% endif %}>
+                                                <input class="form-check-input" type="radio" name="default_image_backend" id="vertex-imagen" value="vertex-imagen"
+                                                       {% if settings.default_image_backend == 'vertex-imagen' %}checked{% endif %}>
                                                 <label class="form-check-label" for="vertex-imagen">
                                                     <strong>Google Vertex Imagen</strong>
                                                     <small class="d-block text-muted">Advanced AI model, custom aspect ratios</small>
@@ -171,8 +171,8 @@
                                         </div>
                                         <div class="col-md-6">
                                             <div class="form-check card p-3">
-                                                <input class="form-check-input" type="radio" name="image_api" id="imagen-children" value="imagen-children"
-                                                       {% if settings.image_api_preference == 'imagen-children' %}checked{% endif %}>
+                                                <input class="form-check-input" type="radio" name="default_image_backend" id="imagen-children" value="imagen-children"
+                                                       {% if settings.default_image_backend == 'imagen-children' %}checked{% endif %}>
                                                 <label class="form-check-label" for="imagen-children">
                                                     <strong>Imagen Children's Mode</strong>
                                                     <small class="d-block text-muted">Optimized for children's illustrations</small>

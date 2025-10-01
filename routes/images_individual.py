@@ -102,13 +102,39 @@ async def generate_cover_prompt(adaptation_id: int):
         if not prompt:
             return JSONResponse({"success": False, "error": err or "Failed to generate cover prompt"})
         # Save the prompt to database
-        await database.update_adaptation_cover_prompt(adaptation_id, prompt)
+        await database.update_adaptation_cover_image_prompt_only(adaptation_id, prompt)
         return JSONResponse({"success": True, "prompt": prompt})
         
     except Exception as e:
         from services.logger import get_logger
         log = get_logger("routes.images_individual")
         log.error("generate_cover_prompt_error", extra={"error": str(e), "component": "routes.images_individual", "request_id": None, "adaptation_id": adaptation_id})
+        return JSONResponse({
+            "success": False,
+            "error": str(e)
+        })
+
+@router.post("/save-cover-prompt/{adaptation_id}")
+async def save_cover_prompt(adaptation_id: int, request: ImagePromptRequest):
+    """Save cover image prompt without generating image"""
+    try:
+        # Validate adaptation exists
+        adaptation = await database.get_adaptation_details(adaptation_id)
+        if not adaptation:
+            return JSONResponse({"success": False, "error": "Adaptation not found"})
+        
+        # Save the prompt to database
+        success = await database.update_adaptation_cover_image_prompt_only(adaptation_id, request.prompt)
+        
+        if success:
+            return JSONResponse({"success": True, "message": "Cover prompt saved successfully"})
+        else:
+            return JSONResponse({"success": False, "error": "Failed to save prompt to database"})
+        
+    except Exception as e:
+        from services.logger import get_logger
+        log = get_logger("routes.images_individual")
+        log.error("save_cover_prompt_error", extra={"error": str(e), "component": "routes.images_individual", "request_id": None, "adaptation_id": adaptation_id})
         return JSONResponse({
             "success": False,
             "error": str(e)
@@ -195,9 +221,10 @@ async def generate_chapter_prompt(chapter_id: int):
         
         # Generate chapter image prompt using modern chat helper
         from services import chat_helper
-        transformed_text = chapter.get('transformed_chapter_text', '')
+        # Use transformed_text if available, otherwise fallback to original_text_segment
+        transformed_text = chapter.get('transformed_text', '') or chapter.get('original_text_segment', '')
         if not transformed_text:
-            return JSONResponse({"success": False, "error": "No transformed text available for this chapter"})
+            return JSONResponse({"success": False, "error": "No text content available for this chapter"})
         prompt, err = await chat_helper.generate_chapter_image_prompt(
             transformed_text=transformed_text,
             chapter_number=chapter['chapter_number'],

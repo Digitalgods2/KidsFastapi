@@ -39,19 +39,34 @@ async def adaptations_list(request: Request):
     context = get_base_context(request)
     
     try:
-        # Get all adaptations from database
-        adaptations = await database.get_all_adaptations()
+        # Get all adaptations with statistics
+        adaptations = await database.get_all_adaptations_with_stats()
+        
+        # Calculate counts for tabs
+        completed_count = sum(1 for a in adaptations 
+                             if a.get('chapter_count', 0) > 0 
+                             and a.get('image_count', 0) >= a.get('chapter_count', 0))
+        progress_count = sum(1 for a in adaptations 
+                            if a.get('chapter_count', 0) > 0 
+                            and a.get('image_count', 0) < a.get('chapter_count', 0))
+        
         context["adaptations"] = adaptations
+        context["all_count"] = len(adaptations)
+        context["completed_count"] = completed_count
+        context["progress_count"] = progress_count
     except Exception as e:
         from services.logger import get_logger
         log = get_logger("routes.adaptations")
         log.error("adaptations_list_error", extra={"error": str(e), "component": "routes.adaptations", "request_id": getattr(request.state, 'request_id', None)})
         context["adaptations"] = []
+        context["all_count"] = 0
+        context["completed_count"] = 0
+        context["progress_count"] = 0
     
     return templates.TemplateResponse("pages/adaptations.html", context)
 
 @router.get("/create", response_class=HTMLResponse)
-async def create_adaptation_page(request: Request, book_id: Optional[int] = None):
+async def create_adaptation_page(request: Request, book_id: Optional[str] = None):
     """Create new adaptation page"""
     context = get_base_context(request)
     
@@ -62,11 +77,16 @@ async def create_adaptation_page(request: Request, book_id: Optional[int] = None
         
         # If book_id provided, pre-select that book
         if book_id:
-            selected_book = await database.get_book_details(book_id)
-            if selected_book:
-                context["selected_book"] = selected_book
-            else:
-                # Invalid book_id provided, redirect to create page without book_id
+            try:
+                book_id_int = int(book_id)
+                selected_book = await database.get_book_details(book_id_int)
+                if selected_book:
+                    context["selected_book"] = selected_book
+                else:
+                    # Invalid book_id provided, redirect to create page without book_id
+                    return RedirectResponse(url="/adaptations/create", status_code=302)
+            except (ValueError, TypeError):
+                # Invalid book_id format, redirect to create page without book_id
                 return RedirectResponse(url="/adaptations/create", status_code=302)
         else:
             context["selected_book"] = None
@@ -203,26 +223,64 @@ async def process_adaptation_page(request: Request, adaptation_id: int):
 async def adaptations_in_progress(request: Request):
     context = get_base_context(request)
     try:
-        all_items = await database.get_all_adaptations()
-        filtered = [a for a in all_items if (a.get('status') or 'created') not in ('completed', 'published')]
+        all_items = await database.get_all_adaptations_with_stats()
+        
+        # Calculate counts
+        completed_count = sum(1 for a in all_items 
+                             if a.get('chapter_count', 0) > 0 
+                             and a.get('image_count', 0) >= a.get('chapter_count', 0))
+        progress_count = sum(1 for a in all_items 
+                            if a.get('chapter_count', 0) > 0 
+                            and a.get('image_count', 0) < a.get('chapter_count', 0))
+        
+        # Filter for in progress only
+        filtered = [a for a in all_items 
+                   if a.get('chapter_count', 0) > 0 
+                   and a.get('image_count', 0) < a.get('chapter_count', 0)]
+        
         context["adaptations"] = filtered
+        context["all_count"] = len(all_items)
+        context["completed_count"] = completed_count
+        context["progress_count"] = progress_count
     except Exception as e:
         from services.logger import get_logger
         get_logger("routes.adaptations").error("adaptations_in_progress_error", extra={"component":"routes.adaptations","error":str(e)})
         context["adaptations"] = []
+        context["all_count"] = 0
+        context["completed_count"] = 0
+        context["progress_count"] = 0
     return templates.TemplateResponse("pages/adaptations.html", context)
 
 @router.get("/completed", response_class=HTMLResponse)
 async def adaptations_completed(request: Request):
     context = get_base_context(request)
     try:
-        all_items = await database.get_all_adaptations()
-        filtered = [a for a in all_items if (a.get('status') or '').lower() == 'completed']
+        all_items = await database.get_all_adaptations_with_stats()
+        
+        # Calculate counts
+        completed_count = sum(1 for a in all_items 
+                             if a.get('chapter_count', 0) > 0 
+                             and a.get('image_count', 0) >= a.get('chapter_count', 0))
+        progress_count = sum(1 for a in all_items 
+                            if a.get('chapter_count', 0) > 0 
+                            and a.get('image_count', 0) < a.get('chapter_count', 0))
+        
+        # Filter for completed only
+        filtered = [a for a in all_items 
+                   if a.get('chapter_count', 0) > 0 
+                   and a.get('image_count', 0) >= a.get('chapter_count', 0)]
+        
         context["adaptations"] = filtered
+        context["all_count"] = len(all_items)
+        context["completed_count"] = completed_count
+        context["progress_count"] = progress_count
     except Exception as e:
         from services.logger import get_logger
         get_logger("routes.adaptations").error("adaptations_completed_error", extra={"component":"routes.adaptations","error":str(e)})
         context["adaptations"] = []
+        context["all_count"] = 0
+        context["completed_count"] = 0
+        context["progress_count"] = 0
     return templates.TemplateResponse("pages/adaptations.html", context)
 
 @router.get("/{adaptation_id}", response_class=HTMLResponse)
@@ -716,3 +774,173 @@ async def process_chapters(adaptation_id: int, background_tasks: BackgroundTasks
                 database.clear_current_run(adaptation_id)
             except Exception:
                 pass
+
+
+@router.post("/{adaptation_id}/transform-all")
+async def transform_all_chapters(adaptation_id: int):
+    """Transform all chapters of an adaptation to age-appropriate versions"""
+    try:
+        from services.chat_helper import transform_chapter_text as transform_text
+        from services.logger import get_logger
+        log = get_logger("routes.adaptations")
+        
+        # Get adaptation details
+        adaptation = await database.get_adaptation_details(adaptation_id)
+        if not adaptation:
+            raise HTTPException(status_code=404, detail="Adaptation not found")
+        
+        # Get book details
+        book = await database.get_book_details(adaptation["book_id"])
+        if not book:
+            raise HTTPException(status_code=404, detail="Book not found")
+        
+        # Get all chapters
+        chapters = await database.get_chapters_for_adaptation(adaptation_id)
+        if not chapters:
+            return JSONResponse({
+                "success": False,
+                "error": "No chapters found for this adaptation"
+            }, status_code=400)
+        
+        log.info("transform_all_start", extra={
+            "component": "routes.adaptations",
+            "adaptation_id": adaptation_id,
+            "chapter_count": len(chapters),
+            "age_group": adaptation.get("target_age_group")
+        })
+        
+        results = []
+        success_count = 0
+        error_count = 0
+        
+        for chapter in chapters:
+            chapter_id = chapter.get("chapter_id")
+            chapter_number = chapter.get("chapter_number")
+            
+            # Skip if already transformed
+            if chapter.get("transformed_text") and chapter.get("transformed_text").strip():
+                log.info("chapter_already_transformed", extra={
+                    "component": "routes.adaptations",
+                    "chapter_id": chapter_id,
+                    "chapter_number": chapter_number
+                })
+                results.append({
+                    "chapter_id": chapter_id,
+                    "chapter_number": chapter_number,
+                    "status": "skipped",
+                    "message": "Already transformed"
+                })
+                continue
+            
+            # Get original text
+            original_text = chapter.get("original_text_segment")
+            if not original_text or not original_text.strip():
+                log.warning("chapter_no_original_text", extra={
+                    "component": "routes.adaptations",
+                    "chapter_id": chapter_id,
+                    "chapter_number": chapter_number
+                })
+                results.append({
+                    "chapter_id": chapter_id,
+                    "chapter_number": chapter_number,
+                    "status": "error",
+                    "error": "No original text"
+                })
+                error_count += 1
+                continue
+            
+            # Transform the text
+            log.info("transforming_chapter", extra={
+                "component": "routes.adaptations",
+                "chapter_id": chapter_id,
+                "chapter_number": chapter_number,
+                "original_length": len(original_text)
+            })
+            
+            transformed_text, error = await transform_text(original_text, adaptation, book)
+            
+            if error or not transformed_text:
+                log.error("chapter_transform_failed", extra={
+                    "component": "routes.adaptations",
+                    "chapter_id": chapter_id,
+                    "chapter_number": chapter_number,
+                    "error": error
+                })
+                results.append({
+                    "chapter_id": chapter_id,
+                    "chapter_number": chapter_number,
+                    "status": "error",
+                    "error": error or "Transformation failed"
+                })
+                error_count += 1
+                continue
+            
+            # Update chapter with transformed text
+            update_success = await database.update_chapter_text_and_prompt(
+                chapter_id=chapter_id,
+                transformed_text=transformed_text,
+                user_prompt=""  # Empty prompt since this is AI-generated
+            )
+            
+            if not update_success:
+                log.error("chapter_update_failed", extra={
+                    "component": "routes.adaptations",
+                    "chapter_id": chapter_id,
+                    "chapter_number": chapter_number
+                })
+                results.append({
+                    "chapter_id": chapter_id,
+                    "chapter_number": chapter_number,
+                    "status": "error",
+                    "error": "Failed to save"
+                })
+                error_count += 1
+                continue
+            
+            log.info("chapter_transformed", extra={
+                "component": "routes.adaptations",
+                "chapter_id": chapter_id,
+                "chapter_number": chapter_number,
+                "original_length": len(original_text),
+                "transformed_length": len(transformed_text)
+            })
+            
+            results.append({
+                "chapter_id": chapter_id,
+                "chapter_number": chapter_number,
+                "status": "success",
+                "original_length": len(original_text),
+                "transformed_length": len(transformed_text)
+            })
+            success_count += 1
+        
+        log.info("transform_all_complete", extra={
+            "component": "routes.adaptations",
+            "adaptation_id": adaptation_id,
+            "total_chapters": len(chapters),
+            "success_count": success_count,
+            "error_count": error_count
+        })
+        
+        return JSONResponse({
+            "success": True,
+            "total_chapters": len(chapters),
+            "success_count": success_count,
+            "error_count": error_count,
+            "results": results
+        })
+    
+    except HTTPException:
+        raise
+    except Exception as e:
+        from services.logger import get_logger
+        log = get_logger("routes.adaptations")
+        log.error("transform_all_error", extra={
+            "error": str(e),
+            "component": "routes.adaptations",
+            "adaptation_id": adaptation_id
+        })
+        return JSONResponse({
+            "success": False,
+            "error": str(e)
+        }, status_code=500)

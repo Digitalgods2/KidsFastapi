@@ -16,6 +16,10 @@ import uuid
 # Using legacy OpenAIService only for image generation backend compatibility
 from legacy.services.openai_service import OpenAIService
 from services import VertexService
+from services.logger import get_logger
+
+# Initialize logger for this module
+logger = get_logger("services.image_generation_service")
 
 class ImageGenerationService:
     def __init__(self):
@@ -290,14 +294,16 @@ class ImageGenerationService:
                     "error": gen_error or "OpenAI generation failed"
                 }
 
-            # Resolve book-scoped directory
-            import database
+            # Resolve book-scoped directory and get chapter number
+            import database_fixed as database
             adaptation = await database.get_adaptation_details(adaptation_id)
+            chapter = await database.get_chapter_details(chapter_id)
             book_id = adaptation.get('book_id') if adaptation else None
+            chapter_number = chapter.get('chapter_number') if chapter else chapter_id
             target_dir = os.path.join("generated_images", str(book_id)) if book_id else "generated_images"
 
-            # Save image locally under per-book directory
-            filename = f"adaptation_{adaptation_id}_chapter_{chapter_id}_{model}.png"
+            # Save image locally under per-book directory (use chapter_number for filename)
+            filename = f"adaptation_{adaptation_id}_chapter_{chapter_number}_{model}.png"
             # Download bytes then write under target_dir
             image_bytes_path = await self._save_image_from_url(upstream_url, filename)
             if isinstance(image_bytes_path, str) and os.path.exists(image_bytes_path):
@@ -327,16 +333,57 @@ class ImageGenerationService:
                 "error": f"OpenAI generation error: {str(e)}"
             }
     
+    def _size_to_aspect_ratio(self, size_str: str) -> str:
+        """Convert image size (e.g., '1792x1024') to Vertex AI aspect ratio (e.g., '16:9')"""
+        try:
+            if 'x' not in size_str:
+                return "1:1"
+            
+            width, height = map(int, size_str.lower().split('x'))
+            
+            # Calculate GCD to simplify ratio
+            from math import gcd
+            divisor = gcd(width, height)
+            ratio_w = width // divisor
+            ratio_h = height // divisor
+            
+            # Map to closest Vertex AI supported aspect ratio
+            # Vertex AI supports: 1:1, 4:3, 3:4, 16:9, 9:16
+            ratio = ratio_w / ratio_h
+            
+            if ratio >= 1.7:  # 16:9 = 1.78
+                return "16:9"
+            elif ratio >= 1.2:  # 4:3 = 1.33
+                return "4:3"
+            elif ratio >= 0.9:  # Close to square
+                return "1:1"
+            elif ratio >= 0.7:  # 3:4 = 0.75
+                return "3:4"
+            else:  # 9:16 = 0.56
+                return "9:16"
+        except Exception as e:
+            logger.warning(f"Failed to parse size '{size_str}': {e}, using 1:1")
+            return "1:1"
+    
     async def _generate_vertex_image(self, prompt: str, chapter_id: int, 
                                    adaptation_id: int, model: str) -> Dict[str, Any]:
         """Generate image using Google Vertex AI Imagen"""
         try:
+            logger.info(f"🎨 Vertex AI generation starting for chapter_id={chapter_id}, adaptation_id={adaptation_id}, model={model}")
+            
             if not self.vertex_available or not self.vertex_service:
+                logger.error(f"❌ Vertex AI not available: vertex_available={self.vertex_available}, vertex_service={self.vertex_service is not None}")
                 return {
                     "success": False,
                     "chapter_id": chapter_id,
                     "error": "Vertex AI service not available"
                 }
+            
+            # Get aspect ratio from settings
+            import database_fixed as database
+            size_setting = await database.get_setting("default_image_size", "1024x1024")
+            aspect_ratio = self._size_to_aspect_ratio(size_setting)
+            logger.info(f"📐 Aspect ratio: {aspect_ratio} (from size setting: {size_setting})")
             
             # Configure based on model type
             if "children" in model:
@@ -346,46 +393,90 @@ class ImageGenerationService:
             else:
                 enhanced_prompt = prompt
             
+            logger.info(f"📝 Using enhanced prompt: {enhanced_prompt[:100]}...")
+            
             async def _call_vertex():
+                logger.info(f"🔧 Calling vertex_service.generate_image with aspect_ratio={aspect_ratio}")
                 return await self.vertex_service.generate_image(
                     prompt=enhanced_prompt,
-                    aspect_ratio="1:1"
+                    aspect_ratio=aspect_ratio
                 )
             async with self._semaphore:
+                logger.info("🔄 Calling Vertex AI service...")
                 result = await self._retry_async(_call_vertex)
+                logger.info(f"✅ Vertex AI service returned: type={type(result)}, result={str(result)[:200]}")
             
-            if result["success"]:
-                # Resolve per-book directory
-                import database
+            # Handle tuple return (image_url, error) from vertex_service
+            if isinstance(result, tuple):
+                image_url, error = result
+                logger.info(f"📦 Tuple unpacked: image_url={image_url}, error={error}")
+            else:
+                # Fallback for unexpected format
+                image_url, error = None, "Unexpected result format"
+                logger.error(f"❌ Unexpected result format: {type(result)}")
+            
+            if image_url and not error:
+                logger.info(f"✨ Image URL received: {image_url}")
+                
+                # Resolve per-book directory and get chapter number
+                import database_fixed as database
                 adaptation = await database.get_adaptation_details(adaptation_id)
+                chapter = await database.get_chapter_details(chapter_id)
                 book_id = adaptation.get('book_id') if adaptation else None
+                chapter_number = chapter.get('chapter_number') if chapter else chapter_id
                 target_dir = os.path.join("generated_images", str(book_id)) if book_id else "generated_images"
+                logger.info(f"📁 Target directory: {target_dir}, book_id={book_id}")
 
-                # Save image from base64 into per-book directory
-                filename = f"adaptation_{adaptation_id}_chapter_{chapter_id}_vertex.png"
-                image_data = result.get("image_data", "")
-                if image_data.startswith('data:image'):
-                    image_data = image_data.split(',')[1]
-                import base64 as _b64
-                image_bytes = _b64.b64decode(image_data)
+                # Vertex AI already saved the image locally - image_url is a local path like /generated_images/filename.png
+                # We need to move it to the per-book directory (use chapter_number for filename)
+                filename = f"adaptation_{adaptation_id}_chapter_{chapter_number}_vertex.png"
+                
+                # Convert URL path to filesystem path
+                source_path = image_url.lstrip('/')  # Remove leading slash to get relative path
+                logger.info(f"🔍 Looking for source file: {source_path}")
+                
+                if not os.path.exists(source_path):
+                    logger.error(f"❌ Source file not found: {source_path}")
+                    return {
+                        "success": False,
+                        "chapter_id": chapter_id,
+                        "error": f"Vertex AI image file not found: {source_path}"
+                    }
+                
+                logger.info(f"✅ Source file exists, size: {os.path.getsize(source_path)} bytes")
+                
+                # Read and move to target directory
+                with open(source_path, 'rb') as f:
+                    image_bytes = f.read()
                 image_path = await self._safe_write_file(target_dir, filename, image_bytes)
+                logger.info(f"💾 Image saved to: {image_path}")
+                
+                # Clean up original file
+                try:
+                    os.remove(source_path)
+                    logger.info(f"🗑️  Removed temporary file: {source_path}")
+                except Exception as e:
+                    logger.warning(f"Could not remove temporary Vertex image: {e}")
+                
+                logger.info(f"🎉 Vertex AI image generation complete!")
                 
                 return {
                     "success": True,
                     "chapter_id": chapter_id,
                     "image_url": f"/{target_dir}/{os.path.basename(image_path)}",
                     "local_path": image_path,
-                    "source_url": None,
+                    "source_url": image_url,
                     "prompt": enhanced_prompt,
                     "backend": "vertex",
                     "model": model,
                     "generated_at": datetime.now().isoformat()
                 }
             else:
+                logger.error(f"❌ Vertex generation failed: {error}")
                 return {
                     "success": False,
                     "chapter_id": chapter_id,
-                    "error": result.get("error", "Vertex AI generation failed")
+                    "error": error or "Vertex AI generation failed"
                 }
         
         except Exception as e:
@@ -398,45 +489,53 @@ class ImageGenerationService:
     async def generate_image_prompt(self, chapter: Dict, adaptation_id: int) -> str:
         """
         Generate an AI-powered image prompt based on chapter content
+        Includes character consistency reference for visual coherence across chapters
         """
         try:
             # Get adaptation details for context
-            import database
+            import database_fixed as database
             adaptation = await database.get_adaptation_details(adaptation_id)
             
+            if not adaptation:
+                logger.warning(f"No adaptation found for ID {adaptation_id}")
+                return f"A children's book illustration for Chapter {chapter.get('chapter_number', 1)}"
+            
             chapter_text = chapter.get('original_chapter_text', '')[:2000]  # Limit text length
-            age_group = adaptation.get('target_age_group', 'Ages 6-8')
-            style = adaptation.get('transformation_style', 'Simple & Direct')
+            chapter_number = chapter.get('chapter_number', 1)
             
-            prompt_generation_text = f"""
-            Create a detailed image prompt for a children's book illustration based on this chapter excerpt:
+            # Get character consistency reference for this adaptation
+            from services.character_helper import get_formatted_character_reference
+            char_ref = await get_formatted_character_reference(
+                adaptation_id=adaptation_id,
+                chapter_number=chapter_number,
+                total_chapters=1  # Will be ignored for now (always include reference)
+            )
             
-            Chapter Text: {chapter_text}
+            if char_ref:
+                logger.info(f"Including character reference for chapter {chapter_number} of adaptation {adaptation_id}")
+            else:
+                logger.info(f"No character reference available for adaptation {adaptation_id}")
             
-            Target Age Group: {age_group}
-            Style: {style}
-            
-            Generate a prompt that describes a single, engaging scene from this chapter that would be perfect for a children's book illustration. Focus on:
-            - Main characters and their actions
-            - Setting and environment
-            - Mood and atmosphere appropriate for {age_group}
-            - Visual elements that support the story
-            
-            Keep the prompt under 200 words and make it vivid and descriptive.
-            """
-            
-            # Use modern chat helper
+            # Use modern chat helper with character reference
             from services import chat_helper
             messages = chat_helper.build_chapter_prompt_template(
                 chapter_text,
-                chapter.get('chapter_number', 1),
+                chapter_number,
                 adaptation,
+                formatted_char_ref=char_ref,  # Pass formatted character reference
             )
+            
             text, err = await chat_helper.generate_chat_text(messages, temperature=0.7, max_tokens=500)
+            
+            if err:
+                logger.error(f"Chat helper error: {err}")
+            
             if text:
                 return text.strip()
+            
             # Fallback to basic prompt
-            return f"A children's book illustration showing characters from Chapter {chapter.get('chapter_number', 1)}, colorful and engaging for {age_group}"
+            age_group = adaptation.get('target_age_group', 'Ages 6-8')
+            return f"A children's book illustration showing characters from Chapter {chapter_number}, colorful and engaging for {age_group}"
         
         except Exception as e:
             from services.logger import get_logger
@@ -464,7 +563,7 @@ class ImageGenerationService:
                         return b"".join(chunks)
                 image_data = await self._retry_async(_getter)
                 # Determine per-book directory for this adaptation
-                import database
+                import database_fixed as database
                 adaptation = await database.get_adaptation_details(self._current_adaptation_id if hasattr(self, "_current_adaptation_id") else None) if False else None
                 # Fallback: caller should pass adaptation_id through context; using filename to extract as last resort is unsafe, so we rely on generate_single_image to place correctly.
                 # Here, just write to root; generate_single_image reads bytes and re-writes to the per-book directory.
@@ -522,7 +621,7 @@ class ImageGenerationService:
             
             if result["success"]:
                 # Move to per-book directory
-                import database, shutil
+                import database_fixed as database, shutil
                 adaptation = await database.get_adaptation_details(adaptation_id)
                 book_id = adaptation.get('book_id') if adaptation else None
                 target_dir = os.path.join("generated_images", str(book_id)) if book_id else "generated_images"

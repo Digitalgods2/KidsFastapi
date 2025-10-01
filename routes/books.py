@@ -76,6 +76,14 @@ def detect_chapters_universal(text):
         (r'^\s*BOOK\s+([IVXLCDM]+)', 'book_roman'),
         (r'^\s*Book\s+(\d+)', 'book_numeric'),
         
+        # Stave format (A Christmas Carol and similar)
+        (r'^\s*Stave\s+([IVXLCDM]+)\s*[:\-—–]\s*(.+)', 'stave_roman_with_title'),
+        (r'^\s*STAVE\s+([IVXLCDM]+)\s*[:\-—–]\s*(.+)', 'stave_roman_uppercase_with_title'),
+        (r'^\s*Stave\s+([IVXLCDM]+)', 'stave_roman'),
+        (r'^\s*STAVE\s+([IVXLCDM]+)', 'stave_roman_uppercase'),
+        (r'^\s*Stave\s+(\d+)', 'stave_numeric'),
+        (r'^\s*STAVE\s+(\d+)', 'stave_numeric_uppercase'),
+        
         # Just numbers or romans with period (minimalist)
         (r'^\s*([IVXLCDM]+)\.\s+[A-Z]', 'roman_minimal'),
         (r'^\s*(\d+)\.\s+[A-Z]', 'numeric_minimal'),
@@ -171,6 +179,10 @@ def detect_original_chapters(text):
         r'^CHAPTER\s+\d+',
         r'^Part\s+[IVXLCDM]+',
         r'^Part\s+\d+',
+        r'^Stave\s+[IVXLCDM]+',
+        r'^Stave\s+\d+',
+        r'^STAVE\s+[IVXLCDM]+',
+        r'^STAVE\s+\d+',
         r'^\d+\.\s+[A-Z]',
         r'^[IVXLCDM]+\.\s+[A-Z]',
         r'^Chap\.\s*[IVXLCDM]+',
@@ -289,6 +301,18 @@ async def import_file(
         if len(text_content.strip()) < 100:
             raise HTTPException(status_code=400, detail="File content too short")
         
+        # Clean Project Gutenberg boilerplate if present
+        from services.gutenberg_cleaner import clean_gutenberg_text, is_likely_gutenberg_text
+        if is_likely_gutenberg_text(text_content):
+            text_content, was_cleaned = clean_gutenberg_text(text_content)
+            if was_cleaned:
+                from services.logger import get_logger
+                get_logger("routes.books").info("gutenberg_text_cleaned", extra={
+                    "component": "routes.books",
+                    "process_id": process_id,
+                    "title": title
+                })
+        
         from services.logger import get_logger, wrap_async_bg
         req_id = getattr(request.state, 'request_id', None)
         background_tasks.add_task(
@@ -324,7 +348,7 @@ async def import_url(
     author: str = Form(""),
     url: str = Form(...)
 ):
-    """Import book from URL"""
+    """Import book from URL (with automatic Project Gutenberg cleaning)"""
     
     process_id = str(uuid.uuid4())
     processing_states[process_id] = {"status": "starting", "progress": 0}
@@ -340,6 +364,21 @@ async def import_url(
         
         if len(text_content.strip()) < 100:
             raise HTTPException(status_code=400, detail="Content too short")
+        
+        # Automatically clean Project Gutenberg boilerplate
+        from services.gutenberg_cleaner import clean_gutenberg_text, is_gutenberg_url, is_likely_gutenberg_text
+        
+        # Check both URL and content for Gutenberg markers
+        if is_gutenberg_url(url) or is_likely_gutenberg_text(text_content):
+            text_content, was_cleaned = clean_gutenberg_text(text_content)
+            if was_cleaned:
+                from services.logger import get_logger
+                get_logger("routes.books").info("gutenberg_url_cleaned", extra={
+                    "component": "routes.books",
+                    "process_id": process_id,
+                    "url": url,
+                    "title": title
+                })
         
         from services.logger import wrap_async_bg
         req_id = getattr(request.state, 'request_id', None)
@@ -574,6 +613,16 @@ async def analyze_characters(book_id: int = Form(...)):
         
         log.info("content_loaded", extra={"book_id": book_id, "content_len": len(content)})
         
+        # Clean Project Gutenberg boilerplate if present (improves character analysis accuracy)
+        from services.gutenberg_cleaner import clean_gutenberg_text, is_likely_gutenberg_text
+        if is_likely_gutenberg_text(content):
+            content, was_cleaned = clean_gutenberg_text(content)
+            if was_cleaned:
+                log.info("gutenberg_boilerplate_removed", extra={
+                    "book_id": book_id,
+                    "cleaned_length": len(content)
+                })
+        
         # Step 4: Test OpenAI connection with simple request
         log.info("openai_test_start", extra={"book_id": book_id})
 
@@ -607,15 +656,29 @@ async def analyze_characters(book_id: int = Form(...)):
 
         log.info("analyze_characters_step5_start", extra={"book_id": book_id, "content_len": len(content)})
         
-        # Use smaller chunks for more reliable processing
-        chunk_size = 8000  # Reduced from 15000 for better reliability
-        chunks = []
+        # Use optimized chunk size based on content length
+        # For books < 100KB: use larger chunks (10k)
+        # For books 100-300KB: use medium chunks (8k)
+        # For books > 300KB: use smaller chunks (6k) to avoid timeouts
+        content_kb = len(content) / 1024
+        if content_kb < 100:
+            chunk_size = 10000
+        elif content_kb < 300:
+            chunk_size = 8000
+        else:
+            chunk_size = 6000
         
+        chunks = []
         for i in range(0, len(content), chunk_size):
             chunk = content[i:i + chunk_size]
             chunks.append(chunk)
         
-        log.info("chunks_ready", extra={"book_id": book_id, "chunks": len(chunks), "chunk_size": chunk_size})
+        log.info("chunks_ready", extra={
+            "book_id": book_id,
+            "chunks": len(chunks),
+            "chunk_size": chunk_size,
+            "content_kb": round(content_kb, 1)
+        })
         
         all_characters = set()
         successful_chunks = 0
@@ -646,6 +709,13 @@ async def analyze_characters(book_id: int = Form(...)):
             prompt = f"""Extract character names from this section of "{book['title']}".
 Find ALL characters mentioned: main characters, minor characters, named people, animals with names.
 Only return actual character names, not descriptions or titles alone.
+
+IGNORE:
+- Copyright notices
+- Publishing information
+- Legal text
+- Table of contents entries
+- Chapter headings
 
 Text section:
 {chunk[:4000]}

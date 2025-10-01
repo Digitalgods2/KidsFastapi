@@ -70,7 +70,7 @@ class CharacterAnalyzer:
     
     async def analyze_characters_with_ai(self, text: str, book_title: str = "", book_author: str = "") -> Dict:
         """
-        Analyze characters using OpenAI GPT-4 for comprehensive character detection
+        Analyze characters using OpenAI GPT with large context window for comprehensive character detection
         
         Args:
             text: The full book text to analyze
@@ -81,18 +81,34 @@ class CharacterAnalyzer:
             Dictionary containing character analysis results
         """
         try:
-            # Use a large portion of the text to catch characters throughout the story
-            sample = text[:400000]
+            from services.logger import get_logger
+            logger = get_logger("services.character_analyzer")
+            
+            # Use as much text as possible - gpt-4o supports 128k tokens
+            # For character analysis, we want to see the whole book if possible
+            # 128k tokens ≈ 400k-500k characters
+            sample = text[:500000]  # Use up to 500k characters
             context = f'"{book_title}" by {book_author}' if book_title and book_author else "this story"
+            
+            logger.info(f"Analyzing {len(sample)} characters from book for character extraction")
+            
             prompt = f"""You are analyzing {context}.
 
 Your task is to find and analyze ALL major and minor characters that appear in the text.
+
+CRITICAL: Focus on providing CONSISTENT PHYSICAL DESCRIPTIONS that will be used for image generation across multiple chapters. Be specific about:
+- Hair color, style, and length
+- Eye color
+- Clothing (specific colors, styles, patterns)
+- Age and build
+- Distinguishing features
+- Any items they consistently carry
 
 For each character you find, provide:
 1. Character name (use the most common name they're referred to by)
 2. Role in story (protagonist/antagonist/companion/supporting/magical_being/family/authority_figure)
 3. Importance (major/minor)
-4. Brief physical description for image consistency
+4. DETAILED physical description for image consistency (be very specific!)
 5. Key personality traits
 6. Special abilities or items if any
 
@@ -111,7 +127,7 @@ Return as JSON with this structure:
       "role": "role_here",
       "importance": "major/minor",
       "physical_appearance": {{
-        "description": "detailed physical description for consistent image generation"
+        "description": "DETAILED physical description - include hair color/style, eye color, specific clothing colors/patterns, age, build, and distinguishing features"
       }},
       "personality_traits": ["trait1", "trait2", "trait3"],
       "special_attributes": {{
@@ -124,25 +140,42 @@ Return as JSON with this structure:
 Text to analyze:
 {sample}"""
 
-            # Ask for JSON; parse if possible
+            # Use gpt-4o which has 128k token context window
+            # This can handle the full book text without truncation
             text_out, err = await chat_helper.generate_chat_text(
                 messages=[
-                    {"role": "system", "content": "You are a literary analyst specializing in character identification. You must be thorough and find ALL major and minor characters mentioned in the text. Focus on characters that have names, dialogue, or significant actions."},
+                    {"role": "system", "content": "You are a literary analyst specializing in character identification and visual consistency. You must be thorough and find ALL major and minor characters mentioned in the text. Most importantly, provide DETAILED physical descriptions that will ensure the same character looks identical across multiple illustrations. Be specific about colors, patterns, styles - not just 'a dress' but 'a blue and white gingham dress'."},
                     {"role": "user", "content": prompt}
                 ],
-                model=getattr(__import__('config'), 'DEFAULT_GPT_MODEL', 'gpt-4o-mini'),
+                model='gpt-4o',  # Large context window model
                 temperature=0.1,
-                max_tokens=4000,
+                max_tokens=8000,  # Increased for more detailed responses
             )
             if err:
                 return {"error": err}
+            
+            # Clean up response - remove markdown code blocks if present
+            cleaned_response = text_out or "{}"
+            if cleaned_response.startswith("```"):
+                # Remove markdown code blocks
+                lines = cleaned_response.split('\n')
+                # Remove first line (```json or ```)
+                if lines and lines[0].startswith('```'):
+                    lines = lines[1:]
+                # Remove last line (```)
+                if lines and lines[-1].strip() == '```':
+                    lines = lines[:-1]
+                cleaned_response = '\n'.join(lines)
+            
             try:
-                character_analysis = json.loads(text_out or "{}")
+                character_analysis = json.loads(cleaned_response)
             except json.JSONDecodeError as e:
+                logger.error(f"Failed to parse character analysis JSON: {e}")
+                logger.error(f"Response preview: {cleaned_response[:500]}")
                 return {
                     "error": "Failed to parse character analysis JSON",
                     "details": str(e),
-                    "raw_response": text_out,
+                    "raw_response": cleaned_response,
                 }
 
             char_count = len(character_analysis.get('characters_reference', {}))

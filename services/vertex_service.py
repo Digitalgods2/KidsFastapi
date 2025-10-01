@@ -45,15 +45,33 @@ class VertexService:
             # Enhance prompt based on mode
             enhanced_prompt = self._enhance_prompt_with_mode(prompt, mode, **kwargs)
             
+            # Extract aspect_ratio from kwargs if provided
+            aspect_ratio = kwargs.get('aspect_ratio', None)
+            
             # Prepare the request
-            instance = self._create_imagen_instance(enhanced_prompt, mode)
+            instance = self._create_imagen_instance(enhanced_prompt, mode, aspect_ratio)
             instances = [instance]
             
             # Make the prediction request
+            print(f"🔧 DEBUG: Making prediction request to endpoint: {self.endpoint}")
+            print(f"🔧 DEBUG: Instance fields: {[(k, str(v)[:100]) for k, v in instance.fields.items()]}")
+            
+            # Also try passing parameters separately (Imagen 4 format)
+            parameters = struct_pb2.Struct()
+            if aspect_ratio:
+                parameters.fields['aspectRatio'].string_value = aspect_ratio
+                parameters.fields['aspect_ratio'].string_value = aspect_ratio
+            parameters.fields['sampleCount'].number_value = 1
+            
+            print(f"🔧 DEBUG: Parameters: {[(k, str(v)[:100]) for k, v in parameters.fields.items()]}")
+            
             response = self.client.predict(
                 endpoint=self.endpoint,
-                instances=instances
+                instances=instances,
+                parameters=parameters
             )
+            
+            print(f"🔧 DEBUG: Response received, predictions count: {len(response.predictions) if response.predictions else 0}")
             
             # Process the response
             if response.predictions:
@@ -104,7 +122,7 @@ class VertexService:
         
         return enhanced_prompt
     
-    def _create_imagen_instance(self, prompt: str, mode: str) -> struct_pb2.Struct:
+    def _create_imagen_instance(self, prompt: str, mode: str, aspect_ratio: str = None) -> struct_pb2.Struct:
         """Create Imagen prediction instance"""
         instance = struct_pb2.Struct()
         
@@ -112,6 +130,7 @@ class VertexService:
         instance.fields['prompt'].string_value = prompt
         
         # Mode-specific configuration
+        final_aspect_ratio = None
         if mode in config.IMAGEN_MODES:
             mode_config = config.IMAGEN_MODES[mode]
             vertex_config = mode_config.get('vertex_config', {})
@@ -119,7 +138,11 @@ class VertexService:
             # Apply vertex-specific configuration
             for key, value in vertex_config.items():
                 if key == 'aspectRatio':
-                    instance.fields['aspectRatio'].string_value = value
+                    # Override with provided aspect_ratio if available
+                    final_aspect_ratio = aspect_ratio if aspect_ratio else value
+                    # Try both aspectRatio and aspect_ratio field names
+                    instance.fields['aspectRatio'].string_value = final_aspect_ratio
+                    instance.fields['aspect_ratio'].string_value = final_aspect_ratio
                 elif key == 'sampleCount':
                     instance.fields['sampleCount'].number_value = value
                 elif key == 'seed':
@@ -128,8 +151,14 @@ class VertexService:
                     instance.fields['guidanceScale'].number_value = value
         else:
             # Default configuration
-            instance.fields['aspectRatio'].string_value = '1:1'
+            final_aspect_ratio = aspect_ratio if aspect_ratio else '1:1'
+            # Try both aspectRatio and aspect_ratio field names
+            instance.fields['aspectRatio'].string_value = final_aspect_ratio
+            instance.fields['aspect_ratio'].string_value = final_aspect_ratio
             instance.fields['sampleCount'].number_value = 1
+        
+        print(f"🔧 DEBUG: _create_imagen_instance called with aspect_ratio={aspect_ratio}, mode={mode}, final_aspect_ratio={final_aspect_ratio}")
+        print(f"🔧 DEBUG: instance.fields['aspectRatio'] = {instance.fields.get('aspectRatio', 'NOT SET')}")
         
         return instance
     

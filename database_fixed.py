@@ -182,6 +182,16 @@ class DatabaseManager:
                 )
             ''')
             
+            # Settings table for application configuration
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS settings (
+                    setting_key TEXT PRIMARY KEY,
+                    setting_value TEXT NOT NULL,
+                    description TEXT,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            ''')
+            
             conn.commit()
             print("✅ Database created successfully")
             
@@ -330,7 +340,31 @@ db_manager = DatabaseManager()
 def initialize_database():
     """Initialize the database and ensure schema exists"""
     db_manager._ensure_database_exists()
+    # Ensure settings table exists (migration for existing databases)
+    ensure_settings_table()
     print("✅ Database initialized")
+
+def ensure_settings_table():
+    """Ensure settings table exists - can be run on existing databases"""
+    conn = db_manager.get_connection()
+    cursor = conn.cursor()
+    
+    try:
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS settings (
+                setting_key TEXT PRIMARY KEY,
+                setting_value TEXT NOT NULL,
+                description TEXT,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        ''')
+        conn.commit()
+        print("✅ Settings table ensured")
+    except Exception as e:
+        print(f"❌ Settings table creation failed: {e}")
+        conn.rollback()
+    finally:
+        conn.close()
 
 # Compat: expose a simple connection getter expected by some routes
 # Returns a new sqlite3 connection. Caller should close it.
@@ -508,11 +542,12 @@ async def get_all_books() -> List[Dict]:
         conn.close()
 
 async def get_all_books_with_adaptations() -> List[Dict]:
-    """Get all books with adaptation counts - matches app5.py function"""
+    """Get all books with adaptation counts and adaptation details"""
     conn = db_manager.get_connection()
     cursor = conn.cursor()
     
     try:
+        # First get all books with counts
         cursor.execute('''
             SELECT 
                 b.book_id,
@@ -529,14 +564,37 @@ async def get_all_books_with_adaptations() -> List[Dict]:
         
         books = []
         for row in cursor.fetchall():
-            books.append({
-                "book_id": row[0],
+            book_id = row[0]
+            book = {
+                "book_id": book_id,
                 "title": row[1],
                 "author": row[2],
                 "source_type": row[3],
                 "imported_at": row[4],
-                "adaptation_count": row[5]
-            })
+                "adaptation_count": row[5],
+                "adaptations": []
+            }
+            
+            # Get adaptations for this book
+            if row[5] > 0:  # If adaptation_count > 0
+                cursor.execute('''
+                    SELECT adaptation_id, target_age_group, transformation_style, 
+                           overall_theme_tone, status, created_at
+                    FROM adaptations WHERE book_id = ?
+                    ORDER BY created_at DESC
+                ''', (book_id,))
+                
+                for adapt_row in cursor.fetchall():
+                    book["adaptations"].append({
+                        "adaptation_id": adapt_row[0],
+                        "target_age_group": adapt_row[1],
+                        "transformation_style": adapt_row[2],
+                        "overall_theme_tone": adapt_row[3],
+                        "status": adapt_row[4],
+                        "created_at": adapt_row[5]
+                    })
+            
+            books.append(book)
         
         return books
     finally:
@@ -781,6 +839,102 @@ async def get_adaptations_for_book(book_id: int) -> List[Dict]:
                 "overall_theme_tone": row[3],
                 "status": row[4],
                 "created_at": row[5]
+            })
+        
+        return adaptations
+    finally:
+        conn.close()
+
+async def get_all_adaptations() -> List[Dict]:
+    """Get all adaptations with book details - used by adaptations list page"""
+    conn = db_manager.get_connection()
+    cursor = conn.cursor()
+    
+    try:
+        cursor.execute('''
+            SELECT 
+                a.adaptation_id, a.book_id, a.target_age_group, a.transformation_style,
+                a.overall_theme_tone, a.key_characters_to_preserve, a.chapter_structure_choice,
+                a.cover_prompt, a.cover_url, a.status, a.created_at,
+                b.title, b.author
+            FROM adaptations a
+            JOIN books b ON a.book_id = b.book_id
+            ORDER BY a.created_at DESC
+        ''')
+        
+        adaptations = []
+        for row in cursor.fetchall():
+            adaptations.append({
+                "adaptation_id": row[0],
+                "book_id": row[1],
+                "target_age_group": row[2],
+                "transformation_style": row[3],
+                "overall_theme_tone": row[4],
+                "key_characters_to_preserve": row[5],
+                "chapter_structure_choice": row[6],
+                "cover_prompt": row[7],
+                "cover_url": row[8],
+                "status": row[9],
+                "created_at": row[10],
+                "book_title": row[11],
+                "book_author": row[12]
+            })
+        
+        return adaptations
+    finally:
+        conn.close()
+
+async def get_all_adaptations_with_stats() -> List[Dict]:
+    """Get all adaptations with book details AND content statistics - used by publish page"""
+    conn = db_manager.get_connection()
+    cursor = conn.cursor()
+    
+    try:
+        cursor.execute('''
+            SELECT 
+                a.adaptation_id, a.book_id, a.target_age_group, a.transformation_style,
+                a.overall_theme_tone, a.key_characters_to_preserve, a.chapter_structure_choice,
+                a.cover_prompt, a.cover_url, a.status, a.created_at,
+                b.title, b.author,
+                COUNT(DISTINCT c.chapter_id) as chapter_count,
+                SUM(CASE WHEN c.image_url IS NOT NULL AND c.image_url != '' THEN 1 ELSE 0 END) as image_count,
+                SUM(CASE 
+                    WHEN c.transformed_text IS NOT NULL AND LENGTH(c.transformed_text) > 0 
+                    THEN LENGTH(c.transformed_text)
+                    WHEN c.original_text_segment IS NOT NULL 
+                    THEN LENGTH(c.original_text_segment)
+                    ELSE 0
+                END) as total_chars
+            FROM adaptations a
+            JOIN books b ON a.book_id = b.book_id
+            LEFT JOIN chapters c ON a.adaptation_id = c.adaptation_id
+            GROUP BY a.adaptation_id
+            ORDER BY a.created_at DESC
+        ''')
+        
+        adaptations = []
+        for row in cursor.fetchall():
+            total_chars = row[15] or 0
+            word_count = max(1, total_chars // 5) if total_chars > 0 else 0  # Rough estimate: avg 5 chars per word
+            
+            adaptations.append({
+                "adaptation_id": row[0],
+                "book_id": row[1],
+                "target_age_group": row[2],
+                "transformation_style": row[3],
+                "overall_theme_tone": row[4],
+                "key_characters_to_preserve": row[5],
+                "chapter_structure_choice": row[6],
+                "cover_prompt": row[7],
+                "cover_url": row[8],
+                "status": row[9],
+                "created_at": row[10],
+                "book_title": row[11],
+                "book_author": row[12],
+                "chapter_count": row[13],
+                "image_count": row[14],
+                "total_chars": total_chars,
+                "word_count": word_count
             })
         
         return adaptations
@@ -1115,28 +1269,56 @@ async def update_adaptation_cover(adaptation_id: int, cover_image_url: str, cove
     return await update_adaptation_cover_image(adaptation_id, cover_image_prompt, cover_image_url)
 
 async def get_generated_images() -> List[Dict]:
-    """Return simple list of generated images across chapters for gallery."""
+    """Return simple list of generated images across chapters AND cover images for gallery.
+    Covers appear first within each adaptation, then chapters in numerical order."""
     conn = db_manager.get_connection()
     cur = conn.cursor()
     try:
+        # Use UNION to combine chapter images with cover images
+        # Sort priority: newest adaptations first, cover before chapters, chapters by number
         cur.execute('''
-            SELECT c.chapter_id, c.adaptation_id, c.image_url, c.ai_prompt, c.created_at,
-                   a.book_id, a.target_age_group
+            SELECT c.chapter_id, c.chapter_number, c.adaptation_id, c.image_url, c.ai_prompt, c.created_at,
+                   a.book_id, a.target_age_group, a.transformation_style, a.created_at AS adaptation_created,
+                   b.title AS book_title, b.author AS book_author, b.imported_at AS book_imported,
+                   'chapter' as image_type,
+                   1 as sort_priority
             FROM chapters c
             JOIN adaptations a ON c.adaptation_id = a.adaptation_id
+            JOIN books b ON a.book_id = b.book_id
             WHERE c.image_url IS NOT NULL
-            ORDER BY c.created_at DESC
+            
+            UNION ALL
+            
+            SELECT NULL as chapter_id, -1 as chapter_number, a.adaptation_id, a.cover_url as image_url, 
+                   a.cover_prompt as ai_prompt, a.created_at,
+                   a.book_id, a.target_age_group, a.transformation_style, a.created_at AS adaptation_created,
+                   b.title AS book_title, b.author AS book_author, b.imported_at AS book_imported,
+                   'cover' as image_type,
+                   0 as sort_priority
+            FROM adaptations a
+            JOIN books b ON a.book_id = b.book_id
+            WHERE a.cover_url IS NOT NULL
+            
+            ORDER BY adaptation_id DESC, sort_priority ASC, chapter_number ASC
         ''')
         out = []
         for row in cur.fetchall():
             out.append({
                 'chapter_id': row[0],
-                'adaptation_id': row[1],
-                'image_url': row[2],
-                'prompt': row[3],
-                'created_at': row[4],
-                'book_id': row[5],
-                'target_age_group': row[6],
+                'chapter_number': row[1] if row[1] >= 0 else 0,  # Cover has -1, normalize to 0
+                'adaptation_id': row[2],
+                'image_url': row[3],
+                'prompt': row[4],
+                'created_at': row[5],
+                'book_id': row[6],
+                'target_age_group': row[7],
+                'transformation_style': row[8],
+                'adaptation_created': row[9],
+                'book_title': row[10],
+                'book_author': row[11],
+                'book_imported': row[12],
+                'image_type': row[13],  # 'chapter' or 'cover'
+                # Note: row[14] is sort_priority, used for query sorting only
             })
         return out
     finally:
@@ -1361,16 +1543,60 @@ async def update_chapter_image_prompt(chapter_id: int, image_prompt: str) -> boo
         conn.close()
 
 async def get_setting(setting_key: str, default_value: str = None) -> str:
-    """Get setting value"""
-    return default_value  # Simple implementation for now
+    """Get setting value from database"""
+    conn = db_manager.get_connection()
+    cursor = conn.cursor()
+    
+    try:
+        cursor.execute('SELECT setting_value FROM settings WHERE setting_key = ?', (setting_key,))
+        row = cursor.fetchone()
+        if row:
+            return row[0]
+        return default_value
+    except Exception as e:
+        print(f"❌ Get setting failed for {setting_key}: {e}")
+        return default_value
+    finally:
+        conn.close()
 
 async def update_setting(setting_key: str, setting_value: str, description: str = "") -> bool:
-    """Update setting"""
-    return True  # Simple implementation for now
+    """Update or insert setting value"""
+    conn = db_manager.get_connection()
+    cursor = conn.cursor()
+    
+    try:
+        cursor.execute('''
+            INSERT INTO settings (setting_key, setting_value, description, updated_at)
+            VALUES (?, ?, ?, CURRENT_TIMESTAMP)
+            ON CONFLICT(setting_key) DO UPDATE SET
+                setting_value = excluded.setting_value,
+                description = excluded.description,
+                updated_at = CURRENT_TIMESTAMP
+        ''', (setting_key, setting_value, description))
+        
+        conn.commit()
+        return True
+    except Exception as e:
+        print(f"❌ Update setting failed for {setting_key}: {e}")
+        conn.rollback()
+        return False
+    finally:
+        conn.close()
 
 async def get_all_settings() -> dict:
-    """Get all settings"""
-    return {}  # Simple implementation for now
+    """Get all settings as a dictionary"""
+    conn = db_manager.get_connection()
+    cursor = conn.cursor()
+    
+    try:
+        cursor.execute('SELECT setting_key, setting_value FROM settings')
+        rows = cursor.fetchall()
+        return {row[0]: row[1] for row in rows}
+    except Exception as e:
+        print(f"❌ Get all settings failed: {e}")
+        return {}
+    finally:
+        conn.close()
 
 
 # ==================== COMPATIBILITY ALIASES ====================
