@@ -17,8 +17,7 @@ BACKEND_ASPECT_RATIOS: Dict[str, List[str]] = {
         "1:1",      # Square - 1024x1024
         "16:9",     # Landscape wide - 1792x1024
         "9:16",     # Portrait tall - 1024x1792
-        "4:3",      # Classic landscape - 1365x1024
-        "3:4",      # Classic portrait - 1024x1365
+        # GPT-Image-1 only supports these 3 aspect ratios
     ],
     "dall-e-3": [
         "1:1",      # Square - 1024x1024
@@ -50,8 +49,7 @@ ASPECT_RATIO_SIZES: Dict[str, Dict[str, str]] = {
         "1:1": "1024x1024",
         "16:9": "1792x1024",
         "9:16": "1024x1792",
-        "4:3": "1792x1024",  # Use 16:9 size for 4:3 (closest supported)
-        "3:4": "1024x1792",  # Use 9:16 size for 3:4 (closest supported)
+        # GPT-Image-1 only supports these 3 sizes officially
     },
     "dall-e-3": {
         "1:1": "1024x1024",
@@ -88,11 +86,12 @@ BACKEND_DESCRIPTIONS: Dict[str, str] = {
 
 # Default aspect ratio for each backend
 DEFAULT_ASPECT_RATIOS: Dict[str, str] = {
-    "gpt-image-1": "16:9",   # Use supported landscape format
-    "dall-e-3": "1:1",        # Square default
-    "vertex-imagen": "16:9",  # Landscape format
-    "vertex-children": "4:3", # Book format
-    "vertex-artistic": "1:1", # Square for art
+    "gpt-image-1": "16:9",        # Landscape format (supported)
+    "dall-e-3": "1:1",            # Square default
+    "vertex-imagen": "16:9",      # Landscape format 
+    "imagen-children": "4:3",     # Book format (children's books)
+    "vertex-children": "4:3",     # Book format
+    "vertex-artistic": "1:1",     # Square for art
 }
 
 def validate_backend(name: str) -> bool:

@@ -252,7 +252,19 @@ class ImageGenerationService:
             # Get aspect ratio from settings if not provided
             if not aspect_ratio:
                 import database_fixed as database
-                aspect_ratio = await database.get_setting("default_aspect_ratio", "4:3")
+                from services.backends import BACKEND_ASPECT_RATIOS, DEFAULT_ASPECT_RATIOS
+                
+                # Get the saved aspect ratio
+                saved_aspect_ratio = await database.get_setting("default_aspect_ratio", "16:9")
+                
+                # Check if this aspect ratio is valid for the current model
+                valid_ratios = BACKEND_ASPECT_RATIOS.get(model, ["1:1"])
+                if saved_aspect_ratio in valid_ratios:
+                    aspect_ratio = saved_aspect_ratio
+                else:
+                    # Use the default aspect ratio for this specific backend
+                    aspect_ratio = DEFAULT_ASPECT_RATIOS.get(model, "1:1")
+                    logger.info(f"Saved aspect ratio {saved_aspect_ratio} not valid for {model}, using {aspect_ratio}")
             
             # Get size based on aspect ratio
             from services.backends import get_aspect_ratio_size
@@ -402,8 +414,23 @@ class ImageGenerationService:
             
             # Get image settings from database
             import database_fixed as database
-            size_setting = await database.get_setting("default_image_size", "1024x1024")
-            logger.info(f"📐 Using image size: {size_setting}")
+            from services.backends import BACKEND_ASPECT_RATIOS, DEFAULT_ASPECT_RATIOS, ASPECT_RATIO_SIZES
+            
+            # Get the saved aspect ratio
+            saved_aspect_ratio = await database.get_setting("default_aspect_ratio", "16:9")
+            
+            # Check if this aspect ratio is valid for the current model
+            valid_ratios = BACKEND_ASPECT_RATIOS.get(model, ["1:1"])
+            if saved_aspect_ratio in valid_ratios:
+                aspect_ratio = saved_aspect_ratio
+            else:
+                # Use the default aspect ratio for this specific backend
+                aspect_ratio = DEFAULT_ASPECT_RATIOS.get(model, "1:1")
+                logger.info(f"Saved aspect ratio {saved_aspect_ratio} not valid for {model}, using {aspect_ratio}")
+            
+            # Get the size for this backend and aspect ratio
+            size_setting = ASPECT_RATIO_SIZES.get(model, {}).get(aspect_ratio, "1024x1024")
+            logger.info(f"📐 Using image size: {size_setting} for {model} with aspect ratio {aspect_ratio}")
             
             # Convert string model to ImageModel enum
             from models import ImageModel
