@@ -623,3 +623,107 @@ small, .small {
 .lead {
   color: rgba(255, 255, 255, 0.8) !important;
 }
+
+/* Navigation Pills */
+.nav-pills .nav-link {
+  color: rgba(255, 255, 255, 0.7) !important;
+  background: rgba(255, 255, 255, 0.05) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  margin-bottom: 0.5rem;
+}
+
+.nav-pills .nav-link:hover {
+  color: #ffffff !important;
+  background: rgba(255, 255, 255, 0.1) !important;
+  border-color: var(--dg-primary) !important;
+}
+
+.nav-pills .nav-link.active {
+  color: #ffffff !important;
+  background: linear-gradient(135deg, var(--dg-primary), var(--dg-secondary)) !important;
+  border-color: var(--dg-primary) !important;
+}
+
+/* Tab Content */
+.tab-content {
+  color: #ffffff !important;
+}
+
+/* Input Groups */
+.input-group-text {
+  background: rgba(255, 255, 255, 0.08) !important;
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+  color: #ffffff !important;
+}
+
+/* Tables */
+.table {
+  color: #ffffff !important;
+}
+
+.table th {
+  border-color: rgba(255, 255, 255, 0.2) !important;
+  color: #ffffff !important;
+}
+
+.table td {
+  border-color: rgba(255, 255, 255, 0.1) !important;
+  color: #ffffff !important;
+}
+
+.table-striped > tbody > tr:nth-of-type(odd) {
+  background: rgba(255, 255, 255, 0.02) !important;
+}
+
+/* Progress bars */
+.progress {
+  background: rgba(255, 255, 255, 0.1) !important;
+}
+
+.progress-bar {
+  background: linear-gradient(135deg, var(--dg-primary), var(--dg-secondary)) !important;
+}
+
+/* Breadcrumbs */
+.breadcrumb {
+  background: rgba(255, 255, 255, 0.05) !important;
+}
+
+.breadcrumb-item a {
+  color: var(--dg-primary) !important;
+}
+
+.breadcrumb-item.active {
+  color: rgba(255, 255, 255, 0.8) !important;
+}
+
+/* List groups */
+.list-group-item {
+  background: rgba(255, 255, 255, 0.05) !important;
+  border-color: rgba(255, 255, 255, 0.1) !important;
+  color: #ffffff !important;
+}
+
+.list-group-item:hover {
+  background: rgba(255, 255, 255, 0.08) !important;
+}
+
+/* Modals */
+.modal-content {
+  background: rgba(26, 26, 26, 0.95) !important;
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+  color: #ffffff !important;
+}
+
+.modal-header {
+  border-bottom-color: rgba(255, 255, 255, 0.2) !important;
+}
+
+.modal-footer {
+  border-top-color: rgba(255, 255, 255, 0.2) !important;
+}
+
+/* Close buttons */
+.btn-close {
+  filter: invert(1) grayscale(100%) brightness(200%);
+}

@@ -177,7 +177,7 @@
         <div class="col-lg-8">
             {% if chapters %}
             <div class="card border-0 shadow-sm">
-                <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                <div class="card-header style="background: linear-gradient(135deg, rgba(65, 105, 225, 0.1), rgba(220, 20, 60, 0.05)); d-flex justify-content-between align-items-center">
                     <h5 class="mb-0">
                         <i class="bi bi-book"></i> Chapters ({{ chapters|length }})
                     </h5>
@@ -282,7 +282,7 @@
                                         <p class="card-text small text-muted">{{ chapter.content[:80] }}...</p>
                                         {% endif %}
                                     </div>
-                                    <div class="card-footer bg-white border-top-0">
+                                    <div class="card-footer style="background: linear-gradient(135deg, rgba(65, 105, 225, 0.1), rgba(220, 20, 60, 0.05)); border-top-0">
                                         <div class="d-flex gap-1">
                                             <button class="btn btn-sm btn-outline-primary flex-fill" onclick="viewChapter({{ chapter.chapter_id }})">
                                                 <i class="bi bi-eye"></i> View
@@ -388,7 +388,7 @@
                                 
                                 <div class="mb-3">
                                     <label class="form-label small text-muted">Image Prompt</label>
-                                    <div id="imagePromptDisplay" class="small border rounded p-2 bg-white" style="max-height: 150px; overflow-y: auto;">
+                                    <div id="imagePromptDisplay" class="small border rounded p-2 style="background: linear-gradient(135deg, rgba(65, 105, 225, 0.1), rgba(220, 20, 60, 0.05));" style="max-height: 150px; overflow-y: auto;">
                                         Loading...
                                     </div>
                                 </div>
