@@ -214,27 +214,56 @@ class WorkflowManager:
             if not book:
                 raise ValueError(f"Book {book_id} not found")
             
-            # Get book text content
-            book_text = book.get("path", "")
-            if not book_text:
-                self.logger.warning("no_book_text_for_analysis", extra={
+            # Get book text content from file
+            book_path = book.get("path", "")
+            if not book_path:
+                self.logger.warning("no_book_path_for_analysis", extra={
                     "book_id": book_id,
                     "workflow_id": workflow_id
                 })
                 return
             
-            # Analyze characters
-            self.logger.info("character_analysis_start", extra={
-                "workflow_id": workflow_id,
-                "book_id": book_id
-            })
+            # Read the actual book content from the file
+            try:
+                import os
+                full_path = os.path.join("/home/user/webapp", book_path)
+                if not os.path.exists(full_path):
+                    # Try without prepending path
+                    full_path = book_path
+                
+                with open(full_path, 'r', encoding='utf-8') as f:
+                    book_text = f.read()
+            except Exception as e:
+                self.logger.error("failed_to_read_book_file", extra={
+                    "book_id": book_id,
+                    "workflow_id": workflow_id,
+                    "path": book_path,
+                    "error": str(e)
+                })
+                return
             
-            analyzer = CharacterAnalyzer()
-            character_data = await analyzer.analyze_book_characters(
-                book_text,
-                book.get("title", "Unknown"),
-                book.get("author", "Unknown")
-            )
+            # Check if character analysis was already done
+            existing_characters = await database.get_character_reference(book_id)
+            if existing_characters:
+                self.logger.info("character_analysis_already_done", extra={
+                    "workflow_id": workflow_id,
+                    "book_id": book_id
+                })
+                # Use existing character data
+                character_data = existing_characters
+            else:
+                # Analyze characters
+                self.logger.info("character_analysis_start", extra={
+                    "workflow_id": workflow_id,
+                    "book_id": book_id
+                })
+                
+                analyzer = CharacterAnalyzer()
+                character_data = await analyzer.analyze_book_characters(
+                    book_text,
+                    book.get("title", "Unknown"),
+                    book.get("author", "Unknown")
+                )
             
             if character_data:
                 # Save character reference to database
