@@ -711,9 +711,14 @@ async def delete_book_from_db(book_id: int) -> bool:
             import shutil as _sh
             _dir = os.path.join('generated_images', str(book_id))
             if os.path.isdir(_dir):
+                # Count files before deletion for logging
+                file_count = sum([len(files) for r, d, files in os.walk(_dir)])
                 _sh.rmtree(_dir)
-        except Exception:
-            pass
+                print(f"✅ Removed image directory for book {book_id}: {_dir} ({file_count} files)")
+            else:
+                print(f"ℹ️  No image directory found for book {book_id}")
+        except Exception as e:
+            print(f"⚠️  Could not remove image directory for book {book_id}: {e}")
 
         # Remove upload file if exists
         try:

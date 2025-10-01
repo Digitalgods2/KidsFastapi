@@ -317,7 +317,11 @@ class ImageGenerationService:
             chapter = await database.get_chapter_details(chapter_id)
             book_id = adaptation.get('book_id') if adaptation else None
             chapter_number = chapter.get('chapter_number') if chapter else chapter_id
-            target_dir = os.path.join("generated_images", str(book_id)) if book_id else "generated_images"
+            # Use hierarchical structure: /generated_images/{book_id}/chapters/
+            if book_id:
+                target_dir = os.path.join("generated_images", str(book_id), "chapters")
+            else:
+                target_dir = os.path.join("generated_images", "orphaned", "chapters")
 
             # Save image locally under per-book directory (use chapter_number for filename)
             filename = f"adaptation_{adaptation_id}_chapter_{chapter_number}_{model}.png"
@@ -436,7 +440,11 @@ class ImageGenerationService:
                 chapter = await database.get_chapter_details(chapter_id)
                 book_id = adaptation.get('book_id') if adaptation else None
                 chapter_number = chapter.get('chapter_number') if chapter else chapter_id
-                target_dir = os.path.join("generated_images", str(book_id)) if book_id else "generated_images"
+                # Use hierarchical structure: /generated_images/{book_id}/chapters/
+                if book_id:
+                    target_dir = os.path.join("generated_images", str(book_id), "chapters")
+                else:
+                    target_dir = os.path.join("generated_images", "orphaned", "chapters")
                 logger.info(f"📁 Target directory: {target_dir}, book_id={book_id}")
 
                 # Vertex AI already saved the image locally - image_url is a local path like /generated_images/filename.png
@@ -634,7 +642,11 @@ class ImageGenerationService:
                 import database_fixed as database, shutil
                 adaptation = await database.get_adaptation_details(adaptation_id)
                 book_id = adaptation.get('book_id') if adaptation else None
-                target_dir = os.path.join("generated_images", str(book_id)) if book_id else "generated_images"
+                # Use hierarchical structure: /generated_images/{book_id}/chapters/
+                if book_id:
+                    target_dir = os.path.join("generated_images", str(book_id), "chapters")
+                else:
+                    target_dir = os.path.join("generated_images", "orphaned", "chapters")
                 os.makedirs(target_dir, exist_ok=True)
 
                 cover_filename = f"cover_adaptation_{adaptation_id}.png"

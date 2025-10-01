@@ -176,9 +176,12 @@ async def generate_cover_image(adaptation_id: int, request: ImagePromptRequest):
         if not local_path:
             return JSONResponse({"success": False, "error": "Image path missing after generation"})
 
-        # Move/Copy image to per-book directory
+        # Move/Copy image to hierarchical directory structure: /generated_images/{book_id}/covers/
         book_id = adaptation.get('book_id')
-        cover_dir = os.path.join("generated_images", str(book_id)) if book_id else "generated_images"
+        if book_id:
+            cover_dir = os.path.join("generated_images", str(book_id), "covers")
+        else:
+            cover_dir = os.path.join("generated_images", "orphaned", "covers")
         os.makedirs(cover_dir, exist_ok=True)
         cover_filename = f"cover_adaptation_{adaptation_id}.png"
         cover_path = os.path.join(cover_dir, cover_filename)
