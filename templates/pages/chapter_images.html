@@ -556,7 +556,10 @@ async function generateCoverImage() {
             showToast('Cover image generated successfully!', 'success');
         } else {
             hideLoadingOverlay();
-            showToast('Failed to generate cover image: ' + result.error, 'error');
+            // Ensure we show the actual error message, with better fallback
+            const errorMsg = result.error || result.message || result.detail || 'Unknown error occurred';
+            console.error('Cover generation failed:', result);  // Log for debugging
+            showToast('Failed to generate cover image: ' + errorMsg, 'error');
         }
     } catch (error) {
         hideLoadingOverlay();
