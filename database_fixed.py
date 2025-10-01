@@ -1225,6 +1225,29 @@ async def replace_adaptation_chapters(adaptation_id: int, segments: list[str]) -
     finally:
         conn.close()
 
+async def replace_adaptation_chapters_with_transform(adaptation_id: int, segments: list[tuple[str, str]]) -> bool:
+    """Replace all chapters for an adaptation with both original and transformed text.
+    Each segment is a tuple of (original_text, transformed_text).
+    Keeps chapter_number sequential starting at 1; clears image_url and prompts.
+    """
+    conn = db_manager.get_connection()
+    cur = conn.cursor()
+    try:
+        cur.execute('DELETE FROM chapters WHERE adaptation_id = ?', (adaptation_id,))
+        for i, (original, transformed) in enumerate(segments, start=1):
+            cur.execute('''
+                INSERT INTO chapters (adaptation_id, chapter_number, original_text_segment, transformed_text, ai_prompt, user_prompt, image_url, status)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            ''', (adaptation_id, i, original, transformed or '', '', '', None, 'text_ready' if transformed else 'created'))
+        conn.commit()
+        return True
+    except Exception as e:
+        print(f"❌ replace_adaptation_chapters_with_transform failed: {e}")
+        conn.rollback()
+        return False
+    finally:
+        conn.close()
+
 # --- Active run coordination (used by process_chapters and status) ---
 _current_runs = {}
 

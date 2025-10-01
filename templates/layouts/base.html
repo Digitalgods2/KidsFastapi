@@ -430,6 +430,80 @@
         body.bg-dark .table .text-muted {
             color: #9ca3af !important;
         }
+        
+        /* Fix input and textarea contrast in dark mode */
+        body.bg-dark input[type="text"],
+        body.bg-dark input[type="email"],
+        body.bg-dark input[type="password"],
+        body.bg-dark input[type="number"],
+        body.bg-dark input[type="search"],
+        body.bg-dark input[type="url"],
+        body.bg-dark textarea,
+        body.bg-dark .form-control,
+        body.bg-dark .form-select {
+            background-color: #1a1a1a !important;
+            color: #e0e0e0 !important;
+            border: 1px solid rgba(255, 255, 255, 0.2) !important;
+        }
+        
+        body.bg-dark input[type="text"]:focus,
+        body.bg-dark input[type="email"]:focus,
+        body.bg-dark input[type="password"]:focus,
+        body.bg-dark input[type="number"]:focus,
+        body.bg-dark input[type="search"]:focus,
+        body.bg-dark input[type="url"]:focus,
+        body.bg-dark textarea:focus,
+        body.bg-dark .form-control:focus,
+        body.bg-dark .form-select:focus {
+            background-color: #0d0d0d !important;
+            color: #ffffff !important;
+            border-color: #0d6efd !important;
+            box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25) !important;
+        }
+        
+        /* Fix placeholder text visibility */
+        body.bg-dark input::placeholder,
+        body.bg-dark textarea::placeholder {
+            color: #6c757d !important;
+            opacity: 0.8 !important;
+        }
+        
+        /* Fix disabled inputs */
+        body.bg-dark input:disabled,
+        body.bg-dark textarea:disabled,
+        body.bg-dark .form-control:disabled,
+        body.bg-dark .form-select:disabled {
+            background-color: #2a2a2a !important;
+            color: #808080 !important;
+            opacity: 0.6 !important;
+        }
+        
+        /* Fix readonly inputs */
+        body.bg-dark input[readonly],
+        body.bg-dark textarea[readonly],
+        body.bg-dark .form-control[readonly] {
+            background-color: #1f1f1f !important;
+            color: #b0b0b0 !important;
+        }
+        
+        /* Specific fix for chapter processing textareas */
+        body.bg-dark #chapters_table textarea,
+        body.bg-dark .card-body textarea {
+            background-color: #1a1a1a !important;
+            color: #e0e0e0 !important;
+            border: 1px solid rgba(255, 255, 255, 0.15) !important;
+        }
+        
+        /* Fix form labels in dark mode */
+        body.bg-dark label,
+        body.bg-dark .form-label {
+            color: #c0c0c0 !important;
+        }
+        
+        /* Fix form text helpers */
+        body.bg-dark .form-text {
+            color: #909090 !important;
+        }
     </style>
     
     <!-- HTMX -->

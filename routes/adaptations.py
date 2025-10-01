@@ -741,8 +741,72 @@ async def process_chapters(adaptation_id: int, background_tasks: BackgroundTasks
         for idx in range(min(len(segments), int(target_count))):
             final_map.append({"final_index": idx, "source_indices": source_map[idx]})
 
-        # Persist exactly target_count in single transaction
-        ok = await database.replace_adaptation_chapters(adaptation_id, segments[:int(target_count)])
+        # Transform text for age group immediately after chapter creation
+        from services.chat_helper import transform_chapter_text
+        from services.logger import get_logger
+        transform_log = get_logger("routes.adaptations.transform")
+        
+        # Process and transform chapters
+        transformed_segments = []
+        for idx, segment_text in enumerate(segments[:int(target_count)]):
+            chapter_num = idx + 1
+            
+            # Transform text based on age group if auto_wordcount mode
+            if choice == "auto_wordcount" and segment_text:
+                transform_log.info("transforming_chapter_on_create", extra={
+                    "component": "routes.adaptations",
+                    "chapter_number": chapter_num,
+                    "original_length": len(segment_text),
+                    "age_group": age_group
+                })
+                
+                try:
+                    transformed_text, error = await transform_chapter_text(
+                        segment_text,
+                        age_group,
+                        book_title=book.get("title", "Unknown"),
+                        chapter_number=chapter_num,
+                        preserve_names=adaptation.get("key_characters_to_preserve", "")
+                    )
+                    
+                    if error or not transformed_text:
+                        transform_log.warning("chapter_transform_failed", extra={
+                            "component": "routes.adaptations",
+                            "chapter_number": chapter_num,
+                            "error": error or "Empty result"
+                        })
+                        # Keep original if transform fails
+                        transformed_segments.append((segment_text, segment_text))
+                    else:
+                        transform_log.info("chapter_transform_success", extra={
+                            "component": "routes.adaptations",
+                            "chapter_number": chapter_num,
+                            "transformed_length": len(transformed_text)
+                        })
+                        transformed_segments.append((segment_text, transformed_text))
+                except Exception as e:
+                    transform_log.error("chapter_transform_exception", extra={
+                        "component": "routes.adaptations",
+                        "chapter_number": chapter_num,
+                        "error": str(e)
+                    })
+                    # Keep original if transform fails
+                    transformed_segments.append((segment_text, segment_text))
+            else:
+                # For keep_original mode, don't transform
+                transformed_segments.append((segment_text, ""))
+        
+        # Persist chapters with both original and transformed text
+        ok = await database.replace_adaptation_chapters_with_transform(
+            adaptation_id, 
+            transformed_segments
+        )
+        if not ok:
+            # Fallback to original method if new one doesn't exist
+            ok = await database.replace_adaptation_chapters(
+                adaptation_id, 
+                [seg[0] for seg in transformed_segments]
+            )
         if not ok:
             await _finish_run_safe(run_id, datetime.now(timezone.utc), 0, operations, final_map, status='failed', error='persist_failed', meta={"rule": ("strict_keep_original" if choice == "keep_original" else "auto_wordcount")})
             # Return an HTML fragment for HTMX
