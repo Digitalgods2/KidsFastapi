@@ -69,7 +69,7 @@ def build_cover_prompt_template(book: Dict[str, Any], adaptation: Dict[str, Any]
         "Create visually rich, child-friendly prompts that produce a single cohesive cover image."
     )
     user = f"""
-Create a detailed DALL-E image prompt for a children's book cover.
+Create a detailed image generation prompt for a children's book cover.
 
 Book: "{title}" by {author}
 Target Age: {age_group}
@@ -128,7 +128,7 @@ def build_chapter_prompt_template(
         char_ref = f"\nCharacter Reference (JSON excerpt):\n{str(character_reference)[:1500]}\n"
     
     user = f"""
-Create a detailed DALL-E image prompt for Chapter {chapter_number}.
+Create a detailed image generation prompt for Chapter {chapter_number}.
 
 Target Age: {age_group}
 Style: {style}

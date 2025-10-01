@@ -329,7 +329,7 @@ class OpenAIService:
                     character_context = f"\n\nCHARACTER DESCRIPTIONS FOR CONSISTENCY:\n{chr(10).join(char_list)}\n"
             
             prompt_request = f"""
-            Create a detailed DALL-E image prompt for Chapter {chapter_number}.
+            Create a detailed image generation prompt for Chapter {chapter_number}.
             
             BOOK CONTEXT: {book_context}
             TARGET AGE: {age_group.value}
@@ -352,7 +352,7 @@ class OpenAIService:
             response = client.chat.completions.create(
                 model="gpt-4o-mini",
                 messages=[
-                    {"role": "system", "content": "You are an expert at creating detailed, child-friendly image prompts for DALL-E. Focus on vivid descriptions that will create engaging illustrations for children's books."},
+                    {"role": "system", "content": "You are an expert at creating detailed, child-friendly image prompts for AI image generation. Focus on vivid descriptions that will create engaging illustrations for children's books."},
                     {"role": "user", "content": prompt_request}
                 ],
                 temperature=0.7,

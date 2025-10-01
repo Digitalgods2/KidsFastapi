@@ -206,9 +206,41 @@ async def save_api_settings(request: Request):
     try:
         form_data = await request.form()
         
-        # Save each API setting
+        # Handle Vertex credentials file upload if present
+        vertex_creds_file = form_data.get('vertex_credentials')
+        if vertex_creds_file and hasattr(vertex_creds_file, 'file'):
+            # Save the credentials file
+            import json
+            try:
+                creds_content = await vertex_creds_file.read()
+                creds_json = json.loads(creds_content)
+                
+                # Extract project ID from credentials
+                project_id = creds_json.get('project_id', '')
+                if project_id:
+                    await database.update_setting('vertex_project_id', project_id)
+                
+                # Save the credentials file to disk
+                import os
+                creds_path = os.path.join(os.getcwd(), 'vertexapi.json')
+                with open(creds_path, 'wb') as f:
+                    f.write(creds_content)
+                
+                # Update environment variable
+                os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = creds_path
+                
+            except json.JSONDecodeError:
+                return HTMLResponse("""
+                    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                        <i class="bi bi-exclamation-triangle"></i> Invalid JSON credentials file!
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                """, status_code=400)
+        
+        # Save each API setting (except file uploads)
         for key, value in form_data.items():
-            await database.update_setting(key, value)
+            if key != 'vertex_credentials' and not hasattr(value, 'file'):
+                await database.update_setting(key, str(value))
         
         # Return HTML success message for HTMX
         return HTMLResponse("""

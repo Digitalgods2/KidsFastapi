@@ -47,7 +47,7 @@
                             <h4 class="mb-0"><i class="bi bi-key text-primary"></i> API Configuration</h4>
                         </div>
                         <div class="card-body">
-                            <form hx-post="/settings/api/save" hx-trigger="submit" hx-target="#api-response">
+                            <form hx-post="/settings/api/save" hx-trigger="submit" hx-target="#api-response" hx-encoding="multipart/form-data">
                                 <!-- OpenAI API -->
                                 <div class="mb-4">
                                     <h5 class="mb-3">OpenAI API</h5>
