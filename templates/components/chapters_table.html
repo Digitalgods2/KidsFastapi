@@ -1,30 +1,46 @@
 {% set chapters = chapters or [] %}
 <div id="chapters_table">
   {% if chapters %}
-  <div class="alert alert-success py-2 mb-2">
-    <i class="bi bi-check-circle"></i> Rebuilt {{ chapters|length }} chapters successfully.
+  <div class="alert alert-success py-2 mb-3">
+    <i class="bi bi-check-circle me-2"></i>
+    <strong>Success!</strong> Rebuilt {{ chapters|length }} chapters successfully.
   </div>
   <div class="table-responsive">
-    <table class="table table-sm table-striped mb-0">
+    <table class="table table-sm table-striped table-hover mb-0">
       <thead>
         <tr>
-          <th class="text-muted" style="width:70px">#</th>
+          <th class="text-muted text-center" style="width: 80px;">Chapter</th>
           <th class="text-muted">Preview</th>
-          <th class="text-muted" style="width:120px">Words</th>
+          <th class="text-muted text-end" style="width: 100px;">Words</th>
         </tr>
       </thead>
       <tbody>
         {% for ch in chapters %}
         <tr>
-          <td><span class="badge bg-primary">{{ ch.chapter_number or loop.index }}</span></td>
-          <td><small>{{ (ch.original_text_segment or ch.content or '')[:160] }}{% if (ch.original_text_segment or ch.content or '')|length > 160 %}...{% endif %}</small></td>
-          <td><small>{% set txt = ch.original_text_segment or ch.content or '' %}{{ txt.split()|length }}</small></td>
+          <td class="text-center align-middle">
+            <span class="badge bg-primary">{{ ch.chapter_number or loop.index }}</span>
+          </td>
+          <td class="align-middle">
+            <small class="d-block text-truncate" style="max-width: 600px;">
+              {{ (ch.original_text_segment or ch.content or '')[:200] }}
+              {% if (ch.original_text_segment or ch.content or '')|length > 200 %}...<span class="text-muted">(continued)</span>{% endif %}
+            </small>
+          </td>
+          <td class="text-end align-middle">
+            <small class="text-muted">
+              {% set txt = ch.original_text_segment or ch.content or '' %}
+              <strong>{{ txt.split()|length }}</strong> words
+            </small>
+          </td>
         </tr>
         {% endfor %}
       </tbody>
     </table>
   </div>
   {% else %}
-    <div class="alert alert-light">No chapters.</div>
+    <div class="alert alert-info">
+      <i class="bi bi-info-circle me-2"></i>
+      No chapters found. Click <strong>"Reprocess Chapters"</strong> to begin.
+    </div>
   {% endif %}
 </div>

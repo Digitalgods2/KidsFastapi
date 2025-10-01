@@ -57,15 +57,24 @@
                         {% endif %}
                     </div>
 
-                    {% include 'components/chapters_table.html' %}
+                    <div id="chapters-container" style="max-height: 400px; overflow-y: auto;">
+                        {% include 'components/chapters_table.html' %}
+                    </div>
 
-                    <button type="button" class="btn btn-primary"
-                            hx-post="/adaptations/{{ adaptation.adaptation_id }}/process_chapters?htmx=true&redirect=false"
-                            hx-target="#chapters_table"
-                            hx-swap="outerHTML"
-                            hx-indicator="#processing-spinner">
-                        <i class="fas fa-redo me-1"></i>Reprocess Chapters
-                    </button>
+                    <div class="d-flex gap-2 mt-3">
+                        <button type="button" class="btn btn-primary"
+                                hx-post="/adaptations/{{ adaptation.adaptation_id }}/process_chapters?htmx=true&redirect=false"
+                                hx-target="#chapters_table"
+                                hx-swap="outerHTML"
+                                hx-indicator="#processing-spinner">
+                            <i class="fas fa-redo me-1"></i>Reprocess Chapters
+                        </button>
+                        {% if (chapters_count or 0) > 0 %}
+                        <button type="button" class="btn btn-outline-secondary" onclick="toggleChapterDetails()">
+                            <i class="fas fa-expand me-1"></i>Toggle Details
+                        </button>
+                        {% endif %}
+                    </div>
                     <script>
                     (function(){
                       // HTMX error handler for 429 cooldown
@@ -388,6 +397,39 @@
     </div>
 
 <script>
+// Toggle chapter details function
+function toggleChapterDetails() {
+    const container = document.getElementById('chapters-container');
+    const smallTexts = container.querySelectorAll('td small.text-truncate');
+    
+    smallTexts.forEach(text => {
+        if (text.classList.contains('text-truncate')) {
+            text.classList.remove('text-truncate');
+            text.style.maxWidth = 'none';
+            text.style.whiteSpace = 'normal';
+            text.style.wordBreak = 'break-word';
+        } else {
+            text.classList.add('text-truncate');
+            text.style.maxWidth = '600px';
+            text.style.whiteSpace = 'nowrap';
+            text.style.wordBreak = 'normal';
+        }
+    });
+    
+    // Update button text
+    const btn = event.target.closest('button');
+    const icon = btn.querySelector('i');
+    if (icon.classList.contains('fa-expand')) {
+        icon.classList.remove('fa-expand');
+        icon.classList.add('fa-compress');
+        btn.innerHTML = '<i class="fas fa-compress me-1"></i>Hide Details';
+    } else {
+        icon.classList.remove('fa-compress');
+        icon.classList.add('fa-expand');
+        btn.innerHTML = '<i class="fas fa-expand me-1"></i>Show Details';
+    }
+}
+
 (function(){
   const adaptationId = {{ adaptation.adaptation_id }};
   let latestTs = 0; let latestRun = null;
