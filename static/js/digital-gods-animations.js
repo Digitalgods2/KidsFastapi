@@ -20,8 +20,8 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }, observerOptions);
     
-    // Observe all fade-in elements
-    document.querySelectorAll('.scroll-fade-in, .feature-card, .stats-card').forEach(function(element) {
+    // Observe only scroll-fade-in elements (not feature cards or stats)
+    document.querySelectorAll('.scroll-fade-in').forEach(function(element) {
         fadeObserver.observe(element);
     });
     

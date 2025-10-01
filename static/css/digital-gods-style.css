@@ -224,7 +224,7 @@
   animation: circuitFlow 20s linear infinite;
 }
 
-/* Enhanced Feature Cards - Much More Subtle */
+/* Enhanced Feature Cards - Static, No Floating */
 .feature-card {
   background: linear-gradient(135deg, 
     rgba(255, 255, 255, 0.08) 0%, 
@@ -236,9 +236,10 @@
   padding: 30px 20px;
   text-align: center;
   transition: all var(--animation-speed) ease;
-  position: relative;
+  position: static; /* Changed from relative to static */
   overflow: hidden;
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+  transform: none; /* Ensure no default transforms */
 }
 
 .feature-card::before {
@@ -263,13 +264,13 @@
 }
 
 .feature-card:hover {
-  transform: translateY(-3px) scale(1.005);
+  transform: translateY(-1px); /* Minimal lift, no scaling */
   background: linear-gradient(135deg, 
-    rgba(255, 255, 255, 0.12) 0%, 
-    rgba(184, 68, 31, 0.06) 50%, 
-    rgba(204, 136, 0, 0.05) 100%);
-  box-shadow: 0 8px 20px rgba(184, 68, 31, 0.1);
-  border-color: rgba(230, 194, 0, 0.25);
+    rgba(255, 255, 255, 0.1) 0%, 
+    rgba(184, 68, 31, 0.05) 50%, 
+    rgba(204, 136, 0, 0.04) 100%);
+  box-shadow: 0 6px 15px rgba(184, 68, 31, 0.08);
+  border-color: rgba(230, 194, 0, 0.2);
 }
 
 .feature-icon {
