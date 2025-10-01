@@ -479,6 +479,63 @@
             color: #9ca3af !important;
         }
         
+        /* Fix ALL placeholders and empty states in dark mode */
+        body.bg-dark .bg-light {
+            background-color: #1e3a5f !important;
+            border-color: #4a9eff !important;
+        }
+        
+        body.bg-dark .bg-light .text-muted,
+        body.bg-dark .bg-light i {
+            color: #ffffff !important;
+        }
+        
+        /* Fix all toast notifications for guaranteed visibility */
+        body.bg-dark .toast,
+        body.bg-dark .toast-body {
+            background-color: #007bff !important;
+            color: #ffffff !important;
+            border: 2px solid #0056b3 !important;
+        }
+        
+        /* Ensure all alerts in dark mode are visible */
+        body.bg-dark .alert {
+            font-weight: 500;
+        }
+        
+        body.bg-dark .alert-success {
+            background-color: #28a745 !important;
+            color: #ffffff !important;
+            border-color: #1e7e34 !important;
+        }
+        
+        body.bg-dark .alert-danger {
+            background-color: #dc3545 !important;
+            color: #ffffff !important;
+            border-color: #bd2130 !important;
+        }
+        
+        body.bg-dark .alert-warning {
+            background-color: #ffc107 !important;
+            color: #000000 !important;
+            border-color: #e0a800 !important;
+        }
+        
+        body.bg-dark .alert-info {
+            background-color: #17a2b8 !important;
+            color: #ffffff !important;
+            border-color: #117a8b !important;
+        }
+        
+        /* Fix spinner colors in dark mode */
+        body.bg-dark .spinner-border {
+            color: #4a9eff !important;
+        }
+        
+        body.bg-dark .spinner-border.text-primary {
+            color: #4a9eff !important;
+        }
+        
         /* Fix input and textarea contrast in dark mode */
         body.bg-dark input[type="text"],
         body.bg-dark input[type="email"],

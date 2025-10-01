@@ -90,9 +90,9 @@
                                         </button>
                                     </div>
                                 {% else %}
-                                    <div class="text-center p-4 border rounded bg-light">
-                                        <i class="fas fa-image fa-3x text-muted mb-3"></i>
-                                        <p class="text-muted">No cover image generated yet</p>
+                                    <div class="text-center p-4 border rounded" style="background-color: #1e3a5f; border-color: #4a9eff !important;">
+                                        <i class="fas fa-image fa-3x mb-3" style="color: #4a9eff;"></i>
+                                        <p style="color: #ffffff; margin: 0;">No cover image generated yet</p>
                                     </div>
                                 {% endif %}
                             </div>
@@ -194,9 +194,9 @@
                                             </button>
                                         </div>
                                     {% else %}
-                                        <div class="text-center p-4 border rounded bg-light">
-                                            <i class="fas fa-image fa-2x text-muted mb-2"></i>
-                                            <p class="text-muted small">No image generated</p>
+                                        <div class="text-center p-4 border rounded" style="background-color: #1e3a5f; border-color: #4a9eff !important;">
+                                            <i class="fas fa-image fa-2x mb-2" style="color: #4a9eff;"></i>
+                                            <p class="small" style="color: #ffffff; margin: 0;">No image generated</p>
                                         </div>
                                     {% endif %}
                                 </div>
@@ -449,9 +449,9 @@ async function deleteChapterImage(chapterId) {
                 // Reset the image container
                 const container = document.getElementById(`chapter-image-container-${chapterId}`);
                 container.innerHTML = `
-                    <div class="text-center p-4 border rounded bg-light">
-                        <i class="fas fa-image fa-2x text-muted mb-2"></i>
-                        <p class="text-muted small">No image generated</p>
+                    <div class="text-center p-4 border rounded" style="background-color: #1e3a5f; border-color: #4a9eff !important;">
+                        <i class="fas fa-image fa-2x mb-2" style="color: #4a9eff;"></i>
+                        <p class="small" style="color: #ffffff; margin: 0;">No image generated</p>
                     </div>
                 `;
                 showToast('Image deleted successfully', 'success');
@@ -569,45 +569,65 @@ async function generateCoverImage() {
 
 // Utility Functions
 function showToast(message, type) {
-    // Simple toast notification with dark mode support
-    const isDarkMode = document.body.classList.contains('bg-dark');
+    // Simple toast notification with GUARANTEED visibility
     const toast = document.createElement('div');
-    toast.className = `alert alert-${type === 'error' ? 'danger' : type} position-fixed`;
+    toast.className = 'position-fixed';
     
-    // Enhanced styling for dark mode
-    let bgColor, textColor, borderColor;
+    // Use white on blue for ALL toasts in dark mode for maximum visibility
+    const isDarkMode = document.body.classList.contains('bg-dark');
+    
+    let bgColor, textColor, borderColor, icon;
     if (isDarkMode) {
+        // White on blue for EVERYTHING in dark mode - can't go wrong!
         switch(type) {
             case 'success':
-                bgColor = 'rgba(40, 167, 69, 0.9)';
-                textColor = '#ffffff';
-                borderColor = 'rgba(40, 167, 69, 1)';
+                bgColor = '#28a745';
+                icon = 'check-circle';
                 break;
             case 'error':
             case 'danger':
-                bgColor = 'rgba(220, 53, 69, 0.9)';
-                textColor = '#ffffff';
-                borderColor = 'rgba(220, 53, 69, 1)';
+                bgColor = '#dc3545';
+                icon = 'exclamation-triangle';
                 break;
             case 'warning':
-                bgColor = 'rgba(255, 193, 7, 0.9)';
-                textColor = '#000000';
-                borderColor = 'rgba(255, 193, 7, 1)';
+                bgColor = '#ffc107';
+                icon = 'exclamation-circle';
                 break;
             default:
-                bgColor = 'rgba(23, 162, 184, 0.9)';
-                textColor = '#ffffff';
-                borderColor = 'rgba(23, 162, 184, 1)';
+                bgColor = '#007bff';
+                icon = 'info-circle';
         }
-        toast.style.cssText = `top: 20px; right: 20px; z-index: 9999; min-width: 300px; background-color: ${bgColor} !important; color: ${textColor} !important; border: 1px solid ${borderColor} !important;`;
+        textColor = '#ffffff';
+        borderColor = bgColor;
     } else {
-        toast.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
+        // Light mode colors
+        bgColor = type === 'error' || type === 'danger' ? '#f8d7da' : 
+                 type === 'success' ? '#d4edda' : 
+                 type === 'warning' ? '#fff3cd' : '#d1ecf1';
+        textColor = type === 'error' || type === 'danger' ? '#721c24' : 
+                   type === 'success' ? '#155724' : 
+                   type === 'warning' ? '#856404' : '#0c5460';
+        borderColor = type === 'error' || type === 'danger' ? '#f5c6cb' : 
+                     type === 'success' ? '#c3e6cb' : 
+                     type === 'warning' ? '#ffeeba' : '#bee5eb';
+        icon = type === 'success' ? 'check-circle' : 
+               type === 'error' || type === 'danger' ? 'exclamation-triangle' : 
+               type === 'warning' ? 'exclamation-circle' : 'info-circle';
     }
     
+    toast.style.cssText = `top: 20px; right: 20px; z-index: 9999; min-width: 350px; background-color: ${bgColor} !important; color: ${textColor} !important; border: 2px solid ${borderColor} !important; padding: 12px 20px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.3); font-weight: 500;`;
+    
     toast.innerHTML = `
-        <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' || type === 'danger' ? 'exclamation-triangle' : 'info-circle'} me-2"></i>
-        ${message}
-        <button type="button" class="btn-close${isDarkMode ? ' btn-close-white' : ''}" onclick="this.parentElement.remove()" style="float: right;"></button>
+        <div style="display: flex; align-items: center; justify-content: space-between;">
+            <div style="display: flex; align-items: center;">
+                <i class="fas fa-${icon} me-2" style="font-size: 1.2em;"></i>
+                <span>${message}</span>
+            </div>
+            <button type="button" onclick="this.parentElement.parentElement.remove()" 
+                    style="background: transparent; border: none; color: ${textColor}; font-size: 1.5em; cursor: pointer; margin-left: 15px;">
+                ×
+            </button>
+        </div>
     `;
     document.body.appendChild(toast);
     
@@ -644,12 +664,12 @@ function showLoadingOverlay(message, estimatedTime = null) {
     }
     
     overlay.innerHTML = `
-        <div style="background: ${isDarkMode ? '#2d2d2d' : 'white'}; padding: 30px 50px; border-radius: 10px; text-align: center; box-shadow: 0 4px 20px rgba(0,0,0,0.5); border: 1px solid ${isDarkMode ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'};">
-            <div class="spinner-border text-primary mb-3" role="status" style="width: 3rem; height: 3rem;">
+        <div style="background: ${isDarkMode ? '#1e3a5f' : 'white'}; padding: 30px 50px; border-radius: 10px; text-align: center; box-shadow: 0 4px 20px rgba(0,0,0,0.5); border: 2px solid ${isDarkMode ? '#4a9eff' : '#007bff'};">
+            <div class="spinner-border mb-3" role="status" style="width: 3rem; height: 3rem; color: ${isDarkMode ? '#4a9eff' : '#007bff'};">
                 <span class="visually-hidden">Loading...</span>
             </div>
-            <h4 style="color: ${isDarkMode ? '#ffffff' : '#212529'};">${message}</h4>
-            <p style="color: ${isDarkMode ? '#b0b0b0' : '#6c757d'}; margin-bottom: 0;">${timeMessage}</p>
+            <h4 style="color: ${isDarkMode ? '#ffffff' : '#212529'}; font-weight: 600;">${message}</h4>
+            <p style="color: ${isDarkMode ? '#ffffff' : '#6c757d'}; margin-bottom: 0; opacity: 0.9;">${timeMessage}</p>
         </div>
     `;
     document.body.appendChild(overlay);
