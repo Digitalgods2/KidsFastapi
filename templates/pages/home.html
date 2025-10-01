@@ -100,44 +100,58 @@
     </div>
 </div>
 
-<!-- Features Section -->
-<section class="py-5" style="background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);">
-    <div class="container">
+<!-- Features Section with Enhanced Background -->
+<section class="py-5 position-relative" style="background: linear-gradient(135deg, 
+    #2a1810 0%, 
+    #3d2015 25%, 
+    #4a2318 50%, 
+    #3d2015 75%, 
+    #2a1810 100%); 
+    overflow: hidden;">
+    
+    <!-- Subtle overlay pattern -->
+    <div class="position-absolute top-0 start-0 w-100 h-100" style="
+        background: radial-gradient(circle at 25% 25%, rgba(255, 107, 53, 0.1) 0%, transparent 50%),
+                    radial-gradient(circle at 75% 75%, rgba(255, 165, 0, 0.1) 0%, transparent 50%);
+        opacity: 0.6;
+    "></div>
+    
+    <div class="container position-relative" style="z-index: 2;">
         <div class="row text-center mb-5">
             <div class="col-lg-8 mx-auto">
-                <h2 class="display-4 fw-bold mb-4" style="color: var(--dg-dark);">
-                    Powered by <span style="color: var(--dg-primary);">Digital Gods</span> Technology
+                <h2 class="display-4 fw-bold mb-4 text-white">
+                    Powered by <span style="background: linear-gradient(45deg, var(--dg-primary), var(--dg-accent)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">Digital Gods</span> Technology
                 </h2>
-                <p class="lead text-muted">Experience the future of storytelling with our advanced AI-driven platform</p>
+                <p class="lead text-white-50">Experience the future of storytelling with our advanced AI-driven platform</p>
             </div>
         </div>
         
         <div class="row g-4">
             <div class="col-lg-4">
-                <div class="feature-card h-100" style="background: rgba(26, 26, 26, 0.05);">
+                <div class="feature-card h-100">
                     <div class="feature-icon">
                         <i class="bi bi-lightning-charge"></i>
                     </div>
-                    <h4 class="mb-3" style="color: var(--dg-dark);">Lightning Fast</h4>
-                    <p class="text-muted">Transform entire books in minutes, not hours. Our optimized AI processes content at unprecedented speeds.</p>
+                    <h4 class="mb-3 text-white">Lightning Fast</h4>
+                    <p class="text-white-50">Transform entire books in minutes, not hours. Our optimized AI processes content at unprecedented speeds.</p>
                 </div>
             </div>
             <div class="col-lg-4">
-                <div class="feature-card h-100" style="background: rgba(26, 26, 26, 0.05);">
+                <div class="feature-card h-100">
                     <div class="feature-icon">
                         <i class="bi bi-shield-check"></i>
                     </div>
-                    <h4 class="mb-3" style="color: var(--dg-dark);">Child Safe</h4>
-                    <p class="text-muted">Every adaptation is carefully reviewed for age-appropriateness and educational value.</p>
+                    <h4 class="mb-3 text-white">Child Safe</h4>
+                    <p class="text-white-50">Every adaptation is carefully reviewed for age-appropriateness and educational value.</p>
                 </div>
             </div>
             <div class="col-lg-4">
-                <div class="feature-card h-100" style="background: rgba(26, 26, 26, 0.05);">
+                <div class="feature-card h-100">
                     <div class="feature-icon">
                         <i class="bi bi-infinity"></i>
                     </div>
-                    <h4 class="mb-3" style="color: var(--dg-dark);">Endless Possibilities</h4>
-                    <p class="text-muted">From classic novels to modern tales, transform any story into an engaging children's book.</p>
+                    <h4 class="mb-3 text-white">Endless Possibilities</h4>
+                    <p class="text-white-50">From classic novels to modern tales, transform any story into an engaging children's book.</p>
                 </div>
             </div>
         </div>

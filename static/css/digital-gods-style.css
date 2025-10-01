@@ -39,15 +39,15 @@
   50% { box-shadow: var(--glow-size) var(--dg-accent)66; }
 }
 
-/* Digital Gods Branding */
+/* Digital Gods Branding - Reduced Glow */
 .digital-gods-logo {
-  filter: drop-shadow(0 0 10px rgba(255, 215, 0, 0.5));
+  filter: drop-shadow(0 0 5px rgba(255, 215, 0, 0.3));
   transition: all var(--animation-speed) ease;
 }
 
 .digital-gods-logo:hover {
-  filter: drop-shadow(0 0 20px rgba(255, 215, 0, 0.8));
-  transform: scale(1.05) rotate(2deg);
+  filter: drop-shadow(0 0 10px rgba(255, 215, 0, 0.5));
+  transform: scale(1.03) rotate(1deg);
 }
 
 /* Hero Section Makeover */
@@ -168,16 +168,20 @@
   transform: translateY(-3px);
 }
 
-/* Stats Cards Animation */
+/* Enhanced Stats Cards */
 .stats-card {
-  background: rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 215, 0, 0.2);
-  border-radius: 20px;
+  background: linear-gradient(135deg, 
+    rgba(255, 255, 255, 0.12) 0%, 
+    rgba(255, 107, 53, 0.08) 50%, 
+    rgba(255, 165, 0, 0.06) 100%);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 215, 0, 0.25);
+  border-radius: 16px;
   padding: 25px;
   text-align: center;
   transition: all var(--animation-speed) ease;
   animation: floatUp 1s ease-out both;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
 }
 
 .stats-card:nth-child(1) { animation-delay: 0.1s; }
@@ -185,9 +189,13 @@
 .stats-card:nth-child(3) { animation-delay: 0.3s; }
 
 .stats-card:hover {
-  transform: translateY(-10px) scale(1.05);
-  background: rgba(255, 215, 0, 0.15);
-  box-shadow: 0 20px 40px rgba(255, 215, 0, 0.2);
+  transform: translateY(-5px) scale(1.02);
+  background: linear-gradient(135deg, 
+    rgba(255, 255, 255, 0.18) 0%, 
+    rgba(255, 107, 53, 0.12) 50%, 
+    rgba(255, 165, 0, 0.1) 100%);
+  box-shadow: 0 12px 30px rgba(255, 107, 53, 0.15);
+  border-color: rgba(255, 165, 0, 0.4);
 }
 
 .stats-number {
@@ -198,7 +206,7 @@
   font-size: 2.5rem;
   font-weight: 800;
   margin-bottom: 5px;
-  animation: digitalPulse 2s ease-in-out infinite;
+  animation: none; /* Remove constant animation */
 }
 
 /* Circuit Pattern Overlay */
@@ -216,17 +224,21 @@
   animation: circuitFlow 20s linear infinite;
 }
 
-/* Feature Cards */
+/* Enhanced Feature Cards with Better Backgrounds */
 .feature-card {
-  background: rgba(255, 255, 255, 0.05);
+  background: linear-gradient(135deg, 
+    rgba(255, 255, 255, 0.15) 0%, 
+    rgba(255, 107, 53, 0.1) 50%, 
+    rgba(255, 165, 0, 0.08) 100%);
   backdrop-filter: blur(15px);
-  border: 1px solid rgba(255, 215, 0, 0.2);
-  border-radius: 25px;
-  padding: 40px 30px;
+  border: 1px solid rgba(255, 215, 0, 0.3);
+  border-radius: 20px;
+  padding: 35px 25px;
   text-align: center;
   transition: all var(--animation-speed) ease;
   position: relative;
   overflow: hidden;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
 }
 
 .feature-card::before {
@@ -236,21 +248,28 @@
   left: -50%;
   width: 200%;
   height: 200%;
-  background: conic-gradient(from 0deg, transparent, var(--dg-primary)22, transparent);
-  animation: circuitFlow 6s linear infinite;
+  background: linear-gradient(45deg, 
+    transparent 30%, 
+    rgba(255, 107, 53, 0.1) 50%, 
+    transparent 70%);
+  transform: rotate(-45deg);
   opacity: 0;
-  transition: opacity var(--animation-speed) ease;
+  transition: all var(--animation-speed) ease;
 }
 
 .feature-card:hover::before {
-  opacity: 0.1;
+  opacity: 1;
+  transform: rotate(-45deg) translateX(100%);
 }
 
 .feature-card:hover {
-  transform: translateY(-15px) scale(1.02);
-  background: rgba(255, 215, 0, 0.1);
-  box-shadow: 0 25px 50px rgba(255, 215, 0, 0.3);
-  border-color: var(--dg-primary);
+  transform: translateY(-8px) scale(1.01);
+  background: linear-gradient(135deg, 
+    rgba(255, 255, 255, 0.2) 0%, 
+    rgba(255, 107, 53, 0.15) 50%, 
+    rgba(255, 165, 0, 0.12) 100%);
+  box-shadow: 0 15px 40px rgba(255, 107, 53, 0.2);
+  border-color: rgba(255, 165, 0, 0.5);
 }
 
 .feature-icon {
@@ -260,7 +279,13 @@
   -webkit-text-fill-color: transparent;
   background-clip: text;
   margin-bottom: 20px;
-  animation: digitalPulse 3s ease-in-out infinite;
+  animation: none; /* Remove constant animation */
+  transition: all 0.3s ease;
+}
+
+.feature-card:hover .feature-icon {
+  transform: scale(1.1);
+  filter: drop-shadow(0 5px 15px rgba(255, 215, 0, 0.3));
 }
 
 /* Navigation Enhancements */
