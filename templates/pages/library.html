@@ -130,10 +130,10 @@
                                     <i class="bi bi-person"></i> {{ book.author|default('Unknown Author') }}
                                 </p>
                                 <div class="d-flex gap-2 flex-wrap">
-                                    <span class="badge bg-light text-dark">
+                                    <span class="badge bg-secondary">
                                         <i class="bi bi-calendar"></i> {{ book.imported_at }}
                                     </span>
-                                    <span class="badge bg-light text-dark">
+                                    <span class="badge bg-secondary">
                                         <i class="bi bi-file-text"></i> {{ book.source_type|title }}
                                     </span>
                                     {% if book.adaptation_count > 0 %}
