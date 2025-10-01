@@ -23,57 +23,84 @@
         </div>
     </div>
 
-    <!-- Filter Tabs -->
-    <ul class="nav nav-tabs mb-4" role="tablist">
-        <li class="nav-item" role="presentation">
-            <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#all" type="button">
+    <!-- Filter Tabs (Server-side routing) -->
+    <ul class="nav nav-tabs mb-4">
+        <li class="nav-item">
+            <a class="nav-link {{ 'active' if request.url.path == '/adaptations/' else '' }}" 
+               href="/adaptations/">
                 All Adaptations
-                <span class="badge bg-secondary ms-1">{{ adaptations|length }}</span>
-            </button>
+                <span class="badge bg-secondary ms-1" id="all-count">{{ all_count|default(adaptations|length) }}</span>
+            </a>
         </li>
-        <li class="nav-item" role="presentation">
-            <button class="nav-link" data-bs-toggle="tab" data-bs-target="#in-progress" type="button">
+        <li class="nav-item">
+            <a class="nav-link {{ 'active' if 'in-progress' in request.url.path else '' }}" 
+               href="/adaptations/in-progress">
                 In Progress
-                <span class="badge bg-warning ms-1">
-                    {{ adaptations|selectattr('status', 'equalto', 'in_progress')|list|length }}
-                </span>
-            </button>
+                <span class="badge bg-warning text-dark ms-1" id="progress-count">{{ progress_count|default(0) }}</span>
+            </a>
         </li>
-        <li class="nav-item" role="presentation">
-            <button class="nav-link" data-bs-toggle="tab" data-bs-target="#completed" type="button">
+        <li class="nav-item">
+            <a class="nav-link {{ 'active' if 'completed' in request.url.path else '' }}" 
+               href="/adaptations/completed">
                 Completed
-                <span class="badge bg-success ms-1">
-                    {{ adaptations|selectattr('status', 'equalto', 'completed')|list|length }}
-                </span>
-            </button>
+                <span class="badge bg-success ms-1" id="completed-count">{{ completed_count|default(0) }}</span>
+            </a>
         </li>
     </ul>
 
     <!-- Adaptations Grid -->
-    <div class="tab-content">
-        <div class="tab-pane fade show active" id="all" role="tabpanel">
-            <div class="row g-4">
-                {% if adaptations %}
-                    {% for adaptation in adaptations %}
-                    <div class="col-lg-4 col-md-6">
-                        <div class="card border-0 shadow-sm h-100">
-                            <div class="card-body">
-                                <div class="d-flex justify-content-between align-items-start mb-3">
-                                    <div>
-                                        <h5 class="card-title mb-1">{{ adaptation.book_title }}</h5>
-                                        <div class="mb-2">
-                                            <span class="badge bg-primary">Age {{ adaptation.target_age_group }}</span>
-                                            <span class="badge bg-info">{{ adaptation.transformation_style }}</span>
-                                        </div>
-                                    </div>
-                                    <span class="badge bg-{{ 'success' if adaptation.status == 'completed' else 'warning' if adaptation.status == 'in_progress' else 'secondary' }}">
-                                        {{ adaptation.status|title|replace('_', ' ') }}
-                                    </span>
+    <div class="row g-4">
+        {% if adaptations %}
+            {% for adaptation in adaptations %}
+            {% set chapter_count = adaptation.chapter_count|default(0) %}
+            {% set image_count = adaptation.image_count|default(0) %}
+            {% set is_completed = chapter_count > 0 and image_count >= chapter_count %}
+            {% set is_in_progress = chapter_count > 0 and image_count < chapter_count %}
+            
+            <div class="col-lg-4 col-md-6">
+                <div class="card border-0 shadow-sm h-100">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-start mb-3">
+                            <div>
+                                <h5 class="card-title mb-1">{{ adaptation.book_title }}</h5>
+                                <div class="mb-2">
+                                    <span class="badge bg-primary">Age {{ adaptation.target_age_group }}</span>
+                                    <span class="badge bg-info">{{ adaptation.transformation_style[:20] }}...</span>
                                 </div>
-                                
-                                <p class="text-muted small mb-3">
-                                    Created: {{ adaptation.created_at }}
-                                </p>
+                            </div>
+                            <span class="badge bg-{{ 'success' if is_completed else 'warning text-dark' if is_in_progress else 'secondary' }}">
+                                {{ 'Completed' if is_completed else 'In Progress' if is_in_progress else 'Created' }}
+                            </span>
+                        </div>
+                        
+                        <!-- Progress Statistics -->
+                        {% if chapter_count > 0 %}
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <small class="text-muted">
+                                    <i class="bi bi-book"></i> {{ chapter_count }} chapters
+                                </small>
+                                <small class="text-muted">
+                                    <i class="bi bi-images"></i> {{ image_count }}/{{ chapter_count }} images
+                                </small>
+                            </div>
+                            <div class="progress" style="height: 8px;">
+                                {% set progress_pct = (image_count / chapter_count * 100)|int if chapter_count > 0 else 0 %}
+                                <div class="progress-bar bg-{{ 'success' if is_completed else 'warning' }}" 
+                                     role="progressbar" 
+                                     style="width: {{ progress_pct }}%"
+                                     aria-valuenow="{{ progress_pct }}" 
+                                     aria-valuemin="0" 
+                                     aria-valuemax="100">
+                                </div>
+                            </div>
+                            <small class="text-muted">{{ progress_pct }}% complete</small>
+                        </div>
+                        {% endif %}
+                        
+                        <p class="text-muted small mb-3">
+                            Created: {{ adaptation.created_at[:10] if adaptation.created_at else 'Unknown' }}
+                        </p>
                                 
                                 <div class="d-grid gap-2">
                                     {% if adaptation.status == 'created' %}
@@ -115,40 +142,6 @@
                         </div>
                     </div>
                 {% endif %}
-            </div>
-        </div>
-        
-        <!-- In Progress Tab -->
-        <div class="tab-pane fade" id="in-progress" role="tabpanel">
-            <div class="row g-4">
-                {% set in_progress = adaptations|selectattr('status', 'equalto', 'in_progress')|list %}
-                {% if in_progress %}
-                    {% for adaptation in in_progress %}
-                    <!-- Same card structure as above -->
-                    {% endfor %}
-                {% else %}
-                    <div class="col-12">
-                        <p class="text-muted text-center py-4">No adaptations in progress</p>
-                    </div>
-                {% endif %}
-            </div>
-        </div>
-        
-        <!-- Completed Tab -->
-        <div class="tab-pane fade" id="completed" role="tabpanel">
-            <div class="row g-4">
-                {% set completed = adaptations|selectattr('status', 'equalto', 'completed')|list %}
-                {% if completed %}
-                    {% for adaptation in completed %}
-                    <!-- Same card structure as above -->
-                    {% endfor %}
-                {% else %}
-                    <div class="col-12">
-                        <p class="text-muted text-center py-4">No completed adaptations yet</p>
-                    </div>
-                {% endif %}
-            </div>
-        </div>
     </div>
 </div>
 

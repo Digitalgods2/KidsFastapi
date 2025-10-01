@@ -41,12 +41,27 @@ async def adaptations_list(request: Request):
     try:
         # Get all adaptations with statistics
         adaptations = await database.get_all_adaptations_with_stats()
+        
+        # Calculate counts for tabs
+        completed_count = sum(1 for a in adaptations 
+                             if a.get('chapter_count', 0) > 0 
+                             and a.get('image_count', 0) >= a.get('chapter_count', 0))
+        progress_count = sum(1 for a in adaptations 
+                            if a.get('chapter_count', 0) > 0 
+                            and a.get('image_count', 0) < a.get('chapter_count', 0))
+        
         context["adaptations"] = adaptations
+        context["all_count"] = len(adaptations)
+        context["completed_count"] = completed_count
+        context["progress_count"] = progress_count
     except Exception as e:
         from services.logger import get_logger
         log = get_logger("routes.adaptations")
         log.error("adaptations_list_error", extra={"error": str(e), "component": "routes.adaptations", "request_id": getattr(request.state, 'request_id', None)})
         context["adaptations"] = []
+        context["all_count"] = 0
+        context["completed_count"] = 0
+        context["progress_count"] = 0
     
     return templates.TemplateResponse("pages/adaptations.html", context)
 
@@ -204,19 +219,31 @@ async def adaptations_in_progress(request: Request):
     context = get_base_context(request)
     try:
         all_items = await database.get_all_adaptations_with_stats()
-        # In progress = has chapters but not all have images yet
-        filtered = []
-        for a in all_items:
-            chapter_count = a.get('chapter_count', 0)
-            images_count = a.get('image_count', 0)
-            # In progress if has chapters but not all have images
-            if chapter_count > 0 and images_count < chapter_count:
-                filtered.append(a)
+        
+        # Calculate counts
+        completed_count = sum(1 for a in all_items 
+                             if a.get('chapter_count', 0) > 0 
+                             and a.get('image_count', 0) >= a.get('chapter_count', 0))
+        progress_count = sum(1 for a in all_items 
+                            if a.get('chapter_count', 0) > 0 
+                            and a.get('image_count', 0) < a.get('chapter_count', 0))
+        
+        # Filter for in progress only
+        filtered = [a for a in all_items 
+                   if a.get('chapter_count', 0) > 0 
+                   and a.get('image_count', 0) < a.get('chapter_count', 0)]
+        
         context["adaptations"] = filtered
+        context["all_count"] = len(all_items)
+        context["completed_count"] = completed_count
+        context["progress_count"] = progress_count
     except Exception as e:
         from services.logger import get_logger
         get_logger("routes.adaptations").error("adaptations_in_progress_error", extra={"component":"routes.adaptations","error":str(e)})
         context["adaptations"] = []
+        context["all_count"] = 0
+        context["completed_count"] = 0
+        context["progress_count"] = 0
     return templates.TemplateResponse("pages/adaptations.html", context)
 
 @router.get("/completed", response_class=HTMLResponse)
@@ -224,19 +251,31 @@ async def adaptations_completed(request: Request):
     context = get_base_context(request)
     try:
         all_items = await database.get_all_adaptations_with_stats()
-        # An adaptation is "completed" if all chapters have images
-        filtered = []
-        for a in all_items:
-            chapter_count = a.get('chapter_count', 0)
-            images_count = a.get('image_count', 0)
-            # Consider completed if it has chapters and all have images
-            if chapter_count > 0 and images_count >= chapter_count:
-                filtered.append(a)
+        
+        # Calculate counts
+        completed_count = sum(1 for a in all_items 
+                             if a.get('chapter_count', 0) > 0 
+                             and a.get('image_count', 0) >= a.get('chapter_count', 0))
+        progress_count = sum(1 for a in all_items 
+                            if a.get('chapter_count', 0) > 0 
+                            and a.get('image_count', 0) < a.get('chapter_count', 0))
+        
+        # Filter for completed only
+        filtered = [a for a in all_items 
+                   if a.get('chapter_count', 0) > 0 
+                   and a.get('image_count', 0) >= a.get('chapter_count', 0)]
+        
         context["adaptations"] = filtered
+        context["all_count"] = len(all_items)
+        context["completed_count"] = completed_count
+        context["progress_count"] = progress_count
     except Exception as e:
         from services.logger import get_logger
         get_logger("routes.adaptations").error("adaptations_completed_error", extra={"component":"routes.adaptations","error":str(e)})
         context["adaptations"] = []
+        context["all_count"] = 0
+        context["completed_count"] = 0
+        context["progress_count"] = 0
     return templates.TemplateResponse("pages/adaptations.html", context)
 
 @router.get("/{adaptation_id}", response_class=HTMLResponse)
