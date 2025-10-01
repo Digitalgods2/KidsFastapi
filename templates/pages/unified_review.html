@@ -1,0 +1,416 @@
+{% extends "layouts/base.html" %}
+
+{% block title %}Review & Edit - {{ adaptation.title | default('Adaptation', true) }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h1 class="h3 mb-0">
+                        <i class="bi bi-pencil-square text-primary"></i>
+                        Review & Edit Adaptation
+                    </h1>
+                    <p class="text-muted mb-0 mt-2">
+                        {{ book.title }} - {{ adaptation.target_age_group }}
+                    </p>
+                </div>
+                <div>
+                    <a href="/adaptations/{{ adaptation.adaptation_id }}" class="btn btn-outline-secondary">
+                        <i class="bi bi-arrow-left"></i> Back to Adaptation
+                    </a>
+                    <button id="save-all-btn" class="btn btn-success" onclick="saveAllChanges()">
+                        <i class="bi bi-save"></i> Save All Changes
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Progress Overview -->
+    <div class="row mb-4">
+        <div class="col">
+            <div class="card">
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-md-3">
+                            <h4 class="mb-1">{{ chapters | length }}</h4>
+                            <p class="text-muted mb-0">Total Chapters</p>
+                        </div>
+                        <div class="col-md-3">
+                            <h4 class="mb-1 text-success">{{ transformed_count }}</h4>
+                            <p class="text-muted mb-0">Transformed</p>
+                        </div>
+                        <div class="col-md-3">
+                            <h4 class="mb-1 text-info">{{ prompts_count }}</h4>
+                            <p class="text-muted mb-0">Prompts Ready</p>
+                        </div>
+                        <div class="col-md-3">
+                            <h4 class="mb-1 text-warning">{{ images_count }}</h4>
+                            <p class="text-muted mb-0">Images Generated</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Chapters Grid -->
+    <div class="row">
+        {% for chapter in chapters %}
+        <div class="col-12 mb-4">
+            <div class="card shadow-sm">
+                <div class="card-header bg-light">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">
+                            Chapter {{ chapter.chapter_number }}: 
+                            <span id="title-{{ chapter.chapter_id }}" contenteditable="true" class="editable-title">
+                                {{ chapter.title | default('Untitled', true) }}
+                            </span>
+                        </h5>
+                        <div class="btn-group btn-group-sm">
+                            <button class="btn btn-outline-primary" onclick="toggleChapter({{ chapter.chapter_id }})">
+                                <i class="bi bi-chevron-down" id="toggle-icon-{{ chapter.chapter_id }}"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card-body" id="chapter-content-{{ chapter.chapter_id }}">
+                    <div class="row">
+                        <!-- Text Section -->
+                        <div class="col-md-8">
+                            <ul class="nav nav-tabs mb-3" role="tablist">
+                                <li class="nav-item">
+                                    <a class="nav-link active" data-bs-toggle="tab" 
+                                       href="#transformed-{{ chapter.chapter_id }}">
+                                        Transformed Text
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link" data-bs-toggle="tab" 
+                                       href="#original-{{ chapter.chapter_id }}">
+                                        Original Text
+                                    </a>
+                                </li>
+                            </ul>
+                            
+                            <div class="tab-content">
+                                <div class="tab-pane fade show active" id="transformed-{{ chapter.chapter_id }}">
+                                    <div class="mb-2">
+                                        <span class="badge bg-info">
+                                            {{ (chapter.transformed_text | default('', true) | length) }} chars
+                                        </span>
+                                        {% if not chapter.transformed_text %}
+                                        <button class="btn btn-sm btn-warning ms-2" 
+                                                onclick="transformChapter({{ chapter.chapter_id }})">
+                                            <i class="bi bi-magic"></i> Transform Text
+                                        </button>
+                                        {% endif %}
+                                    </div>
+                                    <textarea class="form-control chapter-text" 
+                                              id="transformed-text-{{ chapter.chapter_id }}"
+                                              rows="10"
+                                              placeholder="Transformed text will appear here..."
+                                              onchange="markAsChanged({{ chapter.chapter_id }})">{{ chapter.transformed_text | default('', true) }}</textarea>
+                                </div>
+                                
+                                <div class="tab-pane fade" id="original-{{ chapter.chapter_id }}">
+                                    <div class="mb-2">
+                                        <span class="badge bg-secondary">
+                                            {{ (chapter.original_text_segment | default('', true) | length) }} chars
+                                        </span>
+                                    </div>
+                                    <textarea class="form-control" rows="10" readonly>{{ chapter.original_text_segment | default('', true) }}</textarea>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Image Section -->
+                        <div class="col-md-4">
+                            <div class="card bg-light">
+                                <div class="card-header">
+                                    <h6 class="mb-0">Chapter Image</h6>
+                                </div>
+                                <div class="card-body">
+                                    <!-- Image Display -->
+                                    <div class="mb-3 text-center" id="image-container-{{ chapter.chapter_id }}">
+                                        {% if chapter.image_url %}
+                                        <img src="{{ chapter.image_url }}" 
+                                             class="img-fluid rounded shadow-sm mb-2" 
+                                             style="max-height: 200px;"
+                                             alt="Chapter {{ chapter.chapter_number }}">
+                                        <div>
+                                            <button class="btn btn-sm btn-outline-danger" 
+                                                    onclick="deleteImage({{ chapter.chapter_id }})">
+                                                <i class="bi bi-trash"></i> Delete
+                                            </button>
+                                        </div>
+                                        {% else %}
+                                        <div class="text-muted py-4">
+                                            <i class="bi bi-image" style="font-size: 3rem;"></i>
+                                            <p>No image generated</p>
+                                        </div>
+                                        {% endif %}
+                                    </div>
+                                    
+                                    <!-- Image Prompt -->
+                                    <div class="mb-3">
+                                        <label class="form-label">Image Prompt</label>
+                                        <textarea class="form-control" 
+                                                  id="prompt-{{ chapter.chapter_id }}"
+                                                  rows="4"
+                                                  placeholder="Enter or edit image prompt..."
+                                                  onchange="markAsChanged({{ chapter.chapter_id }})">{{ chapter.ai_prompt | default('', true) }}</textarea>
+                                    </div>
+                                    
+                                    <!-- Action Buttons -->
+                                    <div class="d-grid gap-2">
+                                        {% if not chapter.ai_prompt %}
+                                        <button class="btn btn-info btn-sm" 
+                                                onclick="generatePrompt({{ chapter.chapter_id }})">
+                                            <i class="bi bi-lightbulb"></i> Generate Prompt
+                                        </button>
+                                        {% endif %}
+                                        
+                                        <button class="btn btn-primary btn-sm" 
+                                                onclick="generateImage({{ chapter.chapter_id }})"
+                                                {% if not chapter.ai_prompt %}disabled{% endif %}>
+                                            <i class="bi bi-image"></i> Generate Image
+                                        </button>
+                                    </div>
+                                    
+                                    <!-- Status -->
+                                    <div class="mt-2" id="status-{{ chapter.chapter_id }}"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    
+    <!-- Publish Button -->
+    <div class="row mt-4">
+        <div class="col text-center">
+            <a href="/publish/{{ adaptation.adaptation_id }}" 
+               class="btn btn-lg btn-success">
+                <i class="bi bi-book"></i> Proceed to Publishing
+            </a>
+        </div>
+    </div>
+</div>
+
+<script>
+// Track changed chapters
+const changedChapters = new Set();
+
+function markAsChanged(chapterId) {
+    changedChapters.add(chapterId);
+    document.getElementById('save-all-btn').classList.add('btn-warning');
+}
+
+function toggleChapter(chapterId) {
+    const content = document.getElementById(`chapter-content-${chapterId}`);
+    const icon = document.getElementById(`toggle-icon-${chapterId}`);
+    
+    if (content.style.display === 'none') {
+        content.style.display = 'block';
+        icon.className = 'bi bi-chevron-up';
+    } else {
+        content.style.display = 'none';
+        icon.className = 'bi bi-chevron-down';
+    }
+}
+
+async function transformChapter(chapterId) {
+    const statusEl = document.getElementById(`status-${chapterId}`);
+    statusEl.innerHTML = '<div class="spinner-border spinner-border-sm"></div> Transforming...';
+    
+    try {
+        const response = await fetch(`/chapters/${chapterId}/transform`, {
+            method: 'POST'
+        });
+        
+        if (response.ok) {
+            const data = await response.json();
+            document.getElementById(`transformed-text-${chapterId}`).value = data.transformed_text;
+            statusEl.innerHTML = '<div class="alert alert-success">Transformation complete!</div>';
+            setTimeout(() => statusEl.innerHTML = '', 3000);
+        } else {
+            statusEl.innerHTML = '<div class="alert alert-danger">Transformation failed</div>';
+        }
+    } catch (error) {
+        statusEl.innerHTML = '<div class="alert alert-danger">Error: ' + error.message + '</div>';
+    }
+}
+
+async function generatePrompt(chapterId) {
+    const statusEl = document.getElementById(`status-${chapterId}`);
+    statusEl.innerHTML = '<div class="spinner-border spinner-border-sm"></div> Generating prompt...';
+    
+    try {
+        const response = await fetch(`/chapters/${chapterId}/generate-prompt`, {
+            method: 'POST'
+        });
+        
+        if (response.ok) {
+            const data = await response.json();
+            document.getElementById(`prompt-${chapterId}`).value = data.prompt;
+            statusEl.innerHTML = '<div class="alert alert-success">Prompt generated!</div>';
+            setTimeout(() => statusEl.innerHTML = '', 3000);
+        } else {
+            statusEl.innerHTML = '<div class="alert alert-danger">Failed to generate prompt</div>';
+        }
+    } catch (error) {
+        statusEl.innerHTML = '<div class="alert alert-danger">Error: ' + error.message + '</div>';
+    }
+}
+
+async function generateImage(chapterId) {
+    const prompt = document.getElementById(`prompt-${chapterId}`).value;
+    if (!prompt) {
+        alert('Please enter or generate a prompt first');
+        return;
+    }
+    
+    const statusEl = document.getElementById(`status-${chapterId}`);
+    const imageContainer = document.getElementById(`image-container-${chapterId}`);
+    
+    statusEl.innerHTML = '<div class="spinner-border spinner-border-sm"></div> Generating image...';
+    
+    try {
+        const response = await fetch(`/chapters/${chapterId}/generate-image`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ prompt: prompt })
+        });
+        
+        if (response.ok) {
+            const data = await response.json();
+            imageContainer.innerHTML = `
+                <img src="${data.image_url}" class="img-fluid rounded shadow-sm mb-2" style="max-height: 200px;">
+                <div>
+                    <button class="btn btn-sm btn-outline-danger" onclick="deleteImage(${chapterId})">
+                        <i class="bi bi-trash"></i> Delete
+                    </button>
+                </div>
+            `;
+            statusEl.innerHTML = '<div class="alert alert-success">Image generated!</div>';
+            setTimeout(() => statusEl.innerHTML = '', 3000);
+        } else {
+            statusEl.innerHTML = '<div class="alert alert-danger">Failed to generate image</div>';
+        }
+    } catch (error) {
+        statusEl.innerHTML = '<div class="alert alert-danger">Error: ' + error.message + '</div>';
+    }
+}
+
+async function deleteImage(chapterId) {
+    if (!confirm('Are you sure you want to delete this image?')) return;
+    
+    const statusEl = document.getElementById(`status-${chapterId}`);
+    statusEl.innerHTML = '<div class="spinner-border spinner-border-sm"></div> Deleting...';
+    
+    try {
+        const response = await fetch(`/chapters/${chapterId}/image`, {
+            method: 'DELETE'
+        });
+        
+        if (response.ok) {
+            document.getElementById(`image-container-${chapterId}`).innerHTML = `
+                <div class="text-muted py-4">
+                    <i class="bi bi-image" style="font-size: 3rem;"></i>
+                    <p>No image generated</p>
+                </div>
+            `;
+            statusEl.innerHTML = '<div class="alert alert-success">Image deleted</div>';
+            setTimeout(() => statusEl.innerHTML = '', 3000);
+        } else {
+            statusEl.innerHTML = '<div class="alert alert-danger">Failed to delete image</div>';
+        }
+    } catch (error) {
+        statusEl.innerHTML = '<div class="alert alert-danger">Error: ' + error.message + '</div>';
+    }
+}
+
+async function saveAllChanges() {
+    const btn = document.getElementById('save-all-btn');
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Saving...';
+    btn.disabled = true;
+    
+    const updates = [];
+    
+    for (const chapterId of changedChapters) {
+        updates.push({
+            chapter_id: chapterId,
+            title: document.getElementById(`title-${chapterId}`).innerText,
+            transformed_text: document.getElementById(`transformed-text-${chapterId}`).value,
+            ai_prompt: document.getElementById(`prompt-${chapterId}`).value
+        });
+    }
+    
+    try {
+        const response = await fetch('/chapters/batch-update', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ updates: updates })
+        });
+        
+        if (response.ok) {
+            changedChapters.clear();
+            btn.innerHTML = '<i class="bi bi-check"></i> Saved!';
+            btn.className = 'btn btn-success';
+            setTimeout(() => {
+                btn.innerHTML = '<i class="bi bi-save"></i> Save All Changes';
+                btn.disabled = false;
+            }, 2000);
+        } else {
+            btn.innerHTML = '<i class="bi bi-x"></i> Save Failed';
+            btn.className = 'btn btn-danger';
+            btn.disabled = false;
+        }
+    } catch (error) {
+        btn.innerHTML = '<i class="bi bi-x"></i> Error';
+        btn.className = 'btn btn-danger';
+        btn.disabled = false;
+    }
+}
+</script>
+
+<style>
+.editable-title {
+    border: none;
+    background: transparent;
+    font-weight: inherit;
+    color: inherit;
+}
+
+.editable-title:focus {
+    outline: 1px dashed #007bff;
+    padding: 2px 4px;
+    border-radius: 3px;
+}
+
+.chapter-text {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    line-height: 1.6;
+}
+
+.card {
+    transition: all 0.3s ease;
+}
+
+.card:hover {
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15) !important;
+}
+</style>
+{% endblock %}

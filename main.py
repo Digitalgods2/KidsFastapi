@@ -25,6 +25,7 @@ from routes.images_individual import router as images_router
 from routes.images_gallery import router as images_gallery_router
 from routes.images import router as images_status_router
 from routes.health import router as health_router
+from routes.workflow import router as workflow_router
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -149,6 +150,7 @@ app.include_router(images_router, prefix="/images", tags=["images"])
 app.include_router(images_status_router, prefix="/images", tags=["images-status"])  # mounts legacy alias and generation_status
 app.include_router(images_gallery_router, prefix="/gallery", tags=["gallery"])
 app.include_router(health_router, tags=["ops"])
+app.include_router(workflow_router, prefix="/workflow", tags=["workflow"])
 
 # ==================== HELPER FUNCTIONS ====================
 

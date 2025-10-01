@@ -296,3 +296,91 @@ async def generate_chapter_image_prompt(
         formatted_char_ref
     )
     return await generate_chat_text(messages, temperature=0.7, max_tokens=500)
+
+async def transform_chapter_text(
+    original_text: str,
+    age_group: str,
+    book_title: str = "Unknown",
+    chapter_number: int = 1,
+    preserve_names: str = ""
+) -> Tuple[Optional[str], Optional[str]]:
+    """
+    Transform chapter text to age-appropriate version (simplified interface)
+    
+    Args:
+        original_text: Original chapter text
+        age_group: Target age group (e.g., "3-5", "6-8", "9-12")
+        book_title: Title of the book
+        chapter_number: Chapter number
+        preserve_names: Comma-separated character names to preserve
+        
+    Returns:
+        Tuple of (transformed_text, error_message)
+    """
+    if not original_text or not original_text.strip():
+        return None, "No text provided for transformation"
+    
+    # Create minimal adaptation dict for compatibility
+    adaptation = {
+        "target_age_group": age_group,
+        "transformation_style": "Simple & Direct",
+        "key_characters_to_preserve": preserve_names
+    }
+    
+    book = {
+        "title": book_title,
+        "author": ""
+    }
+    
+    messages = build_text_transformation_template(original_text, adaptation, book)
+    
+    # Calculate appropriate max_tokens
+    original_tokens = len(original_text.split()) * 1.3  # Rough token estimate
+    max_tokens = min(16000, int(original_tokens * 0.8))  # 80% of original as max
+    max_tokens = max(4000, max_tokens)  # At least 4000 tokens
+    
+    return await generate_chat_text(
+        messages, 
+        model='gpt-4o-mini',  # Fast and cost-effective
+        temperature=0.7,
+        max_tokens=max_tokens
+    )
+
+async def generate_image_prompt_for_chapter(
+    chapter_text: str,
+    chapter_number: int,
+    adaptation: Dict[str, Any],
+    include_character_consistency: bool = True
+) -> Optional[str]:
+    """
+    Generate an image prompt for a chapter
+    
+    Args:
+        chapter_text: Chapter text (transformed or original)
+        chapter_number: Chapter number
+        adaptation: Adaptation details
+        include_character_consistency: Whether to include character consistency
+        
+    Returns:
+        Generated prompt or None if error
+    """
+    formatted_char_ref = None
+    
+    if include_character_consistency:
+        try:
+            from services.character_helper import get_formatted_character_reference
+            formatted_char_ref = await get_formatted_character_reference(
+                adaptation.get("adaptation_id"),
+                chapter_number
+            )
+        except Exception:
+            pass  # Character consistency optional
+    
+    prompt, error = await generate_chapter_image_prompt(
+        transformed_text=chapter_text,
+        chapter_number=chapter_number,
+        adaptation=adaptation,
+        formatted_char_ref=formatted_char_ref
+    )
+    
+    return prompt if not error else None

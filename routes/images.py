@@ -37,7 +37,38 @@ async def generate_images_batch(
     image_api: Optional[str] = Form(None),
     generate_cover: bool = Form(False)
 ):
-    """Start batch image generation for an adaptation"""
+    """
+    DEPRECATED: Batch image generation is no longer supported.
+    Images should be generated one at a time through the unified review interface.
+    This endpoint redirects to the review page.
+    """
+    # Return deprecation notice
+    from services.logger import get_logger
+    get_logger("routes.images").warning("batch_image_generation_deprecated", extra={
+        "adaptation_id": adaptation_id
+    })
+    
+    if request.headers.get("HX-Request"):
+        # HTMX response
+        return HTMLResponse(f"""
+            <div class="alert alert-warning">
+                <i class="bi bi-exclamation-triangle"></i>
+                <strong>Batch Image Generation Deprecated</strong>
+                <p>Images should now be generated one at a time through the unified review interface.</p>
+                <a href="/adaptations/{adaptation_id}/review" class="btn btn-primary mt-2">
+                    Go to Review Page
+                </a>
+            </div>
+        """)
+    
+    return JSONResponse({
+        "success": False,
+        "deprecated": True,
+        "message": "Batch image generation is deprecated. Use the unified review interface.",
+        "redirect": f"/adaptations/{adaptation_id}/review"
+    }, status_code=410)  # 410 Gone
+    
+    # Original code below is preserved but unreachable
     try:
         # Get adaptation details
         adaptation = await database.get_adaptation_details(adaptation_id)

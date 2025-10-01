@@ -3,15 +3,18 @@ Chapters routes for KidsKlassiks
 Handles individual chapter operations, viewing, and image management
 """
 
-from fastapi import APIRouter, Request, Form, HTTPException
+from fastapi import APIRouter, Request, Form, HTTPException, Body
 from fastapi.responses import JSONResponse
-from typing import Optional
+from typing import Optional, List, Dict, Any
 
 import database_fixed as database
 from services.image_generation_service import ImageGenerationService
+from services.chat_helper import transform_chapter_text, generate_image_prompt_for_chapter
+from services.logger import get_logger
 
 router = APIRouter()
 image_service = ImageGenerationService()
+logger = get_logger("routes.chapters")
 
 
 @router.get("/{chapter_id}/details")
@@ -380,6 +383,140 @@ async def transform_chapter_text(chapter_id: int):
             "error": str(e),
             "component": "routes.chapters",
             "chapter_id": chapter_id
+        })
+        return JSONResponse({
+            "success": False,
+            "error": str(e)
+        }, status_code=500)
+
+
+@router.post("/{chapter_id}/generate-prompt")
+async def generate_prompt(chapter_id: int):
+    """Generate an AI prompt for chapter image generation"""
+    try:
+        # Get chapter details
+        chapter = await database.get_chapter_details(chapter_id)
+        if not chapter:
+            raise HTTPException(status_code=404, detail="Chapter not found")
+        
+        # Get adaptation details
+        adaptation = await database.get_adaptation_details(chapter["adaptation_id"])
+        if not adaptation:
+            raise HTTPException(status_code=404, detail="Adaptation not found")
+        
+        # Use transformed text if available, otherwise original
+        chapter_text = chapter.get("transformed_text") or chapter.get("original_text_segment", "")
+        if not chapter_text:
+            return JSONResponse({
+                "success": False,
+                "error": "No text available for prompt generation"
+            }, status_code=400)
+        
+        # Generate prompt
+        prompt = await generate_image_prompt_for_chapter(
+            chapter_text=chapter_text[:2000],  # Limit text
+            chapter_number=chapter.get("chapter_number", 1),
+            adaptation=adaptation,
+            include_character_consistency=True
+        )
+        
+        if prompt:
+            # Save prompt
+            await database.update_chapter_prompt(chapter_id, prompt)
+            
+            return JSONResponse({
+                "success": True,
+                "prompt": prompt
+            })
+        else:
+            return JSONResponse({
+                "success": False,
+                "error": "Failed to generate prompt"
+            }, status_code=500)
+    
+    except Exception as e:
+        logger.error("generate_prompt_error", extra={
+            "error": str(e),
+            "chapter_id": chapter_id
+        })
+        return JSONResponse({
+            "success": False,
+            "error": str(e)
+        }, status_code=500)
+
+
+@router.delete("/{chapter_id}/image")
+async def delete_chapter_image(chapter_id: int):
+    """Delete the image for a chapter"""
+    try:
+        # Clear image URL from database
+        success = await database.update_chapter_image(chapter_id, None)
+        
+        if success:
+            return JSONResponse({
+                "success": True,
+                "message": "Image deleted successfully"
+            })
+        else:
+            return JSONResponse({
+                "success": False,
+                "error": "Failed to delete image"
+            }, status_code=400)
+    
+    except Exception as e:
+        logger.error("delete_image_error", extra={
+            "error": str(e),
+            "chapter_id": chapter_id
+        })
+        return JSONResponse({
+            "success": False,
+            "error": str(e)
+        }, status_code=500)
+
+
+@router.post("/batch-update")
+async def batch_update_chapters(updates: List[Dict[str, Any]] = Body(...)):
+    """Update multiple chapters at once"""
+    try:
+        success_count = 0
+        error_count = 0
+        
+        for update in updates:
+            try:
+                chapter_id = update.get("chapter_id")
+                if not chapter_id:
+                    continue
+                
+                # Update title if provided
+                if "title" in update:
+                    await database.update_chapter_title(chapter_id, update["title"])
+                
+                # Update transformed text and prompt together if provided
+                if "transformed_text" in update or "ai_prompt" in update:
+                    await database.update_chapter_text_and_prompt(
+                        chapter_id=chapter_id,
+                        transformed_text=update.get("transformed_text", ""),
+                        user_prompt=update.get("ai_prompt", "")
+                    )
+                
+                success_count += 1
+                
+            except Exception as e:
+                logger.error("batch_update_item_error", extra={
+                    "error": str(e),
+                    "chapter_id": update.get("chapter_id")
+                })
+                error_count += 1
+        
+        return JSONResponse({
+            "success": True,
+            "updated": success_count,
+            "errors": error_count
+        })
+    
+    except Exception as e:
+        logger.error("batch_update_error", extra={
+            "error": str(e)
         })
         return JSONResponse({
             "success": False,

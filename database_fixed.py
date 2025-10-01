@@ -983,6 +983,98 @@ async def save_cover_prompt(adaptation_id: int, cover_prompt: str) -> bool:
     finally:
         conn.close()
 
+async def update_chapter_title(chapter_id: int, title: str) -> bool:
+    """Update chapter title"""
+    conn = sqlite3.connect(DATABASE_PATH)
+    cursor = conn.cursor()
+    
+    try:
+        cursor.execute('''
+            UPDATE chapters 
+            SET title = ?
+            WHERE chapter_id = ?
+        ''', (title, chapter_id))
+        
+        conn.commit()
+        return cursor.rowcount > 0
+        
+    except Exception as e:
+        conn.rollback()
+        print(f"Error updating chapter title: {e}")
+        return False
+    finally:
+        conn.close()
+
+async def update_chapter_content(chapter_id: int, content: str) -> bool:
+    """Update chapter content (transformed text)"""
+    conn = sqlite3.connect(DATABASE_PATH)
+    cursor = conn.cursor()
+    
+    try:
+        cursor.execute('''
+            UPDATE chapters 
+            SET transformed_text = ?
+            WHERE chapter_id = ?
+        ''', (content, chapter_id))
+        
+        conn.commit()
+        return cursor.rowcount > 0
+        
+    except Exception as e:
+        conn.rollback()
+        print(f"Error updating chapter content: {e}")
+        return False
+    finally:
+        conn.close()
+
+async def update_chapter_prompt(chapter_id: int, ai_prompt: str) -> bool:
+    """Update only the AI prompt for a chapter"""
+    conn = sqlite3.connect(DATABASE_PATH)
+    conn.row_factory = sqlite3.Row
+    cursor = conn.cursor()
+    
+    try:
+        cursor.execute('''
+            UPDATE chapters 
+            SET ai_prompt = ?
+            WHERE chapter_id = ?
+        ''', (ai_prompt, chapter_id))
+        
+        conn.commit()
+        return cursor.rowcount > 0
+        
+    except Exception as e:
+        conn.rollback()
+        print(f"Error updating chapter prompt: {e}")
+        return False
+    finally:
+        conn.close()
+
+async def save_character_reference(book_id: int, character_data: dict) -> bool:
+    """Save character reference data for a book"""
+    conn = sqlite3.connect(DATABASE_PATH)
+    cursor = conn.cursor()
+    
+    try:
+        import json
+        character_json = json.dumps(character_data)
+        
+        cursor.execute('''
+            UPDATE books 
+            SET character_reference = ?
+            WHERE book_id = ?
+        ''', (character_json, book_id))
+        
+        conn.commit()
+        return cursor.rowcount > 0
+        
+    except Exception as e:
+        conn.rollback()
+        print(f"Error saving character reference: {e}")
+        return False
+    finally:
+        conn.close()
+
 async def update_adaptation_status(adaptation_id: int, status: str) -> bool:
     """Update adaptation status"""
     conn = db_manager.get_connection()

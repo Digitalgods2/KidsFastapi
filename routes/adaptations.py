@@ -139,17 +139,26 @@ async def create_adaptation(
         )
         
         if adaptation_id:
-            # Return HTML response for HTMX with redirect
+            # Start the new workflow automatically
+            from services.workflow_manager import workflow_manager
+            workflow_id = await workflow_manager.start_adaptation_workflow(
+                book_id=book_id,
+                adaptation_id=adaptation_id,
+                background=True
+            )
+            
+            # Return HTML response for HTMX with redirect to workflow status
             html_response = f"""
             <div class="alert alert-success">
                 <i class="bi bi-check-circle"></i>
                 <strong>Adaptation Created Successfully!</strong>
-                <p class="mb-0">Redirecting to processing page...</p>
+                <p class="mb-0 mt-2">Starting automatic workflow processing...</p>
+                <p class="mb-0">This includes character analysis, text transformation, and prompt generation.</p>
             </div>
             <script>
                 setTimeout(function() {{
-                    window.location.href = '/adaptations/{adaptation_id}/process';
-                }}, 1500);
+                    window.location.href = '/workflow/status/{workflow_id}';
+                }}, 2000);
             </script>
             """
             return HTMLResponse(content=html_response)
@@ -176,7 +185,7 @@ async def create_adaptation(
 
 @router.get("/{adaptation_id}/review", response_class=HTMLResponse)
 async def review_adaptation(request: Request, adaptation_id: int):
-    """Review and edit adaptation"""
+    """Unified review and edit page for adaptation"""
     context = await get_base_context(request)
     
     try:
@@ -191,9 +200,17 @@ async def review_adaptation(request: Request, adaptation_id: int):
         # Get book details
         book = await database.get_book_details(adaptation["book_id"])
         
+        # Calculate statistics
+        transformed_count = sum(1 for ch in chapters if ch.get("transformed_text"))
+        prompts_count = sum(1 for ch in chapters if ch.get("ai_prompt"))
+        images_count = sum(1 for ch in chapters if ch.get("image_url"))
+        
         context["adaptation"] = adaptation
         context["chapters"] = chapters
         context["book"] = book
+        context["transformed_count"] = transformed_count
+        context["prompts_count"] = prompts_count
+        context["images_count"] = images_count
         
     except Exception as e:
         from services.logger import get_logger
@@ -201,7 +218,7 @@ async def review_adaptation(request: Request, adaptation_id: int):
         log.error("review_adaptation_error", extra={"error": str(e), "component": "routes.adaptations", "request_id": getattr(request.state, 'request_id', None), "adaptation_id": adaptation_id})
         raise HTTPException(status_code=500, detail=str(e))
     
-    return templates.TemplateResponse("pages/review_adaptation.html", context)
+    return templates.TemplateResponse("pages/unified_review.html", context)
 
 @router.get("/{adaptation_id}/process", response_class=HTMLResponse)
 async def process_adaptation_page(request: Request, adaptation_id: int):
