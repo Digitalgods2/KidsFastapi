@@ -296,7 +296,7 @@
 </head>
 <body>
     <!-- Navigation -->
-    <nav class="navbar navbar-expand-lg navbar-dark shadow-sm">
+    <nav class="navbar navbar-expand-lg navbar-dark shadow-sm" style="z-index: 10001 !important; position: relative !important;">
         <div class="container-fluid">
             <a class="navbar-brand d-flex align-items-center" href="/">
                 <img src="/static/images/digital-gods-logo.png" alt="Digital Gods" class="digital-gods-logo me-2" style="width: 32px; height: 32px;">
@@ -1404,6 +1404,28 @@
         document.getElementById('themeToggle')?.addEventListener('click', (e) => {
             e.preventDefault();
             cycleTheme();
+        });
+
+        // Fix dropdown z-index issues
+        document.addEventListener('DOMContentLoaded', function() {
+            // Ensure dropdowns have proper z-index when shown
+            document.querySelectorAll('.navbar .dropdown').forEach(function(dropdown) {
+                dropdown.addEventListener('show.bs.dropdown', function() {
+                    const menu = this.querySelector('.dropdown-menu');
+                    if (menu) {
+                        menu.style.zIndex = '10000';
+                        menu.style.position = 'absolute';
+                    }
+                });
+                
+                dropdown.addEventListener('shown.bs.dropdown', function() {
+                    const menu = this.querySelector('.dropdown-menu');
+                    if (menu) {
+                        menu.style.zIndex = '10000';
+                        menu.style.position = 'absolute';
+                    }
+                });
+            });
         });
     </script>
     

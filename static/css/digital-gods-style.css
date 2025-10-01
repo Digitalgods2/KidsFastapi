@@ -735,7 +735,8 @@ small, .small {
   border-radius: 8px !important;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5) !important;
   backdrop-filter: blur(10px);
-  z-index: 1050 !important;
+  z-index: 9999 !important;
+  position: absolute !important;
 }
 
 .dropdown-item {
@@ -821,7 +822,7 @@ small, .small {
 /* Force dropdown visibility and positioning */
 .navbar-nav .dropdown-menu {
   position: absolute !important;
-  z-index: 1060 !important;
+  z-index: 9999 !important;
   display: none !important;
   float: left !important;
   min-width: 10rem !important;
@@ -831,6 +832,24 @@ small, .small {
   text-align: left !important;
   list-style: none !important;
   background-clip: padding-box !important;
+}
+
+/* Navbar container z-index */
+.navbar {
+  z-index: 1030 !important;
+  position: relative !important;
+}
+
+/* Dropdown container */
+.navbar-nav .dropdown {
+  position: static !important;
+}
+
+.navbar-nav .dropdown-menu {
+  position: absolute !important;
+  top: 100% !important;
+  left: 0 !important;
+  transform: none !important;
 }
 
 .navbar-nav .dropdown-menu.show {
@@ -864,4 +883,37 @@ small, .small {
 
 .navbar-dark .dropdown-divider {
   border-top-color: rgba(255, 255, 255, 0.2) !important;
+}
+
+/* Main content z-index management */
+main {
+  position: relative !important;
+  z-index: 1 !important;
+}
+
+/* Hero section z-index fix */
+.hero-section {
+  position: relative !important;
+  z-index: 1 !important;
+}
+
+/* Circuit overlay z-index */
+.circuit-overlay {
+  z-index: 0 !important;
+}
+
+/* Container z-index */
+.container,
+.container-fluid {
+  position: relative !important;
+  z-index: 1 !important;
+}
+
+/* Ensure dropdown shows above everything */
+.navbar .dropdown-menu.show {
+  z-index: 10000 !important;
+  position: absolute !important;
+  display: block !important;
+  opacity: 1 !important;
+  visibility: visible !important;
 }
