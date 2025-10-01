@@ -285,6 +285,26 @@
         .theme-charcoal .text-info {
             color: #60a5fa !important;
         }
+        
+        /* Fix alert-light visibility in dark themes */
+        .theme-dark .alert-light,
+        .theme-charcoal .alert-light,
+        body.bg-dark .alert-light {
+            background-color: rgba(255, 255, 255, 0.1);
+            border-color: rgba(255, 255, 255, 0.2);
+            color: #e0e0e0;
+        }
+        
+        .theme-dark .alert-light .text-muted,
+        .theme-charcoal .alert-light .text-muted,
+        body.bg-dark .alert-light .text-muted {
+            color: #b8b8b8 !important;
+        }
+        
+        /* Ensure alert-light text is visible */
+        body.bg-dark .alert-light small {
+            color: #c0c0c0 !important;
+        }
     </style>
     
     <!-- HTMX -->
