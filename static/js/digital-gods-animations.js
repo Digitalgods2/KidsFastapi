@@ -33,19 +33,19 @@ document.addEventListener('DOMContentLoaded', function() {
         logo.addEventListener('mouseenter', function() {
             if (!isAnimating) {
                 isAnimating = true;
-                this.style.transition = 'all 0.4s ease-out';
-                this.style.transform = 'scale(1.05) rotate(3deg)';
-                this.style.filter = 'drop-shadow(0 0 12px rgba(255, 215, 0, 0.4))';
+                this.style.transition = 'all 0.3s ease-out';
+                this.style.transform = 'scale(1.02) rotate(1deg)';
+                this.style.filter = 'drop-shadow(0 0 6px rgba(230, 194, 0, 0.2))';
                 
                 setTimeout(() => {
                     isAnimating = false;
-                }, 400);
+                }, 300);
             }
         });
         
         logo.addEventListener('mouseleave', function() {
             this.style.transform = 'scale(1) rotate(0deg)';
-            this.style.filter = 'drop-shadow(0 0 5px rgba(255, 215, 0, 0.3))';
+            this.style.filter = 'drop-shadow(0 0 2px rgba(230, 194, 0, 0.2))';
         });
         
         // Random gentle pulse every few seconds
