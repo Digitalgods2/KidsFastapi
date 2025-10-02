@@ -252,7 +252,19 @@ class ImageGenerationService:
             # Get aspect ratio from settings if not provided
             if not aspect_ratio:
                 import database_fixed as database
-                aspect_ratio = await database.get_setting("default_aspect_ratio", "4:3")
+                from services.backends import BACKEND_ASPECT_RATIOS, DEFAULT_ASPECT_RATIOS
+                
+                # Get the saved aspect ratio
+                saved_aspect_ratio = await database.get_setting("default_aspect_ratio", "16:9")
+                
+                # Check if this aspect ratio is valid for the current model
+                valid_ratios = BACKEND_ASPECT_RATIOS.get(model, ["1:1"])
+                if saved_aspect_ratio in valid_ratios:
+                    aspect_ratio = saved_aspect_ratio
+                else:
+                    # Use the default aspect ratio for this specific backend
+                    aspect_ratio = DEFAULT_ASPECT_RATIOS.get(model, "1:1")
+                    logger.info(f"Saved aspect ratio {saved_aspect_ratio} not valid for {model}, using {aspect_ratio}")
             
             # Get size based on aspect ratio
             from services.backends import get_aspect_ratio_size
@@ -317,7 +329,11 @@ class ImageGenerationService:
             chapter = await database.get_chapter_details(chapter_id)
             book_id = adaptation.get('book_id') if adaptation else None
             chapter_number = chapter.get('chapter_number') if chapter else chapter_id
-            target_dir = os.path.join("generated_images", str(book_id)) if book_id else "generated_images"
+            # Use hierarchical structure: /generated_images/{book_id}/chapters/
+            if book_id:
+                target_dir = os.path.join("generated_images", str(book_id), "chapters")
+            else:
+                target_dir = os.path.join("generated_images", "orphaned", "chapters")
 
             # Save image locally under per-book directory (use chapter_number for filename)
             filename = f"adaptation_{adaptation_id}_chapter_{chapter_number}_{model}.png"
@@ -398,8 +414,23 @@ class ImageGenerationService:
             
             # Get image settings from database
             import database_fixed as database
-            size_setting = await database.get_setting("default_image_size", "1024x1024")
-            logger.info(f"📐 Using image size: {size_setting}")
+            from services.backends import BACKEND_ASPECT_RATIOS, DEFAULT_ASPECT_RATIOS, ASPECT_RATIO_SIZES
+            
+            # Get the saved aspect ratio
+            saved_aspect_ratio = await database.get_setting("default_aspect_ratio", "16:9")
+            
+            # Check if this aspect ratio is valid for the current model
+            valid_ratios = BACKEND_ASPECT_RATIOS.get(model, ["1:1"])
+            if saved_aspect_ratio in valid_ratios:
+                aspect_ratio = saved_aspect_ratio
+            else:
+                # Use the default aspect ratio for this specific backend
+                aspect_ratio = DEFAULT_ASPECT_RATIOS.get(model, "1:1")
+                logger.info(f"Saved aspect ratio {saved_aspect_ratio} not valid for {model}, using {aspect_ratio}")
+            
+            # Get the size for this backend and aspect ratio
+            size_setting = ASPECT_RATIO_SIZES.get(model, {}).get(aspect_ratio, "1024x1024")
+            logger.info(f"📐 Using image size: {size_setting} for {model} with aspect ratio {aspect_ratio}")
             
             # Convert string model to ImageModel enum
             from models import ImageModel
@@ -436,7 +467,11 @@ class ImageGenerationService:
                 chapter = await database.get_chapter_details(chapter_id)
                 book_id = adaptation.get('book_id') if adaptation else None
                 chapter_number = chapter.get('chapter_number') if chapter else chapter_id
-                target_dir = os.path.join("generated_images", str(book_id)) if book_id else "generated_images"
+                # Use hierarchical structure: /generated_images/{book_id}/chapters/
+                if book_id:
+                    target_dir = os.path.join("generated_images", str(book_id), "chapters")
+                else:
+                    target_dir = os.path.join("generated_images", "orphaned", "chapters")
                 logger.info(f"📁 Target directory: {target_dir}, book_id={book_id}")
 
                 # Vertex AI already saved the image locally - image_url is a local path like /generated_images/filename.png
@@ -478,7 +513,7 @@ class ImageGenerationService:
                     "image_url": f"/{target_dir}/{os.path.basename(image_path)}",
                     "local_path": image_path,
                     "source_url": image_url,
-                    "prompt": enhanced_prompt,
+                    "prompt": prompt,  # Use the prompt parameter, not undefined enhanced_prompt
                     "backend": "vertex",
                     "model": model,
                     "generated_at": datetime.now().isoformat()
@@ -634,7 +669,11 @@ class ImageGenerationService:
                 import database_fixed as database, shutil
                 adaptation = await database.get_adaptation_details(adaptation_id)
                 book_id = adaptation.get('book_id') if adaptation else None
-                target_dir = os.path.join("generated_images", str(book_id)) if book_id else "generated_images"
+                # Use hierarchical structure: /generated_images/{book_id}/chapters/
+                if book_id:
+                    target_dir = os.path.join("generated_images", str(book_id), "chapters")
+                else:
+                    target_dir = os.path.join("generated_images", "orphaned", "chapters")
                 os.makedirs(target_dir, exist_ok=True)
 
                 cover_filename = f"cover_adaptation_{adaptation_id}.png"

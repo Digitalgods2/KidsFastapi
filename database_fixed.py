@@ -664,6 +664,32 @@ async def update_book_character_reference(book_id: int, character_reference: str
     finally:
         conn.close()
 
+async def get_character_reference(book_id: int) -> Optional[dict]:
+    """Get character reference data for a book"""
+    conn = db_manager.get_connection()
+    cursor = conn.cursor()
+    
+    try:
+        cursor.execute('''
+            SELECT character_reference FROM books WHERE book_id = ?
+        ''', (book_id,))
+        
+        row = cursor.fetchone()
+        if row and row[0]:
+            try:
+                # Try to parse as JSON if it's a JSON string
+                import json
+                return json.loads(row[0])
+            except (json.JSONDecodeError, TypeError):
+                # Return as-is if not JSON
+                return {"characters": row[0]} if row[0] else None
+        return None
+    except Exception as e:
+        print(f"❌ Get character reference failed: {e}")
+        return None
+    finally:
+        conn.close()
+
 async def delete_book_from_db(book_id: int) -> bool:
     """Delete book and all related records and files.
     - Deletes chapters, adaptations, runs, locks
@@ -711,9 +737,14 @@ async def delete_book_from_db(book_id: int) -> bool:
             import shutil as _sh
             _dir = os.path.join('generated_images', str(book_id))
             if os.path.isdir(_dir):
+                # Count files before deletion for logging
+                file_count = sum([len(files) for r, d, files in os.walk(_dir)])
                 _sh.rmtree(_dir)
-        except Exception:
-            pass
+                print(f"✅ Removed image directory for book {book_id}: {_dir} ({file_count} files)")
+            else:
+                print(f"ℹ️  No image directory found for book {book_id}")
+        except Exception as e:
+            print(f"⚠️  Could not remove image directory for book {book_id}: {e}")
 
         # Remove upload file if exists
         try:

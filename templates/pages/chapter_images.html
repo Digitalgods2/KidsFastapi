@@ -90,9 +90,9 @@
                                         </button>
                                     </div>
                                 {% else %}
-                                    <div class="text-center p-4 border rounded bg-light">
-                                        <i class="fas fa-image fa-3x text-muted mb-3"></i>
-                                        <p class="text-muted">No cover image generated yet</p>
+                                    <div class="text-center p-4 border rounded" style="background-color: #1e3a5f; border-color: #4a9eff !important;">
+                                        <i class="fas fa-image fa-3x mb-3" style="color: #4a9eff;"></i>
+                                        <p style="color: #ffffff; margin: 0;">No cover image generated yet</p>
                                     </div>
                                 {% endif %}
                             </div>
@@ -120,7 +120,7 @@
                 </div>
                 <div class="card-body">
                     {% for chapter in chapters %}
-                    <div class="chapter-section mb-4 p-3 border rounded" id="chapter-{{ chapter.id }}">
+                    <div class="chapter-section mb-4 p-3 border rounded" id="chapter-{{ chapter.chapter_id or chapter.id }}">
                         <div class="row">
                             <div class="col-12">
                                 <h6 class="text-primary mb-3">
@@ -141,7 +141,7 @@
                                     <textarea 
                                         class="form-control" 
                                         rows="6" 
-                                        id="chapter-text-{{ chapter.id }}"
+                                        id="chapter-text-{{ chapter.chapter_id or chapter.id }}"
                                         placeholder="Original or transformed chapter text will appear here..."
                                     >{{ chapter.transformed_chapter_text or chapter.original_text_segment or '' }}</textarea>
                                     <small class="form-text text-muted">Edit and save changes to customize the chapter text</small>
@@ -153,7 +153,7 @@
                                     <textarea 
                                         class="form-control" 
                                         rows="4" 
-                                        id="chapter-prompt-{{ chapter.id }}"
+                                        id="chapter-prompt-{{ chapter.chapter_id or chapter.id }}"
                                         placeholder="Generate or edit the image prompt for this chapter..."
                                     >{{ chapter.user_edited_image_prompt or chapter.ai_generated_image_prompt or '' }}</textarea>
                                     {% if chapter.ai_generated_image_prompt and chapter.user_edited_image_prompt != chapter.ai_generated_image_prompt %}
@@ -165,16 +165,16 @@
                                 
                                 <!-- Action Buttons -->
                                 <div class="btn-group" role="group">
-                                    <button class="btn btn-outline-primary btn-sm" onclick="generateChapterPrompt({{ chapter.id }})">
+                                    <button class="btn btn-outline-primary btn-sm" onclick="generateChapterPrompt({{ chapter.chapter_id or chapter.id }})">
                                         <i class="fas fa-magic"></i> Generate Prompt
                                     </button>
-                                    <button class="btn btn-success btn-sm" onclick="generateChapterImage({{ chapter.id }})" id="generate-chapter-{{ chapter.id }}-btn">
+                                    <button class="btn btn-success btn-sm" onclick="generateChapterImage({{ chapter.chapter_id or chapter.id }})" id="generate-chapter-{{ chapter.chapter_id or chapter.id }}-btn">
                                         <i class="fas fa-image"></i> Generate Image
                                     </button>
-                                    <button class="btn btn-outline-warning btn-sm" onclick="saveChapterPrompt({{ chapter.id }})">
+                                    <button class="btn btn-outline-warning btn-sm" onclick="saveChapterPrompt({{ chapter.chapter_id or chapter.id }})">
                                         <i class="fas fa-save"></i> Save Prompt
                                     </button>
-                                    <button class="btn btn-outline-secondary btn-sm" onclick="skipChapterImage({{ chapter.id }})">
+                                    <button class="btn btn-outline-secondary btn-sm" onclick="skipChapterImage({{ chapter.chapter_id or chapter.id }})">
                                         <i class="fas fa-times"></i> Skip Image
                                     </button>
                                 </div>
@@ -182,21 +182,21 @@
                             
                             <!-- Image Column -->
                             <div class="col-md-4">
-                                <div id="chapter-image-container-{{ chapter.id }}">
+                                <div id="chapter-image-container-{{ chapter.chapter_id or chapter.id }}">
                                     {% if chapter.image_url %}
                                         <img src="{{ chapter.image_url }}" class="img-fluid rounded" alt="Chapter {{ chapter.chapter_number }} Image">
                                         <div class="mt-2 text-center">
-                                            <button class="btn btn-sm btn-outline-primary" onclick="regenerateChapterImage({{ chapter.id }})">
+                                            <button class="btn btn-sm btn-outline-primary" onclick="regenerateChapterImage({{ chapter.chapter_id or chapter.id }})">
                                                 <i class="fas fa-redo"></i> Regenerate
                                             </button>
-                                            <button class="btn btn-sm btn-outline-danger" onclick="deleteChapterImage({{ chapter.id }})">
+                                            <button class="btn btn-sm btn-outline-danger" onclick="deleteChapterImage({{ chapter.chapter_id or chapter.id }})">
                                                 <i class="fas fa-trash"></i> Delete
                                             </button>
                                         </div>
                                     {% else %}
-                                        <div class="text-center p-4 border rounded bg-light">
-                                            <i class="fas fa-image fa-2x text-muted mb-2"></i>
-                                            <p class="text-muted small">No image generated</p>
+                                        <div class="text-center p-4 border rounded" style="background-color: #1e3a5f; border-color: #4a9eff !important;">
+                                            <i class="fas fa-image fa-2x mb-2" style="color: #4a9eff;"></i>
+                                            <p class="small" style="color: #ffffff; margin: 0;">No image generated</p>
                                         </div>
                                     {% endif %}
                                 </div>
@@ -231,16 +231,46 @@
 // Bulk actions
 async function generateAllPrompts() {
     try {
+        // Show loading overlay with appropriate time estimate
+        showLoadingOverlay('Generating prompts for all chapters...', 'This may take 1-2 minutes depending on chapter count');
+        
         const res = await fetch(`/images/generate-all-prompts/{{ adaptation.adaptation_id }}`, { method: 'POST' });
         const result = await res.json();
+        
+        hideLoadingOverlay();
+        
         if (result.success) {
-            showToast(`Generated prompts for ${result.results?.filter(r=>r.success).length || 0} chapters`, 'success');
-            // Refresh page to load prompts
-            location.reload();
+            const summary = result.summary;
+            let message = `Successfully generated ${summary.generated} prompts`;
+            if (summary.skipped > 0) {
+                message += `, skipped ${summary.skipped} (already exists)`;
+            }
+            if (summary.errors > 0) {
+                message += `, ${summary.errors} errors`;
+            }
+            showToast(message, 'success');
+            
+            // Update the prompts in the UI without reloading
+            if (result.results && result.results.length > 0) {
+                result.results.forEach(r => {
+                    if (r.status === 'success' && r.prompt) {
+                        const promptField = document.getElementById(`chapter-prompt-${r.chapter_id}`);
+                        if (promptField && !promptField.value) {
+                            promptField.value = r.prompt;
+                        }
+                    }
+                });
+            }
+            
+            // Optionally reload if many changes
+            if (summary.generated > 5) {
+                setTimeout(() => location.reload(), 1500);
+            }
         } else {
-            showToast('Failed to generate all prompts: ' + (result.error || 'Unknown error'), 'error');
+            showToast('Failed to generate prompts: ' + (result.error || 'Unknown error'), 'error');
         }
     } catch (e) {
+        hideLoadingOverlay();
         showToast('Error generating all prompts: ' + e.message, 'error');
     }
 }
@@ -266,7 +296,7 @@ async function generateAllImages() {
 async function generateChapterPrompt(chapterId) {
     try {
         // Show loading overlay
-        showLoadingOverlay('Generating Chapter Prompt...');
+        showLoadingOverlay('Generating Chapter Prompt...', 'This usually takes 5-10 seconds');
         
         const response = await fetch(`/images/generate-chapter-prompt/${chapterId}`, {
             method: 'POST',
@@ -300,7 +330,7 @@ async function generateChapterImage(chapterId) {
     
     try {
         // Show prominent loading overlay
-        showLoadingOverlay(`Generating Chapter Image...`);
+        showLoadingOverlay('Generating Chapter Image...', 'This usually takes 10-15 seconds');
         
         // Also disable button
         btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating...';
@@ -313,12 +343,30 @@ async function generateChapterImage(chapterId) {
         });
         
         const result = await response.json();
+        hideLoadingOverlay();
+        
         if (result.success) {
             // Update the image container with cache-busting timestamp
             const container = document.getElementById(`chapter-image-container-${chapterId}`);
+            
+            if (!container) {
+                console.error(`Container not found for chapter ${chapterId}`);
+                showToast('Error: Image container not found. Please refresh the page.', 'error');
+                return;
+            }
+            
+            if (!result.image_url) {
+                console.error('No image URL in response:', result);
+                showToast('Error: No image URL received from server', 'error');
+                return;
+            }
+            
             const cacheBuster = new Date().getTime();
+            const imageUrl = result.image_url.startsWith('/') ? result.image_url : '/' + result.image_url;
+            
             container.innerHTML = `
-                <img src="${result.image_url}?t=${cacheBuster}" class="img-fluid rounded" alt="Chapter Image">
+                <img src="${imageUrl}?t=${cacheBuster}" class="img-fluid rounded" alt="Chapter Image" 
+                     onerror="this.onerror=null; this.src='/static/images/placeholder.png'; console.error('Failed to load image: ${imageUrl}');">
                 <div class="mt-2 text-center">
                     <button class="btn btn-sm btn-outline-primary" onclick="regenerateChapterImage(${chapterId})">
                         <i class="fas fa-redo"></i> Regenerate
@@ -328,8 +376,8 @@ async function generateChapterImage(chapterId) {
                     </button>
                 </div>
             `;
-            hideLoadingOverlay();
-            showToast('Image generated successfully!', 'success');
+            
+            showToast('Image generated successfully! Refresh if not visible.', 'success');
         } else {
             hideLoadingOverlay();
             showToast('Failed to generate image: ' + result.error, 'error');
@@ -401,9 +449,9 @@ async function deleteChapterImage(chapterId) {
                 // Reset the image container
                 const container = document.getElementById(`chapter-image-container-${chapterId}`);
                 container.innerHTML = `
-                    <div class="text-center p-4 border rounded bg-light">
-                        <i class="fas fa-image fa-2x text-muted mb-2"></i>
-                        <p class="text-muted small">No image generated</p>
+                    <div class="text-center p-4 border rounded" style="background-color: #1e3a5f; border-color: #4a9eff !important;">
+                        <i class="fas fa-image fa-2x mb-2" style="color: #4a9eff;"></i>
+                        <p class="small" style="color: #ffffff; margin: 0;">No image generated</p>
                     </div>
                 `;
                 showToast('Image deleted successfully', 'success');
@@ -420,7 +468,7 @@ async function deleteChapterImage(chapterId) {
 async function generateCoverPrompt() {
     try {
         // Show loading overlay
-        showLoadingOverlay('Generating Cover Prompt...');
+        showLoadingOverlay('Generating Cover Prompt...', 'This usually takes 5-10 seconds');
         
         const response = await fetch(`/images/generate-cover-prompt/{{ adaptation.adaptation_id }}`, {
             method: 'POST',
@@ -479,7 +527,7 @@ async function generateCoverImage() {
     
     try {
         // Show prominent loading overlay
-        showLoadingOverlay('Generating Cover Image...');
+        showLoadingOverlay('Generating Cover Image...', 'This usually takes 15-20 seconds');
         
         // Also disable button
         btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating...';
@@ -508,7 +556,12 @@ async function generateCoverImage() {
             showToast('Cover image generated successfully!', 'success');
         } else {
             hideLoadingOverlay();
-            showToast('Failed to generate cover image: ' + result.error, 'error');
+            // Ensure we show the actual error message, with better fallback
+            const errorMsg = result.error || result.message || result.detail || 'Unknown error occurred';
+            console.error('Cover generation failed. Full result:', result);  // Log for debugging
+            console.error('Error message extracted:', errorMsg);  // Log what we're showing
+            // Show just the error message without prefix for now to debug
+            showToast(errorMsg, 'error');
         }
     } catch (error) {
         hideLoadingOverlay();
@@ -521,13 +574,65 @@ async function generateCoverImage() {
 
 // Utility Functions
 function showToast(message, type) {
-    // Simple toast notification
+    // Simple toast notification with GUARANTEED visibility
     const toast = document.createElement('div');
-    toast.className = `alert alert-${type === 'error' ? 'danger' : type} position-fixed`;
-    toast.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
+    toast.className = 'position-fixed';
+    
+    // Use white on blue for ALL toasts in dark mode for maximum visibility
+    const isDarkMode = document.body.classList.contains('bg-dark');
+    
+    let bgColor, textColor, borderColor, icon;
+    if (isDarkMode) {
+        // White on blue for EVERYTHING in dark mode - can't go wrong!
+        switch(type) {
+            case 'success':
+                bgColor = '#28a745';
+                icon = 'check-circle';
+                break;
+            case 'error':
+            case 'danger':
+                bgColor = '#dc3545';
+                icon = 'exclamation-triangle';
+                break;
+            case 'warning':
+                bgColor = '#ffc107';
+                icon = 'exclamation-circle';
+                break;
+            default:
+                bgColor = '#007bff';
+                icon = 'info-circle';
+        }
+        textColor = '#ffffff';
+        borderColor = bgColor;
+    } else {
+        // Light mode colors
+        bgColor = type === 'error' || type === 'danger' ? '#f8d7da' : 
+                 type === 'success' ? '#d4edda' : 
+                 type === 'warning' ? '#fff3cd' : '#d1ecf1';
+        textColor = type === 'error' || type === 'danger' ? '#721c24' : 
+                   type === 'success' ? '#155724' : 
+                   type === 'warning' ? '#856404' : '#0c5460';
+        borderColor = type === 'error' || type === 'danger' ? '#f5c6cb' : 
+                     type === 'success' ? '#c3e6cb' : 
+                     type === 'warning' ? '#ffeeba' : '#bee5eb';
+        icon = type === 'success' ? 'check-circle' : 
+               type === 'error' || type === 'danger' ? 'exclamation-triangle' : 
+               type === 'warning' ? 'exclamation-circle' : 'info-circle';
+    }
+    
+    toast.style.cssText = `top: 20px; right: 20px; z-index: 9999; min-width: 350px; max-width: 600px; background-color: ${bgColor} !important; color: ${textColor} !important; border: 2px solid ${borderColor} !important; padding: 12px 20px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.3); font-weight: 500; word-wrap: break-word;`;
+    
     toast.innerHTML = `
-        ${message}
-        <button type="button" class="btn-close" onclick="this.parentElement.remove()"></button>
+        <div style="display: flex; align-items: flex-start; justify-content: space-between;">
+            <div style="display: flex; align-items: flex-start; flex: 1;">
+                <i class="fas fa-${icon} me-2" style="font-size: 1.2em; margin-top: 2px;"></i>
+                <span style="flex: 1; word-wrap: break-word; white-space: pre-wrap;">${message}</span>
+            </div>
+            <button type="button" onclick="this.parentElement.parentElement.remove()" 
+                    style="background: transparent; border: none; color: ${textColor}; font-size: 1.5em; cursor: pointer; margin-left: 15px; flex-shrink: 0;">
+                ×
+            </button>
+        </div>
     `;
     document.body.appendChild(toast);
     
@@ -539,21 +644,37 @@ function showToast(message, type) {
 }
 
 // Loading overlay functions
-function showLoadingOverlay(message) {
+function showLoadingOverlay(message, estimatedTime = null) {
     // Remove any existing overlay
     const existing = document.getElementById('loading-overlay');
     if (existing) existing.remove();
     
+    // Determine if we're in dark mode
+    const isDarkMode = document.body.classList.contains('bg-dark');
+    
     const overlay = document.createElement('div');
     overlay.id = 'loading-overlay';
-    overlay.style.cssText = 'position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 10000; display: flex; align-items: center; justify-content: center;';
+    overlay.style.cssText = 'position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 10000; display: flex; align-items: center; justify-content: center;';
+    
+    // Adjust estimated time message based on operation
+    let timeMessage = '';
+    if (estimatedTime) {
+        timeMessage = estimatedTime;
+    } else if (message.includes('all chapters')) {
+        timeMessage = 'This may take 1-2 minutes for all chapters';
+    } else if (message.includes('Cover')) {
+        timeMessage = 'This usually takes 15-20 seconds';
+    } else {
+        timeMessage = 'This usually takes 10-15 seconds';
+    }
+    
     overlay.innerHTML = `
-        <div style="background: white; padding: 30px 50px; border-radius: 10px; text-align: center; box-shadow: 0 4px 20px rgba(0,0,0,0.3);">
-            <div class="spinner-border text-primary mb-3" role="status" style="width: 3rem; height: 3rem;">
+        <div style="background: ${isDarkMode ? '#1e3a5f' : 'white'}; padding: 30px 50px; border-radius: 10px; text-align: center; box-shadow: 0 4px 20px rgba(0,0,0,0.5); border: 2px solid ${isDarkMode ? '#4a9eff' : '#007bff'};">
+            <div class="spinner-border mb-3" role="status" style="width: 3rem; height: 3rem; color: ${isDarkMode ? '#4a9eff' : '#007bff'};">
                 <span class="visually-hidden">Loading...</span>
             </div>
-            <h4>${message}</h4>
-            <p class="text-muted mb-0">This usually takes 10-15 seconds</p>
+            <h4 style="color: ${isDarkMode ? '#ffffff' : '#212529'}; font-weight: 600;">${message}</h4>
+            <p style="color: ${isDarkMode ? '#ffffff' : '#6c757d'}; margin-bottom: 0; opacity: 0.9;">${timeMessage}</p>
         </div>
     `;
     document.body.appendChild(overlay);

@@ -98,11 +98,19 @@ async def update_chapter(
 @router.post("/{chapter_id}/generate-image")
 async def generate_chapter_image(
     chapter_id: int,
-    custom_prompt: Optional[str] = Form(None),
-    image_api: Optional[str] = Form(None)
+    request: Request
 ):
     """Generate or regenerate an image for a chapter"""
     try:
+        # Parse JSON body
+        try:
+            body = await request.json()
+            custom_prompt = body.get("prompt")
+            image_api = body.get("image_api")
+        except:
+            custom_prompt = None
+            image_api = None
+        
         # Get chapter details
         chapter = await database.get_chapter_details(chapter_id)
         if not chapter:
@@ -148,11 +156,11 @@ async def generate_chapter_image(
         if result.get("success"):
             # Update database with new image
             image_url = result.get("image_url")
-            await database.update_chapter_image(
-                chapter_id=chapter_id,
-                image_url=image_url,
-                image_prompt=prompt
-            )
+            # Update image URL first
+            await database.update_chapter_image_url(chapter_id, image_url)
+            # Update prompt separately
+            if prompt:
+                await database.update_chapter_image_prompt(chapter_id, prompt)
             
             return JSONResponse({
                 "success": True,

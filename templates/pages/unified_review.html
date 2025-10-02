@@ -80,18 +80,20 @@
                 
                 <div class="card-body" id="chapter-content-{{ chapter.chapter_id }}">
                     <div class="row">
-                        <!-- Text Section -->
-                        <div class="col-md-8">
-                            <ul class="nav nav-tabs mb-3" role="tablist">
+                        <!-- Image Section (moved to left) -->
+                        <div class="col-md-4">
+                            <ul class="nav nav-tabs mb-3" role="tablist" style="background-color: rgba(255, 255, 255, 0.05);">
                                 <li class="nav-item">
                                     <a class="nav-link active" data-bs-toggle="tab" 
-                                       href="#transformed-{{ chapter.chapter_id }}">
+                                       href="#transformed-{{ chapter.chapter_id }}"
+                                       style="color: #ffffff; background-color: transparent; border-color: rgba(255, 255, 255, 0.2);">
                                         Transformed Text
                                     </a>
                                 </li>
                                 <li class="nav-item">
                                     <a class="nav-link" data-bs-toggle="tab" 
-                                       href="#original-{{ chapter.chapter_id }}">
+                                       href="#original-{{ chapter.chapter_id }}"
+                                       style="color: #ffffff; background-color: transparent; border-color: rgba(255, 255, 255, 0.2);">
                                         Original Text
                                     </a>
                                 </li>
@@ -128,9 +130,9 @@
                             </div>
                         </div>
                         
-                        <!-- Image Section -->
-                        <div class="col-md-4">
-                            <div class="card bg-light">
+                        <!-- Text Section (moved to right) -->
+                        <div class="col-md-8">
+                            <div class="card" style="background-color: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1);">
                                 <div class="card-header">
                                     <h6 class="mb-0">Chapter Image</h6>
                                 </div>
@@ -176,6 +178,7 @@
                                         {% endif %}
                                         
                                         <button class="btn btn-primary btn-sm" 
+                                                id="gen-img-btn-{{ chapter.chapter_id }}"
                                                 onclick="generateImage({{ chapter.chapter_id }})"
                                                 {% if not chapter.ai_prompt %}disabled{% endif %}>
                                             <i class="bi bi-image"></i> Generate Image
@@ -280,8 +283,15 @@ async function generateImage(chapterId) {
     
     const statusEl = document.getElementById(`status-${chapterId}`);
     const imageContainer = document.getElementById(`image-container-${chapterId}`);
+    const genBtn = document.getElementById(`gen-img-btn-${chapterId}`);
     
-    statusEl.innerHTML = '<div class="spinner-border spinner-border-sm"></div> Generating image...';
+    // Disable button and show progress
+    if (genBtn) {
+        genBtn.disabled = true;
+        genBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Generating...';
+    }
+    
+    statusEl.innerHTML = '<div class="alert alert-info"><i class="bi bi-hourglass-split"></i> Generating image with GPT-Image-1...</div>';
     
     try {
         const response = await fetch(`/chapters/${chapterId}/generate-image`, {
@@ -302,13 +312,28 @@ async function generateImage(chapterId) {
                     </button>
                 </div>
             `;
-            statusEl.innerHTML = '<div class="alert alert-success">Image generated!</div>';
+            statusEl.innerHTML = '<div class="alert alert-success"><i class="bi bi-check-circle"></i> Image generated successfully!</div>';
             setTimeout(() => statusEl.innerHTML = '', 3000);
         } else {
-            statusEl.innerHTML = '<div class="alert alert-danger">Failed to generate image</div>';
+            const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+            const errorMsg = errorData.error || errorData.message || 'Failed to generate image';
+            statusEl.innerHTML = `<div class="alert alert-danger">
+                <i class="bi bi-exclamation-triangle"></i> <strong>Image Generation Failed:</strong><br>
+                <small>${errorMsg}</small>
+            </div>`;
+            console.error('Image generation error:', errorData);
         }
     } catch (error) {
-        statusEl.innerHTML = '<div class="alert alert-danger">Error: ' + error.message + '</div>';
+        statusEl.innerHTML = `<div class="alert alert-danger">
+            <i class="bi bi-x-circle"></i> <strong>Error:</strong> ${error.message}
+        </div>`;
+    } finally {
+        // Restore button state
+        const genBtn = document.getElementById(`gen-img-btn-${chapterId}`);
+        if (genBtn) {
+            genBtn.disabled = false;
+            genBtn.innerHTML = '<i class="bi bi-image"></i> Generate Image';
+        }
     }
 }
 
@@ -411,6 +436,56 @@ async function saveAllChanges() {
 
 .card:hover {
     box-shadow: 0 4px 12px rgba(0,0,0,0.15) !important;
+}
+
+/* Fix nav tabs in dark mode */
+.nav-tabs {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.nav-tabs .nav-link {
+    color: #adb5bd !important;
+    background-color: transparent;
+    border: 1px solid transparent;
+}
+
+.nav-tabs .nav-link:hover {
+    color: #ffffff !important;
+    border-color: rgba(255, 255, 255, 0.2) rgba(255, 255, 255, 0.2) transparent;
+    background-color: rgba(255, 255, 255, 0.05);
+}
+
+.nav-tabs .nav-link.active {
+    color: #ffffff !important;
+    background-color: var(--bs-body-bg) !important;
+    border-color: rgba(255, 255, 255, 0.2) rgba(255, 255, 255, 0.2) var(--bs-body-bg);
+}
+
+/* Dark mode specific styles */
+body.bg-dark .nav-tabs .nav-link {
+    color: #adb5bd !important;
+}
+
+body.bg-dark .nav-tabs .nav-link:hover {
+    color: #ffffff !important;
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+body.bg-dark .nav-tabs .nav-link.active {
+    color: #ffffff !important;
+    background-color: #212529 !important;
+    border-color: rgba(255, 255, 255, 0.2) rgba(255, 255, 255, 0.2) #212529;
+}
+
+/* Image section card styling */
+.image-section-card {
+    background-color: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+body.bg-dark .image-section-card {
+    background-color: rgba(0, 0, 0, 0.2);
+    border-color: rgba(255, 255, 255, 0.1);
 }
 </style>
 {% endblock %}

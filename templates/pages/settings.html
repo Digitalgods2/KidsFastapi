@@ -47,7 +47,7 @@
                             <h4 class="mb-0"><i class="bi bi-key text-primary"></i> API Configuration</h4>
                         </div>
                         <div class="card-body">
-                            <form hx-post="/settings/api/save" hx-trigger="submit" hx-target="#api-response">
+                            <form hx-post="/settings/api/save" hx-trigger="submit" hx-target="#api-response" hx-encoding="multipart/form-data">
                                 <!-- OpenAI API -->
                                 <div class="mb-4">
                                     <h5 class="mb-3">OpenAI API</h5>
@@ -164,7 +164,8 @@
                                         <div class="col-md-6">
                                             <div class="form-check card p-3">
                                                 <input class="form-check-input" type="radio" name="default_image_backend" id="vertex-imagen" value="vertex-imagen"
-                                                       {% if settings.default_image_backend == 'vertex-imagen' %}checked{% endif %}>
+                                                       {% if settings.default_image_backend == 'vertex-imagen' %}checked{% endif %}
+                                                       onchange="updateAspectRatios()">
                                                 <label class="form-check-label" for="vertex-imagen">
                                                     <strong>Google Vertex Imagen</strong>
                                                     <small class="d-block text-muted">Advanced AI model, custom aspect ratios</small>
@@ -174,7 +175,8 @@
                                         <div class="col-md-6">
                                             <div class="form-check card p-3">
                                                 <input class="form-check-input" type="radio" name="default_image_backend" id="imagen-children" value="imagen-children"
-                                                       {% if settings.default_image_backend == 'imagen-children' %}checked{% endif %}>
+                                                       {% if settings.default_image_backend == 'imagen-children' %}checked{% endif %}
+                                                       onchange="updateAspectRatios()">
                                                 <label class="form-check-label" for="imagen-children">
                                                     <strong>Imagen Children's Mode</strong>
                                                     <small class="d-block text-muted">Optimized for children's illustrations</small>
@@ -456,15 +458,13 @@ function resetToDefaults() {
 // Aspect ratio configuration for each backend
 const backendAspectRatios = {
     'gpt-image-1': {
-        ratios: ['1:1', '16:9', '9:16', '4:3', '3:4'],
+        ratios: ['1:1', '16:9', '9:16'],  // Only officially supported ratios by OpenAI
         sizes: {
             '1:1': '1024x1024',
             '16:9': '1792x1024',
-            '9:16': '1024x1792',
-            '4:3': '1365x1024',
-            '3:4': '1024x1365'
+            '9:16': '1024x1792'
         },
-        default: '4:3'
+        default: '16:9'  // Use landscape as default
     },
     'dall-e-3': {
         ratios: ['1:1', '16:9', '9:16'],
@@ -486,7 +486,7 @@ const backendAspectRatios = {
         },
         default: '4:3'
     },
-    'vertex-children': {
+    'imagen-children': {
         ratios: ['1:1', '4:3', '3:4'],
         sizes: {
             '1:1': '1024x1024',

@@ -63,29 +63,83 @@ def build_cover_prompt_template(book: Dict[str, Any], adaptation: Dict[str, Any]
     style = adaptation.get('transformation_style', 'Simple & Direct')
     theme = adaptation.get('overall_theme_tone', '')
     characters = (adaptation.get('key_characters_to_preserve') or '').strip()
+    
+    # Build character descriptions based on well-known stories
+    character_descriptions = ""
+    book_id = book.get('book_id')
+    char_ref = None  # TODO: Fetch character reference if needed
+    
+    if char_ref:
+            # Check for enhanced character descriptions
+            if 'characters_with_descriptions' in char_ref:
+                # We have detailed descriptions!
+                character_descriptions = f"\n\nCHARACTER DESCRIPTIONS from '{title}':\n"
+                char_list = char_ref['characters_with_descriptions']
+                
+                # Match characters mentioned in adaptation with detailed descriptions
+                for char_data in char_list:
+                    char_name = char_data.get('name', '')
+                    if any(name in characters for name in char_name.split()):
+                        desc = char_data.get('description', '')
+                        role = char_data.get('role', '')
+                        if desc:
+                            character_descriptions += f"- {char_name} ({role}): {desc}\n"
+                
+                if character_descriptions.endswith(":\n"):
+                    # No descriptions found, use fallback
+                    character_descriptions = ""
+            
+            # Fallback to generic descriptions for well-known stories
+            if not character_descriptions and characters:
+                character_descriptions = f"\n\nIMPORTANT CHARACTER CONTEXT from '{title}':\n"
+                character_descriptions += f"The following characters appear in this story: {characters}\n"
+                character_descriptions += f"Please research the original story '{title}' by {author} to accurately depict these characters with their traditional appearances.\n"
+                
+                # Add specific guidance for well-known characters
+                if "Christmas Carol" in title:
+                    if "Scrooge" in characters or "Ebenezer" in characters:
+                        character_descriptions += "- Ebenezer Scrooge: An elderly man with gray/white hair, often in Victorian-era dark coat and top hat\n"
+                    if "Tiny Tim" in characters:
+                        character_descriptions += "- Tiny Tim: A young boy with a crutch, Bob Cratchit's youngest son, cheerful despite his disability\n"
+                    if "Cratchit" in characters:
+                        character_descriptions += "- Bob Cratchit: A humble clerk, middle-aged man in modest Victorian clothing\n"
+                elif "Wizard of Oz" in title:
+                    if "Dorothy" in characters:
+                        character_descriptions += "- Dorothy: A young girl with brown hair in pigtails, blue gingham dress, and ruby/silver slippers\n"
+                    if "Scarecrow" in characters:
+                        character_descriptions += "- Scarecrow: Made of straw, wearing old clothes, floppy hat\n"
+                    if "Tin Man" in characters or "Woodman" in characters:
+                        character_descriptions += "- Tin Man: Made entirely of tin/silver metal, holding an axe\n"
+                    if "Lion" in characters:
+                        character_descriptions += "- Cowardly Lion: Large lion with a big mane, expressive face\n"
 
     system = (
-        "You are an expert prompt engineer and children's book illustrator. "
-        "Create visually rich, child-friendly prompts that produce a single cohesive cover image."
+        "You are an expert prompt engineer and children's book illustrator with deep knowledge of classic literature. "
+        "Create visually rich, child-friendly prompts that accurately depict characters from well-known stories. "
+        "When creating prompts for classic tales, ensure character appearances match their traditional depictions."
     )
     user = f"""
-Create a detailed DALL-E image prompt for a children's book cover.
+Create a detailed image generation prompt for a children's book cover.
 
 Book: "{title}" by {author}
 Target Age: {age_group}
 Style: {style}
 Theme/Tone: {theme}
-Key Characters (if any): {characters or 'N/A'}
+Key Characters: {characters or 'N/A'}
+{character_descriptions}
 
 Guidelines:
-- One single, engaging scene suitable for a cover
+- One single, engaging scene suitable for a cover featuring the key characters
+- IF this is a well-known story (like A Christmas Carol, The Wizard of Oz, etc.), ensure characters match their traditional appearances
 - Friendly, whimsical tone; bright colors; clear focal point
 - Include the book title "{title}" and author name "{author}" as clear, legible text prominently displayed on the cover
 - Position the title at the top or center, and author name at the bottom
 - Use child-friendly, easy-to-read fonts for the text
 - Avoid violence or scary elements; suitable for children
-- Describe characters (appearance, expressions), setting, mood, color palette, composition
+- Describe characters with specific physical details (hair color, clothing, age, distinctive features)
+- Include setting, mood, color palette, composition
 - Keep under 200 words; no extra commentary
+- IMPORTANT: Return ONLY the image description, do NOT add any prefix like '**Prompt for...**' or headers
 """
     return [
         {"role": "system", "content": system},
@@ -128,7 +182,7 @@ def build_chapter_prompt_template(
         char_ref = f"\nCharacter Reference (JSON excerpt):\n{str(character_reference)[:1500]}\n"
     
     user = f"""
-Create a detailed DALL-E image prompt for Chapter {chapter_number}.
+Create a detailed image generation prompt for Chapter {chapter_number}.
 
 Target Age: {age_group}
 Style: {style}
@@ -147,6 +201,7 @@ Guidelines:
 - Describe characters (appearance, pose, expression), setting, mood, palette, composition
 - Avoid text in the image; avoid violence/scary content
 - Keep under 200 words; no extra commentary
+- IMPORTANT: Return ONLY the image description, do NOT add any prefix like '**Prompt for...**' or headers
 """
     return [
         {"role": "system", "content": system},
