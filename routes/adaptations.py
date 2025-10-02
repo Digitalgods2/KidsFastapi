@@ -147,29 +147,63 @@ async def create_adaptation(
                 background=True
             )
             
-            # Return HTML response for HTMX with redirect to workflow status
+            # Return HTML response for HTMX with progress bar and redirect
             html_response = f"""
             <div class="alert alert-success mb-3">
-                <div class="d-flex align-items-center">
-                    <div class="spinner-border spinner-border-sm me-3" role="status">
-                        <span class="visually-hidden">Loading...</span>
-                    </div>
-                    <div>
-                        <h5 class="mb-1"><i class="bi bi-check-circle"></i> Adaptation Created Successfully!</h5>
-                        <p class="mb-0">Starting automatic workflow processing...</p>
-                        <small>Character analysis, text transformation, and prompt generation in progress...</small>
+                <h5 class="mb-2"><i class="bi bi-check-circle text-success"></i> Adaptation Created Successfully!</h5>
+                <p class="mb-3">Starting automatic workflow processing...</p>
+                
+                <!-- Progress Bar -->
+                <div class="progress mb-3" style="height: 25px;">
+                    <div class="progress-bar progress-bar-striped progress-bar-animated bg-primary" 
+                         role="progressbar" 
+                         style="width: 25%"
+                         aria-valuenow="25" 
+                         aria-valuemin="0" 
+                         aria-valuemax="100">
+                        Initializing workflow...
                     </div>
                 </div>
-            </div>
-            <script>
-                // Disable the submit button to prevent double submission
-                document.querySelector('button[type="submit"]').disabled = true;
-                document.querySelector('button[type="submit"]').innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Processing...';
                 
-                // Redirect to workflow status page
-                setTimeout(function() {{
-                    window.location.href = '/workflow/status/{workflow_id}';
-                }}, 1500);
+                <div class="d-flex justify-content-between text-muted small">
+                    <span><i class="bi bi-1-circle"></i> Character Analysis</span>
+                    <span><i class="bi bi-2-circle"></i> Text Transformation</span>
+                    <span><i class="bi bi-3-circle"></i> Prompt Generation</span>
+                    <span><i class="bi bi-4-circle"></i> Ready for Images</span>
+                </div>
+            </div>
+            
+            <script>
+                // Hide the form to prevent confusion
+                document.getElementById('adaptation-form').style.display = 'none';
+                
+                // Animate progress bar
+                let progress = 25;
+                const progressBar = document.querySelector('.progress-bar');
+                const messages = [
+                    'Starting character analysis...',
+                    'Analyzing story elements...',
+                    'Preparing workflow...',
+                    'Redirecting to status page...'
+                ];
+                let messageIndex = 0;
+                
+                const progressInterval = setInterval(function() {{
+                    progress += 15;
+                    messageIndex = Math.min(messageIndex + 1, messages.length - 1);
+                    
+                    if (progressBar) {{
+                        progressBar.style.width = Math.min(progress, 90) + '%';
+                        progressBar.setAttribute('aria-valuenow', Math.min(progress, 90));
+                        progressBar.textContent = messages[messageIndex];
+                    }}
+                    
+                    if (progress >= 90) {{
+                        clearInterval(progressInterval);
+                        // Redirect to workflow status page
+                        window.location.href = '/workflow/status/{workflow_id}';
+                    }}
+                }}, 500);
             </script>
             """
             return HTMLResponse(content=html_response)

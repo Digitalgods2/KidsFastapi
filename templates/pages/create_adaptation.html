@@ -19,8 +19,8 @@
             <form hx-post="/adaptations/create" 
                   hx-trigger="submit" 
                   hx-target="#adaptation-response"
-                  hx-indicator="#form-indicator"
-                  hx-on="htmx:beforeRequest: document.getElementById('submit-btn').disabled = true; document.getElementById('submit-btn').innerHTML = '<span class=\'spinner-border spinner-border-sm me-2\'></span>Creating...';"
+                  hx-swap="innerHTML"
+                  hx-on="htmx:beforeRequest: this.querySelector('#submit-btn').disabled = true; this.querySelector('#submit-btn').innerHTML = '<span class=\'spinner-border spinner-border-sm me-2\'></span>Creating...';"
                   id="adaptation-form">
                 
                 <!-- Step 1: Select Book -->
@@ -255,14 +255,6 @@
                         <i class="bi bi-rocket-takeoff"></i> Create Adaptation
                     </button>
                 </div>
-                
-                <!-- Loading Indicator -->
-                <div id="form-indicator" class="htmx-indicator text-center mt-3">
-                    <div class="spinner-border text-primary" role="status">
-                        <span class="visually-hidden">Processing...</span>
-                    </div>
-                    <p class="mt-2 text-muted">Creating adaptation and starting workflow...</p>
-                </div>
             </form>
         </div>
     </div>
@@ -439,17 +431,4 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 </script>
-
-<style>
-/* HTMX Loading Indicator */
-.htmx-indicator {
-    display: none;
-}
-.htmx-request .htmx-indicator {
-    display: block;
-}
-.htmx-request.htmx-indicator {
-    display: block;
-}
-</style>
 {% endblock %}
