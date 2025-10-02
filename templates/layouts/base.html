@@ -551,6 +551,20 @@
             color: #4a9eff !important;
         }
         
+        /* Service status indicators - ensure visibility */
+        .bi-circle-fill {
+            font-size: 0.75rem;
+        }
+        
+        /* Progress bar enhancements */
+        .progress {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+        
+        body.bg-dark .progress {
+            background-color: rgba(0, 0, 0, 0.3);
+        }
+        
         /* Fix input and textarea contrast in dark mode */
         body.bg-dark input[type="text"],
         body.bg-dark input[type="email"],
@@ -909,16 +923,22 @@
                 <div class="col-md-4">
                     <h6 class="mb-3 text-white">AI Services Status</h6>
                     <div class="d-flex align-items-center mb-2">
-                        <i class="bi bi-circle-fill text-{{ 'success' if openai_status else 'danger' }} me-2 small"></i>
-                        <span class="text-white-50 small">OpenAI API</span>
+                        <i class="bi bi-circle-fill me-2 small" style="color: {{ '#28a745' if openai_status else '#dc3545' }} !important;"></i>
+                        <span class="small" style="color: {{ '#28a745' if openai_status else '#dc3545' }} !important; font-weight: 500;">
+                            OpenAI API {{ '✓' if openai_status else '✗' }}
+                        </span>
                     </div>
                     <div class="d-flex align-items-center mb-2">
-                        <i class="bi bi-circle-fill text-{{ 'success' if vertex_status else 'danger' }} me-2 small"></i>
-                        <span class="text-white-50 small">Google Vertex AI</span>
+                        <i class="bi bi-circle-fill me-2 small" style="color: {{ '#28a745' if vertex_status else '#dc3545' }} !important;"></i>
+                        <span class="small" style="color: {{ '#28a745' if vertex_status else '#dc3545' }} !important; font-weight: 500;">
+                            Google Vertex AI {{ '✓' if vertex_status else '✗' }}
+                        </span>
                     </div>
                     <div class="d-flex align-items-center">
-                        <i class="bi bi-circle-fill text-success me-2 small"></i>
-                        <span class="text-white-50 small">Database Connected</span>
+                        <i class="bi bi-circle-fill me-2 small" style="color: #28a745 !important;"></i>
+                        <span class="small" style="color: #28a745 !important; font-weight: 500;">
+                            Database Connected ✓
+                        </span>
                     </div>
                 </div>
             </div>

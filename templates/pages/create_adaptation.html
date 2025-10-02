@@ -369,13 +369,77 @@ function analyzeCharacters() {
     document.getElementById('character-analysis-results').style.display = 'none';
     document.getElementById('analyze-characters-btn').disabled = true;
     
-    // Update progress message with more detail
+    // Update progress message with progress bar
+    let startTime = Date.now();
+    let progressPercent = 0;
+    
     document.getElementById('character-analysis-progress').innerHTML = `
-        <div class="spinner-border spinner-border-sm me-2" role="status"></div>
-        <strong>Analyzing book comprehensively...</strong><br>
-        <small>Scanning beginning, middle, and end sections to find ALL characters.<br>
-        This thorough analysis may take 30-60 seconds.</small>
+        <strong>Analyzing book comprehensively...</strong>
+        <div class="progress mt-2 mb-2" style="height: 25px;">
+            <div id="analysis-progress-bar" class="progress-bar progress-bar-striped progress-bar-animated bg-info" 
+                 role="progressbar" style="width: 5%"
+                 aria-valuenow="5" aria-valuemin="0" aria-valuemax="100">
+                Starting analysis...
+            </div>
+        </div>
+        <small class="text-muted">Scanning beginning, middle, and end sections to find ALL characters.</small>
+        <div class="mt-2">
+            <small id="progress-status">📖 Reading book content...</small>
+        </div>
     `;
+    
+    // Simulate progress updates
+    const progressMessages = [
+        { time: 2000, percent: 15, text: "📖 Reading book content...", status: "Analyzing beginning chapters..." },
+        { time: 5000, percent: 30, text: "🔍 Scanning for characters...", status: "Processing middle sections..." },
+        { time: 8000, percent: 45, text: "👥 Identifying main characters...", status: "Analyzing character relationships..." },
+        { time: 12000, percent: 60, text: "📚 Analyzing story context...", status: "Scanning end chapters..." },
+        { time: 16000, percent: 75, text: "✨ Processing minor characters...", status: "Finalizing character list..." },
+        { time: 20000, percent: 85, text: "🎭 Completing analysis...", status: "Almost done..." }
+    ];
+    
+    let progressTimeouts = [];
+    progressMessages.forEach(msg => {
+        let timeout = setTimeout(() => {
+            const bar = document.getElementById('analysis-progress-bar');
+            const status = document.getElementById('progress-status');
+            if (bar && status) {
+                bar.style.width = msg.percent + '%';
+                bar.setAttribute('aria-valuenow', msg.percent);
+                bar.textContent = msg.status;
+                status.innerHTML = msg.text;
+            }
+        }, msg.time);
+        progressTimeouts.push(timeout);
+    });
+    
+    // Add timeout warning after 30 seconds
+    let warningTimeout = setTimeout(() => {
+        const progressDiv = document.getElementById('character-analysis-progress');
+        if (progressDiv && progressDiv.style.display !== 'none') {
+            const bar = document.getElementById('analysis-progress-bar');
+            if (bar) {
+                bar.classList.remove('bg-info');
+                bar.classList.add('bg-warning');
+                bar.textContent = 'Taking longer than expected...';
+            }
+        }
+    }, 30000);
+    
+    // Add error timeout after 60 seconds
+    let errorTimeout = setTimeout(() => {
+        const progressDiv = document.getElementById('character-analysis-progress');
+        if (progressDiv && progressDiv.style.display !== 'none') {
+            progressDiv.innerHTML = `
+                <div class="alert alert-danger">
+                    <i class="bi bi-exclamation-triangle"></i>
+                    <strong>Analysis Timeout</strong><br>
+                    The character analysis is taking too long. Please try again or enter characters manually.
+                </div>
+            `;
+            document.getElementById('analyze-characters-btn').disabled = false;
+        }
+    }, 60000);
     
     // Make AJAX call to analyze characters
     fetch('/books/analyze-characters', {
@@ -387,7 +451,24 @@ function analyzeCharacters() {
     })
     .then(response => response.json())
     .then(data => {
-        document.getElementById('character-analysis-progress').style.display = 'none';
+        // Clear all progress timeouts
+        progressTimeouts.forEach(t => clearTimeout(t));
+        clearTimeout(warningTimeout);
+        clearTimeout(errorTimeout);
+        
+        // Complete the progress bar
+        const bar = document.getElementById('analysis-progress-bar');
+        if (bar) {
+            bar.style.width = '100%';
+            bar.setAttribute('aria-valuenow', 100);
+            bar.classList.remove('bg-warning');
+            bar.classList.add('bg-success');
+            bar.textContent = 'Analysis complete!';
+        }
+        
+        setTimeout(() => {
+            document.getElementById('character-analysis-progress').style.display = 'none';
+        }, 500);
         
         if (data.success && data.characters) {
             // Add characters to textarea
@@ -413,9 +494,22 @@ function analyzeCharacters() {
         }
     })
     .catch(error => {
+        // Clear all timeouts
+        progressTimeouts.forEach(t => clearTimeout(t));
+        clearTimeout(warningTimeout);
+        clearTimeout(errorTimeout);
+        
         console.error('Error:', error);
-        alert('Error analyzing characters. Please enter them manually.');
-        document.getElementById('character-analysis-progress').style.display = 'none';
+        document.getElementById('character-analysis-progress').innerHTML = `
+            <div class="alert alert-danger">
+                <i class="bi bi-exclamation-triangle"></i>
+                <strong>Error analyzing characters</strong><br>
+                Please enter characters manually or try again.
+            </div>
+        `;
+        setTimeout(() => {
+            document.getElementById('character-analysis-progress').style.display = 'none';
+        }, 3000);
     })
     .finally(() => {
         document.getElementById('analyze-characters-btn').disabled = false;
