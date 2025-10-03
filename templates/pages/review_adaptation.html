@@ -579,5 +579,17 @@ function regenerateImage() {
         generateImage(currentChapterId);
     }
 }
+document.addEventListener('DOMContentLoaded', function () {
+    const modalEl = document.getElementById('coverImageModal');
+    if (modalEl) {
+        modalEl.addEventListener('hidden.bs.modal', function () {
+            // Remove any leftover backdrops and restore body state
+            document.querySelectorAll('.modal-backdrop').forEach(b => b.remove());
+            document.body.classList.remove('modal-open');
+            document.body.style.overflow = '';
+            document.body.style.paddingRight = '';
+        });
+    }
+});
 </script>
 {% endblock %}
