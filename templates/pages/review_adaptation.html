@@ -103,7 +103,7 @@
                             <h6 class="mb-3">Cover Image</h6>
                             {% if adaptation.cover_url %}
                                 <div class="text-center mb-3">
-                                    <img src="{{ adaptation.cover_url }}" alt="Cover Image" class="img-fluid rounded shadow-sm" style="max-height: 300px; cursor: pointer;" data-bs-toggle="modal" data-bs-target="#coverImageModal">
+                                    <img src="{{ adaptation.cover_url }}" alt="Cover Image" class="img-fluid rounded shadow-sm" style="max-height: 300px; cursor: pointer;" onclick="document.getElementById('coverImageModal').style.display='block'">
                                 </div>
                                 <div class="d-grid gap-2">
                                     <button class="btn btn-outline-warning" onclick="editCoverPrompt()">
@@ -326,25 +326,75 @@
 </div>
 
 <!-- Cover Image View Modal -->
-<div class="modal fade" id="coverImageModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-xl modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Cover Image</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body text-center">
-                <img src="{{ adaptation.cover_url }}" class="img-fluid" alt="Cover Image" style="max-height: 75vh;">
-            </div>
-        </div>
-    </div>
+<!-- Simple CSS Lightbox - No Bootstrap Modal -->
+<div id="coverImageModal" class="lightbox-overlay" onclick="this.style.display='none'">
+    <span class="lightbox-close" onclick="document.getElementById('coverImageModal').style.display='none'">&times;</span>
+    <img class="lightbox-content" src="{{ adaptation.cover_url }}" alt="Cover Image">
+    <div class="lightbox-caption">Click anywhere to close</div>
 </div>
+
+<style>
+.lightbox-overlay {
+    display: none;
+    position: fixed;
+    z-index: 9999;
+    padding-top: 50px;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgba(0,0,0,0.9);
+    cursor: pointer;
+}
+
+.lightbox-content {
+    margin: auto;
+    display: block;
+    max-width: 90%;
+    max-height: 90vh;
+    cursor: pointer;
+}
+
+.lightbox-close {
+    position: absolute;
+    top: 15px;
+    right: 35px;
+    color: #f1f1f1;
+    font-size: 60px;
+    font-weight: bold;
+    cursor: pointer;
+    z-index: 10000;
+}
+
+.lightbox-close:hover,
+.lightbox-close:focus {
+    color: #bbb;
+    text-decoration: none;
+}
+
+.lightbox-caption {
+    margin: auto;
+    display: block;
+    width: 80%;
+    max-width: 700px;
+    text-align: center;
+    color: #ccc;
+    padding: 10px 0;
+    height: 30px;
+}
+</style>
 
 <script>
 let currentChapterId = null;
 const adaptationId = {{ adaptation.adaptation_id }};
 
-// Cover page functions - using Bootstrap's data-bs-toggle, no JS needed
+// Simple lightbox - ESC key to close
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        document.getElementById('coverImageModal').style.display = 'none';
+    }
+});
 
 function editCoverPrompt() {
     // Close any open modals first
