@@ -788,6 +788,9 @@ async function regenerateCover() {
 // Ensure modal cleanup on close
 document.addEventListener('DOMContentLoaded', function() {
     const coverImageModal = document.getElementById('coverImageModal');
+    const modalCloseBtn = document.getElementById('modalCloseBtn');
+    const modalCoverImage = document.getElementById('modalCoverImage');
+    
     if (coverImageModal) {
         // Clean up on hide event
         coverImageModal.addEventListener('hide.bs.modal', function (e) {
@@ -805,12 +808,31 @@ document.addEventListener('DOMContentLoaded', function() {
             document.body.style.paddingRight = '';
         });
         
-        // Click outside to close
+        // Click on modal backdrop to close
         coverImageModal.addEventListener('click', function(e) {
-            if (e.target === coverImageModal) {
-                console.log('Clicked outside modal');
+            console.log('Modal clicked, target:', e.target.id, 'classList:', e.target.classList.toString());
+            if (e.target.id === 'coverImageModal') {
+                console.log('Clicked modal backdrop - closing');
                 forceCloseModal();
             }
+        });
+    }
+    
+    // Click close button
+    if (modalCloseBtn) {
+        modalCloseBtn.addEventListener('click', function(e) {
+            console.log('Close button clicked');
+            e.stopPropagation();
+            forceCloseModal();
+        });
+    }
+    
+    // Click image to close
+    if (modalCoverImage) {
+        modalCoverImage.addEventListener('click', function(e) {
+            console.log('Image clicked');
+            e.stopPropagation();
+            forceCloseModal();
         });
     }
     
@@ -856,28 +878,26 @@ document.addEventListener('DOMContentLoaded', function() {
 </div>
 
 <!-- Cover Image View Modal - Simplified -->
-<div id="coverImageModal" class="modal fade" tabindex="-1" role="dialog" onclick="forceCloseModal()">
-    <div class="modal-dialog modal-xl modal-dialog-centered" role="document" onclick="event.stopPropagation();">
+<div id="coverImageModal" class="modal fade" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-xl modal-dialog-centered" role="document">
         <div class="modal-content bg-transparent border-0">
             <div class="modal-body text-center p-2" style="position: relative;">
                 {% if adaptation.cover_url %}
                 <!-- Close button -->
-                <button type="button" class="btn btn-light position-absolute" 
+                <button type="button" id="modalCloseBtn" class="btn btn-light position-absolute" 
                         style="top: 10px; right: 10px; z-index: 1060; opacity: 0.9; width: 50px; height: 50px; border-radius: 50%; font-size: 24px; line-height: 1;"
-                        onclick="forceCloseModal(); event.stopPropagation();"
                         title="Close">
                     ✕
                 </button>
                 
                 <!-- Image - Click to close -->
-                <img src="{{ adaptation.cover_url }}" 
+                <img id="modalCoverImage" src="{{ adaptation.cover_url }}" 
                      class="img-fluid rounded shadow-lg" 
                      alt="Cover Image" 
-                     style="max-height: 85vh; max-width: 100%; cursor: pointer;"
-                     onclick="forceCloseModal(); event.stopPropagation();">
+                     style="max-height: 85vh; max-width: 100%; cursor: pointer;">
                 
                 <p class="text-white mt-3" style="text-shadow: 0 0 10px rgba(0,0,0,0.8);">
-                    Click image or outside to close • Press ESC to close
+                    Click image or X to close • Press ESC to close
                 </p>
                 {% else %}
                 <p class="text-white">No cover image available</p>
