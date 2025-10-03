@@ -326,23 +326,28 @@
 </div>
 
 <!-- Cover Image View Modal -->
-<div class="modal fade" id="coverImageModal" tabindex="-1">
-    <div class="modal-dialog modal-xl">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Cover Image</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+<div class="modal fade" id="coverImageModal" tabindex="-1" data-bs-backdrop="true" data-bs-keyboard="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered">
+        <div class="modal-content bg-dark">
+            <div class="modal-header border-secondary">
+                <h5 class="modal-title text-white">Cover Image</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <div class="modal-body text-center">
-                <img src="{{ adaptation.cover_url }}" class="img-fluid" alt="Cover Image" style="max-height: 80vh;">
+            <div class="modal-body text-center bg-dark">
+                <img src="{{ adaptation.cover_url }}" 
+                     class="img-fluid rounded" 
+                     alt="Cover Image" 
+                     style="max-height: 75vh; cursor: pointer;"
+                     data-bs-dismiss="modal">
             </div>
-            <div class="modal-footer">
+            <div class="modal-footer border-secondary bg-dark">
                 <button type="button" class="btn btn-outline-warning" onclick="editCoverPrompt()">
                     <i class="bi bi-pencil"></i> Edit Prompt
                 </button>
                 <button type="button" class="btn btn-outline-primary" onclick="regenerateCover()">
                     <i class="bi bi-arrow-clockwise"></i> Regenerate
                 </button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
             </div>
         </div>
     </div>
