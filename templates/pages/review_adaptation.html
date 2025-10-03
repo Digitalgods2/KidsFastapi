@@ -326,7 +326,7 @@
 </div>
 
 <!-- Cover Image View Modal -->
-<div class="modal fade" id="coverImageModal" tabindex="-1" data-bs-backdrop="true" data-bs-keyboard="true">
+<div class="modal fade" id="coverImageModal" tabindex="-1">
     <div class="modal-dialog modal-xl modal-dialog-centered">
         <div class="modal-content bg-dark">
             <div class="modal-header border-secondary">
@@ -337,17 +337,7 @@
                 <img src="{{ adaptation.cover_url }}" 
                      class="img-fluid rounded" 
                      alt="Cover Image" 
-                     style="max-height: 75vh; cursor: pointer;"
-                     data-bs-dismiss="modal">
-            </div>
-            <div class="modal-footer border-secondary bg-dark">
-                <button type="button" class="btn btn-outline-warning" onclick="editCoverPrompt()">
-                    <i class="bi bi-pencil"></i> Edit Prompt
-                </button>
-                <button type="button" class="btn btn-outline-primary" onclick="regenerateCover()">
-                    <i class="bi bi-arrow-clockwise"></i> Regenerate
-                </button>
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                     style="max-height: 75vh;">
             </div>
         </div>
     </div>
@@ -359,7 +349,17 @@ const adaptationId = {{ adaptation.adaptation_id }};
 
 // Cover page functions
 function viewCoverImage() {
-    new bootstrap.Modal(document.getElementById('coverImageModal')).show();
+    const modalEl = document.getElementById('coverImageModal');
+    // Get existing instance or create new one
+    let modal = bootstrap.Modal.getInstance(modalEl);
+    if (!modal) {
+        modal = new bootstrap.Modal(modalEl, {
+            backdrop: true,
+            keyboard: true,
+            focus: true
+        });
+    }
+    modal.show();
 }
 
 function editCoverPrompt() {
