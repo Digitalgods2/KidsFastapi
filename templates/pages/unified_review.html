@@ -482,12 +482,7 @@ async function saveAllChanges() {
 const adaptationId = {{ adaptation.adaptation_id }};
 
 function viewCoverImage() {
-    const modalElement = document.getElementById('coverImageModal');
-    // Show modal using Bootstrap with backdrop click enabled
-    const modal = new bootstrap.Modal(modalElement, {
-        keyboard: true,
-        backdrop: true  // This allows clicking backdrop to close
-    });
+    const modal = new bootstrap.Modal(document.getElementById('coverImageModal'));
     modal.show();
 }
 
@@ -832,29 +827,28 @@ document.addEventListener('DOMContentLoaded', function() {
     </div>
 </div>
 
-<!-- Cover Image View Modal - Simplified -->
-<div id="coverImageModal" class="modal fade" tabindex="-1" role="dialog" data-bs-backdrop="true" data-bs-keyboard="true">
-    <div class="modal-dialog modal-xl modal-dialog-centered" role="document" style="pointer-events: none;">
-        <div class="modal-content bg-transparent border-0" style="pointer-events: none;">
-            <div class="modal-body text-center p-2" style="position: relative; pointer-events: auto;">
+<!-- Cover Image View Modal - Simple & Working -->
+<div id="coverImageModal" class="modal fade" tabindex="-1">
+    <div class="modal-dialog modal-xl modal-dialog-centered">
+        <div class="modal-content bg-transparent border-0">
+            <div class="modal-body text-center p-0" style="position: relative;">
                 {% if adaptation.cover_url %}
                 <!-- Close button -->
-                <button type="button" id="modalCloseBtn" class="btn btn-light position-absolute" 
+                <button type="button" class="btn-close btn-close-white position-absolute" 
                         data-bs-dismiss="modal"
-                        style="top: 10px; right: 10px; z-index: 1060; opacity: 0.9; width: 50px; height: 50px; border-radius: 50%; font-size: 24px; line-height: 1;"
+                        style="top: 20px; right: 20px; z-index: 1060; font-size: 1.5rem;"
                         title="Close">
-                    ✕
                 </button>
                 
-                <!-- Image - Click to close -->
-                <img id="modalCoverImage" src="{{ adaptation.cover_url }}" 
+                <!-- Image -->
+                <img src="{{ adaptation.cover_url }}" 
                      class="img-fluid rounded shadow-lg" 
                      alt="Cover Image"
-                     data-bs-dismiss="modal"
-                     style="max-height: 85vh; max-width: 100%; cursor: pointer;">
+                     style="max-height: 90vh; cursor: pointer;"
+                     onclick="bootstrap.Modal.getInstance(document.getElementById('coverImageModal')).hide();">
                 
-                <p class="text-white mt-3" style="text-shadow: 0 0 10px rgba(0,0,0,0.8);">
-                    Click image or X to close • Press ESC to close
+                <p class="text-white mt-3 mb-0" style="text-shadow: 0 0 10px rgba(0,0,0,0.8);">
+                    Click image or ✕ to close • Press ESC to close
                 </p>
                 {% else %}
                 <p class="text-white">No cover image available</p>
