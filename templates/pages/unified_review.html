@@ -811,7 +811,8 @@ document.addEventListener('DOMContentLoaded', function() {
         // Click on modal backdrop to close
         coverImageModal.addEventListener('click', function(e) {
             console.log('Modal clicked, target:', e.target.id, 'classList:', e.target.classList.toString());
-            if (e.target.id === 'coverImageModal') {
+            // Close if clicked on modal backdrop (not the dialog content itself)
+            if (e.target.id === 'coverImageModal' || e.target.classList.contains('modal-dialog') || e.target.classList.contains('modal-content') || e.target.classList.contains('modal-body')) {
                 console.log('Clicked modal backdrop - closing');
                 forceCloseModal();
             }
