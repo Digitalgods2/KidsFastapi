@@ -103,7 +103,7 @@
                             <h6 class="mb-3">Cover Image</h6>
                             {% if adaptation.cover_url %}
                                 <div class="text-center mb-3">
-                                    <img src="{{ adaptation.cover_url }}" alt="Cover Image" class="img-fluid rounded shadow-sm" style="max-height: 300px; cursor: pointer;" onclick="viewCoverImage()">
+                                    <img src="{{ adaptation.cover_url }}" alt="Cover Image" class="img-fluid rounded shadow-sm" style="max-height: 300px; cursor: pointer;" data-bs-toggle="modal" data-bs-target="#coverImageModal">
                                 </div>
                                 <div class="d-grid gap-2">
                                     <button class="btn btn-outline-warning" onclick="editCoverPrompt()">
@@ -326,18 +326,15 @@
 </div>
 
 <!-- Cover Image View Modal -->
-<div class="modal fade" id="coverImageModal" tabindex="-1">
+<div class="modal fade" id="coverImageModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-xl modal-dialog-centered">
-        <div class="modal-content bg-dark">
-            <div class="modal-header border-secondary">
-                <h5 class="modal-title text-white">Cover Image</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Cover Image</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <div class="modal-body text-center bg-dark">
-                <img src="{{ adaptation.cover_url }}" 
-                     class="img-fluid rounded" 
-                     alt="Cover Image" 
-                     style="max-height: 75vh;">
+            <div class="modal-body text-center">
+                <img src="{{ adaptation.cover_url }}" class="img-fluid" alt="Cover Image" style="max-height: 75vh;">
             </div>
         </div>
     </div>
@@ -347,20 +344,7 @@
 let currentChapterId = null;
 const adaptationId = {{ adaptation.adaptation_id }};
 
-// Cover page functions
-function viewCoverImage() {
-    const modalEl = document.getElementById('coverImageModal');
-    // Get existing instance or create new one
-    let modal = bootstrap.Modal.getInstance(modalEl);
-    if (!modal) {
-        modal = new bootstrap.Modal(modalEl, {
-            backdrop: true,
-            keyboard: true,
-            focus: true
-        });
-    }
-    modal.show();
-}
+// Cover page functions - using Bootstrap's data-bs-toggle, no JS needed
 
 function editCoverPrompt() {
     // Close any open modals first
