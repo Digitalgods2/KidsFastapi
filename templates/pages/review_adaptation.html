@@ -103,7 +103,7 @@
                             <h6 class="mb-3">Cover Image</h6>
                             {% if adaptation.cover_url %}
                                 <div class="text-center mb-3">
-                                    <img src="{{ adaptation.cover_url }}" alt="Cover Image" class="img-fluid rounded shadow-sm" style="max-height: 300px; cursor: pointer;" onclick="new bootstrap.Modal(document.getElementById('coverImageModal')).show()">
+                                    <img src="{{ adaptation.cover_url }}" alt="Cover Image" class="img-fluid rounded shadow-sm" style="max-height: 300px; cursor: pointer;" onclick="openCoverModal()">
                                 </div>
                                 <div class="d-grid gap-2">
                                     <button class="btn btn-outline-warning" onclick="editCoverPrompt()">
@@ -358,6 +358,14 @@
 let currentChapterId = null;
 const adaptationId = {{ adaptation.adaptation_id }};
 
+function openCoverModal() {
+    const el = document.getElementById('coverImageModal');
+    if (el && el.parentNode !== document.body) {
+        document.body.appendChild(el);
+    }
+    const modal = bootstrap.Modal.getOrCreateInstance(el, { backdrop: true, keyboard: true, focus: true });
+    modal.show();
+}
 
 function editCoverPrompt() {
     // Close any open modals first
