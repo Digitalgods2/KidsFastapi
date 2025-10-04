@@ -78,7 +78,7 @@
                                 </div>
                                 <p class="text-muted small text-center mb-3">Click to zoom • Press ESC or tap × to close</p>
                                 <div class="d-grid gap-2">
-                                    <button class="btn btn-outline-primary" onclick="regenerateCover()">
+                                    <button class="btn btn-outline-primary" onclick="regenerateCover(event)">
                                         <i class="bi bi-arrow-clockwise"></i> Regenerate Cover Image
                                     </button>
                                     <div class="mt-2 d-flex gap-2 justify-content-center">
@@ -913,9 +913,9 @@ async function generateCover() {
     }
 }
 
-async function regenerateCover() {
+async function regenerateCover(event) {
     // Check for text instructions in prompt BEFORE regeneration
-    const promptText = document.getElementById('coverPromptDisplay').innerText.trim();
+    const promptText = document.getElementById('coverPromptDisplay')?.innerText.trim() || '';
     const hasTextInstructions = /title|text|written by|author|typography|font|lettering/i.test(promptText);
     
     if (hasTextInstructions) {
@@ -942,41 +942,76 @@ async function regenerateCover() {
         return;
     }
     
-    // Show loading indicator
-    const button = event.target;
-    const originalHTML = button.innerHTML;
-    button.disabled = true;
-    button.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Regenerating...';
+    // Show loading indicator - find the button that was clicked
+    const button = event ? event.target : document.querySelector('button[onclick*="regenerateCover"]');
+    const originalHTML = button ? button.innerHTML : '';
+    if (button) {
+        button.disabled = true;
+        button.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Regenerating...';
+    }
     
     try {
         const response = await fetch(`/review/adaptation/${adaptationId}/regenerate-cover`, {
-            method: 'POST'
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
         });
 
         if (!response.ok) {
             const errData = await response.json().catch(() => ({}));
-            const msg = errData.error || errData.detail || 'Unknown error';
+            const msg = errData.error || errData.detail || `HTTP ${response.status}: ${response.statusText}`;
+            console.error('Cover regeneration failed:', msg, errData);
             alert('Error regenerating cover image: ' + msg);
-            button.disabled = false;
-            button.innerHTML = originalHTML;
+            if (button) {
+                button.disabled = false;
+                button.innerHTML = originalHTML;
+            }
             return;
         }
         
         const data = await response.json();
+        console.log('Cover regeneration response:', data);
         
         if (data.success) {
-            alert('Cover image regenerated successfully!');
-            location.reload();
+            // Show success message with any warnings
+            let message = 'Cover image regenerated successfully!';
+            if (data.warning) {
+                message += '\n\n' + data.warning;
+            }
+            alert(message);
+            
+            // Update the cover image immediately if URL is provided
+            if (data.cover_url) {
+                const coverImg = document.querySelector('img[src*="cover"]');
+                if (coverImg) {
+                    coverImg.src = data.cover_url;
+                }
+                // Also update any links to the cover
+                const coverLink = document.querySelector('a[href*="cover"]');
+                if (coverLink) {
+                    coverLink.href = data.cover_url;
+                }
+            }
+            
+            // Reload to refresh everything
+            setTimeout(() => location.reload(), 500);
         } else {
-            alert('Error regenerating cover image: ' + (data.error || data.detail || 'Unknown error'));
-            button.disabled = false;
-            button.innerHTML = originalHTML;
+            const errorMsg = data.error || data.detail || 'Unknown error';
+            console.error('Cover regeneration failed:', errorMsg, data);
+            alert('Error regenerating cover image: ' + errorMsg);
+            if (button) {
+                button.disabled = false;
+                button.innerHTML = originalHTML;
+            }
         }
     } catch (error) {
         console.error('Error regenerating cover:', error);
-        alert('Error regenerating cover image');
-        button.disabled = false;
-        button.innerHTML = originalHTML;
+        alert('Error regenerating cover image: ' + error.message);
+        if (button) {
+            button.disabled = false;
+            button.innerHTML = originalHTML;
+        }
     }
 }
 
