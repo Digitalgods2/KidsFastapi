@@ -394,32 +394,34 @@ async def generate_cover_prompt_endpoint(adaptation_id: int):
         
         # Generate cover prompt using AI
         cover_prompt, error = await analyze_book_for_cover_prompt(book_content, book, adaptation)
-        
+
         if error:
-            raise HTTPException(status_code=500, detail=f"AI generation failed: {error}")
-        
+            # Return graceful 200 with explicit message so UI can show it
+            return JSONResponse({"success": False, "error": f"AI generation failed: {error}"})
+
         if not cover_prompt:
-            raise HTTPException(status_code=500, detail="AI returned empty cover prompt")
-        
+            return JSONResponse({"success": False, "error": "AI returned empty cover prompt"})
+
         # Save the generated prompt to database
         success = await database.update_adaptation_cover_image_prompt_only(adaptation_id, cover_prompt)
-        
+
         if success:
             return JSONResponse({
-                "success": True, 
+                "success": True,
                 "cover_prompt": cover_prompt,
                 "message": "AI-generated cover prompt created successfully"
             })
         else:
-            raise HTTPException(status_code=500, detail="Failed to save cover prompt")
-            
-    except HTTPException:
-        raise
+            return JSONResponse({"success": False, "error": "Failed to save cover prompt"})
+
+    except HTTPException as he:
+        # Convert to 200 with error so UI doesn't display 'Unknown error'
+        return JSONResponse({"success": False, "error": he.detail if hasattr(he, 'detail') else str(he)})
     except Exception as e:
         from services.logger import get_logger
         log = get_logger("routes.review")
         log.error("generate_cover_prompt_error", extra={"error": str(e), "component": "routes.review", "request_id": None, "adaptation_id": adaptation_id})
-        raise HTTPException(status_code=500, detail=str(e))
+        return JSONResponse({"success": False, "error": str(e)})
 
 @router.post("/adaptation/{adaptation_id}/generate-cover")
 async def generate_cover(adaptation_id: int):

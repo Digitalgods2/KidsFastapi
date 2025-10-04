@@ -121,6 +121,7 @@
                                     <i class="bi bi-stars"></i> Generate AI Cover Prompt
                                 </button>
                                 {% endif %}
+                                <small id="aiPromptDisabledNote" class="text-warning d-none">OpenAI not configured. Set API key in Settings.</small>
                                 <button class="btn btn-sm btn-outline-secondary" onclick="editCoverPrompt()">
                                     <i class="bi bi-pencil"></i> Edit Manually
                                 </button>
@@ -774,7 +775,14 @@ async function regenerateAICoverPrompt() {
             alert('AI cover prompt generated successfully! The prompt has been updated based on comprehensive book analysis.');
             location.reload();
         } else {
-            alert('Error regenerating cover prompt: ' + (data.error || 'Unknown error'));
+            const msg = data.error || data.message || 'Unknown error';
+            alert('Error regenerating cover prompt: ' + msg);
+            if (/openai/i.test(msg) || /api key/i.test(msg) || /not installed/i.test(msg)) {
+                const genBtn = document.getElementById('generatePromptBtn');
+                if (genBtn) genBtn.disabled = true;
+                const note = document.getElementById('aiPromptDisabledNote');
+                if (note) note.classList.remove('d-none');
+            }
             button.disabled = false;
             button.innerHTML = originalHTML;
         }
@@ -808,7 +816,15 @@ async function generateAICoverPrompt() {
             alert('AI cover prompt generated successfully! Review it below and click "Generate Cover Image" when ready.');
             location.reload();
         } else {
-            alert('Error generating AI cover prompt: ' + (data.error || data.message || 'Unknown error'));
+            const msg = data.error || data.message || 'Unknown error';
+            alert('Error generating AI cover prompt: ' + msg);
+            // If OpenAI not configured, disable button with hint
+            if (/openai/i.test(msg) || /api key/i.test(msg) || /not installed/i.test(msg)) {
+                const btn = document.getElementById('generatePromptBtn');
+                if (btn) btn.disabled = true;
+                const note = document.getElementById('aiPromptDisabledNote');
+                if (note) note.classList.remove('d-none');
+            }
             button.disabled = false;
             button.innerHTML = originalHTML;
         }
@@ -1102,4 +1118,21 @@ body.bg-dark .image-section-card {
     border-color: rgba(255, 255, 255, 0.1);
 }
 </style>
+<script>
+// On load, check /healthz to disable AI prompt buttons if chat not configured
+(async function(){
+  try {
+    const res = await fetch('/healthz');
+    const data = await res.json();
+    if (data && data.checks && data.checks.chat && data.checks.chat.ok === false) {
+      const btn = document.getElementById('generatePromptBtn');
+      if (btn) btn.disabled = true;
+      const note = document.getElementById('aiPromptDisabledNote');
+      if (note) note.classList.remove('d-none');
+    }
+  } catch (e) {
+    // ignore
+  }
+})();
+</script>
 {% endblock %}
