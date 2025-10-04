@@ -77,8 +77,9 @@ async def lifespan(app: FastAPI):
             from services.backends import validate_backend
             default_backend = await database.get_setting("default_image_backend", "gpt-image-1")
             if not validate_backend(default_backend):
-                raise RuntimeError(f"Invalid default_image_backend in DB: {default_backend}")
-            _log.info("default_image_backend", extra={"backend": default_backend})
+                _log.warning("invalid_default_image_backend", extra={"backend": default_backend})
+            else:
+                _log.info("default_image_backend", extra={"backend": default_backend})
         except Exception as ve:
             _log.error("startup_validation_error", extra={"error": str(ve)})
             raise
