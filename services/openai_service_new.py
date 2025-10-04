@@ -162,26 +162,36 @@ class OpenAIService:
             if model == "gpt-image-1":
                 # Use "gpt-image-1" as the actual API model parameter
                 api_model = "gpt-image-1"
-                # Default to HD quality for optimal results with gpt-image-1
+                # gpt-image-1 does NOT support the 'style' parameter (only DALL-E 3 does)
+                # It only accepts: model, prompt, size, quality, n
                 if not quality:
                     quality = "hd"
-                # Default to vivid style for better text rendering and more vibrant colors
-                if not style:
-                    style = "vivid"
+                # Build request params without style
+                request_params = {
+                    "model": api_model,
+                    "prompt": prompt,
+                    "size": size,
+                    "quality": quality,
+                    "n": 1
+                }
             elif model == "dall-e-3":
                 api_model = "dall-e-3"
+                # DALL-E 3 supports style parameter
+                if not style:
+                    style = "vivid"
+                request_params = {
+                    "model": api_model,
+                    "prompt": prompt,
+                    "size": size,
+                    "quality": quality,
+                    "style": style,
+                    "n": 1
+                }
             else:
                 # Fallback, though DALL-E 2 is deprecated
                 return None, f"Unsupported model: {model}"
             
-            response = client.images.generate(
-                model=api_model,
-                prompt=prompt,
-                size=size,
-                quality=quality,
-                style=style,
-                n=1
-            )
+            response = client.images.generate(**request_params)
             
             if response.data and len(response.data) > 0:
                 return response.data[0].url, None
