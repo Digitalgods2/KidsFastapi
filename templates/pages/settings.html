@@ -71,9 +71,11 @@
                                     <div class="mb-3">
                                         <label for="openai-model" class="form-label">Default Model</label>
                                         <select class="form-select" id="openai-model" name="openai_default_model">
-                                            <option value="gpt-4" {% if settings.openai_default_model == 'gpt-4' %}selected{% endif %}>GPT-4 (Best quality)</option>
-                                            <option value="gpt-4-turbo" {% if settings.openai_default_model == 'gpt-4-turbo' %}selected{% endif %}>GPT-4 Turbo (Faster)</option>
-                                            <option value="gpt-3.5-turbo" {% if settings.openai_default_model == 'gpt-3.5-turbo' %}selected{% endif %}>GPT-3.5 Turbo (Economical)</option>
+                                            <option value="gpt-4o-mini" {% if settings.openai_default_model in ['gpt-4o-mini', None, ''] %}selected{% endif %}>GPT-4o Mini (Recommended)</option>
+                                            <option value="gpt-4o" {% if settings.openai_default_model == 'gpt-4o' %}selected{% endif %}>GPT-4o</option>
+                                            <option value="gpt-4.1-mini" {% if settings.openai_default_model == 'gpt-4.1-mini' %}selected{% endif %}>GPT-4.1 Mini</option>
+                                            <option value="gpt-4.1" {% if settings.openai_default_model == 'gpt-4.1' %}selected{% endif %}>GPT-4.1</option>
+                                            <option value="gpt-5" {% if settings.openai_default_model == 'gpt-5' %}selected{% endif %}>GPT-5 (if available)</option>
                                         </select>
                                     </div>
                                 </div>
@@ -114,6 +116,7 @@
                                 </div>
 
                                 <div id="api-response"></div>
+                                <div id="api-test-results" class="mt-3 small text-muted"></div>
                                 
                                 <div class="d-flex justify-content-between">
                                     <button type="button" class="btn btn-outline-secondary" onclick="testAPIConnection()">
@@ -412,11 +415,36 @@ function togglePassword(inputId) {
 }
 
 function testAPIConnection() {
-    // Send HTMX request to test API connections
-    htmx.ajax('POST', '/settings/api/test-connection', {
-        target: '#api-response',
-        swap: 'innerHTML'
-    });
+    // Send HTMX request to test API connections and also fetch JSON to show model tested
+    fetch('/settings/api/test-connection', {method: 'POST'})
+      .then(async (r) => {
+        const text = await r.text();
+        let json = null;
+        try { json = JSON.parse(text); } catch {}
+        document.querySelector('#api-response').innerHTML =
+          json && json.success
+            ? `<div class="alert alert-success alert-dismissible fade show" role="alert">
+                 <i class="bi bi-check-circle"></i> Test completed.
+                 <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+               </div>`
+            : `<div class="alert alert-danger alert-dismissible fade show" role="alert">
+                 <i class="bi bi-exclamation-triangle"></i> Test failed: ${json?.error || 'Unknown error'}
+                 <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+               </div>`;
+        if (json) {
+          const res = json.results || {};
+          const model = json.model_tested || 'gpt-4o-mini';
+          document.querySelector('#api-test-results').textContent =
+            `OpenAI: ${res.openai ? 'true' : 'false'} (model: ${model}) · Vertex: ${res.vertex ? 'true' : 'false'} · DB: ${res.database ? 'true' : 'false'}`;
+        }
+      })
+      .catch((e) => {
+        document.querySelector('#api-response').innerHTML =
+          `<div class="alert alert-danger alert-dismissible fade show" role="alert">
+             <i class="bi bi-exclamation-triangle"></i> Test failed: ${e}
+             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+           </div>`;
+      });
 }
 
 function clearCache() {

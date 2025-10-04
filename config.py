@@ -70,7 +70,7 @@ GPT5_MODELS = {
     'conversation': os.getenv('GPT5_CONVERSATION_MODEL', 'gpt-4')
 }
 
-DEFAULT_GPT_MODEL = os.getenv('DEFAULT_GPT_MODEL', 'gpt-4')
+DEFAULT_GPT_MODEL = os.getenv('DEFAULT_GPT_MODEL', 'gpt-4o-mini')
 
 # ==================== IMAGE GENERATION CONFIGURATION ====================
 

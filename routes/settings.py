@@ -151,7 +151,7 @@ async def test_connection():
                     {"role": "system", "content": "You are a health check."},
                     {"role": "user", "content": "Reply with: OK"}
                 ],
-                model=getattr(config, 'DEFAULT_GPT_MODEL', 'gpt-4o-mini'),
+                model=(await database.get_setting('openai_default_model', getattr(config, 'DEFAULT_GPT_MODEL', 'gpt-4o-mini'))),
                 temperature=0,
                 max_tokens=5,
             )
@@ -163,13 +163,13 @@ async def test_connection():
         if config.validate_vertex_ai_config():
             results["vertex"] = True
         
-        return JSONResponse({"success": True, "results": results})
+        return JSONResponse({"success": True, "results": results, "model_tested": await database.get_setting('openai_default_model', getattr(config, 'DEFAULT_GPT_MODEL', 'gpt-4o-mini'))})
         
     except Exception as e:
         from services.logger import get_logger
         log = get_logger("routes.settings")
         log.error("test_connection_error", extra={"error": str(e), "component": "routes.settings"})
-        return JSONResponse({"success": False, "error": str(e)})
+        return JSONResponse({"success": False, "error": str(e), "model_tested": await database.get_setting('openai_default_model', getattr(config, 'DEFAULT_GPT_MODEL', 'gpt-4o-mini'))})
 
 @router.post("/image-preferences")
 async def save_image_preferences(request: Request):
