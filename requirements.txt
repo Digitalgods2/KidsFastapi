@@ -23,7 +23,7 @@ google-cloud-aiplatform==1.38.1
 # HTTP and async requests
 aiohttp==3.9.1
 requests==2.31.0
-httpx==0.25.2
+httpx==0.27.2
 
 # Additional async dependencies
 anyio==4.1.0
