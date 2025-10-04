@@ -12,6 +12,8 @@ import os
 import shutil
 import subprocess
 from urllib.parse import urlparse
+import aiohttp
+import base64
 
 router = APIRouter()
 templates = Jinja2Templates(directory="templates")
@@ -124,14 +126,20 @@ async def review_adaptation(request: Request, adaptation_id: int):
     return templates.TemplateResponse("pages/review_adaptation.html", context)
 
 @router.post("/adaptation/{adaptation_id}/import-cover")
-async def import_cover_image(adaptation_id: int, file: UploadFile = File(...)):
-    """Import and replace the cover image. Keeps same filename so existing links continue to work."""
+async def import_cover_image(adaptation_id: int, file: UploadFile = File(None), image_url: str | None = Form(None)):
+    """Import and replace the cover image. Keeps same filename so existing links continue to work.
+    Accepts either a file upload or an image_url (http(s) or data: URL or JSON with base64).
+    """
     try:
-        # Validate extension
-        _, ext = os.path.splitext(file.filename or "")
-        ext = ext.lower()
-        if ext not in ALLOWED_EXTS:
-            raise HTTPException(status_code=400, detail="Only PNG or JPG images are allowed")
+        # Validate extension or presence of image_url
+        ext = None
+        if file is not None:
+            _, ext = os.path.splitext(file.filename or "")
+            ext = (ext or "").lower()
+            if ext not in ALLOWED_EXTS:
+                raise HTTPException(status_code=400, detail="Only PNG or JPG images are allowed")
+        elif not image_url:
+            raise HTTPException(status_code=400, detail="Provide either file or image_url")
 
         adaptation = await database.get_adaptation_details(adaptation_id)
         if not adaptation:
@@ -147,11 +155,42 @@ async def import_cover_image(adaptation_id: int, file: UploadFile = File(...)):
         target_filename = f"cover_adaptation_{adaptation_id}.png"
         target_path = os.path.join(target_dir, target_filename)
 
-        # Write upload to temp
-        tmp_path = os.path.join("uploads", f"tmp_import_cover_{adaptation_id}{ext}")
-        os.makedirs(os.path.dirname(tmp_path), exist_ok=True)
-        with open(tmp_path, "wb") as f:
-            f.write(await file.read())
+        # Acquire temp file either from upload or by downloading image_url
+        os.makedirs("uploads", exist_ok=True)
+        tmp_path = os.path.join("uploads", f"tmp_import_cover_{adaptation_id}{ext or '.png'}")
+        if file is not None:
+            with open(tmp_path, "wb") as f:
+                f.write(await file.read())
+        else:
+            async def _download(url: str) -> bytes:
+                if url.startswith("data:image"):
+                    try:
+                        header, b64 = url.split(",", 1)
+                        return base64.b64decode(b64)
+                    except Exception as e:
+                        raise HTTPException(status_code=400, detail=f"Invalid data URL: {e}")
+                timeout = aiohttp.ClientTimeout(total=25)
+                async with aiohttp.ClientSession(timeout=timeout) as session:
+                    async with session.get(url) as resp:
+                        if resp.status != 200:
+                            raise HTTPException(status_code=400, detail=f"Failed to fetch image_url: HTTP {resp.status}")
+                        ctype = resp.headers.get("content-type", "")
+                        data = await resp.read()
+                        if "application/json" in ctype:
+                            try:
+                                import json
+                                payload = json.loads(data)
+                                b64 = payload.get("base64") or payload.get("data") or payload.get("image_base64")
+                                if b64 and isinstance(b64, str):
+                                    if b64.startswith("data:image"):
+                                        b64 = b64.split(",", 1)[1]
+                                    return base64.b64decode(b64)
+                            except Exception:
+                                pass
+                        return data
+            data = await _download(image_url)
+            with open(tmp_path, "wb") as f:
+                f.write(data)
 
         # Load settings
         try:
@@ -175,14 +214,20 @@ async def import_cover_image(adaptation_id: int, file: UploadFile = File(...)):
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/chapter/{chapter_id}/import-image")
-async def import_chapter_image(chapter_id: int, file: UploadFile = File(...)):
-    """Import and replace a chapter image, keeping filename if one exists; otherwise create a sensible default and update DB."""
+async def import_chapter_image(chapter_id: int, file: UploadFile = File(None), image_url: str | None = Form(None)):
+    """Import and replace a chapter image, keeping filename if one exists; otherwise create a sensible default and update DB.
+    Accepts either a file upload or an image_url (http(s) or data: URL or JSON with base64).
+    """
     try:
-        # Validate ext
-        _, ext = os.path.splitext(file.filename or "")
-        ext = ext.lower()
-        if ext not in ALLOWED_EXTS:
-            raise HTTPException(status_code=400, detail="Only PNG or JPG images are allowed")
+        # Validate ext or presence of image_url
+        ext = None
+        if file is not None:
+            _, ext = os.path.splitext(file.filename or "")
+            ext = (ext or "").lower()
+            if ext not in ALLOWED_EXTS:
+                raise HTTPException(status_code=400, detail="Only PNG or JPG images are allowed")
+        elif not image_url:
+            raise HTTPException(status_code=400, detail="Provide either file or image_url")
 
         chapter = await database.get_chapter_details(chapter_id)
         if not chapter:
@@ -195,17 +240,15 @@ async def import_chapter_image(chapter_id: int, file: UploadFile = File(...)):
         if not book_id:
             raise HTTPException(status_code=400, detail="Adaptation/book missing")
 
-        image_url = chapter.get("image_url") or ""
+        existing_url = chapter.get("image_url") or ""
         target_dir = os.path.join("generated_images", str(book_id), "chapters")
         os.makedirs(target_dir, exist_ok=True)
 
-        if image_url:
+        if existing_url:
             # Derive existing path to keep same filename
-            parsed = urlparse(image_url)
-            path = (parsed.path or image_url).lstrip("/")
-            # Ensure path is within our dir
+            parsed = urlparse(existing_url)
+            path = (parsed.path or existing_url).lstrip("/")
             if not path.startswith(target_dir):
-                # If stored elsewhere, still keep basename in our directory
                 path = os.path.join(target_dir, os.path.basename(path.split("?")[0]))
             target_path = path.split("?")[0]
         else:
@@ -213,11 +256,42 @@ async def import_chapter_image(chapter_id: int, file: UploadFile = File(...)):
             chapter_number = chapter.get("chapter_number") or chapter_id
             target_path = os.path.join(target_dir, f"adaptation_{adaptation_id}_chapter_{chapter_number}_import.png")
 
-        # Write upload to temp
-        tmp_path = os.path.join("uploads", f"tmp_import_chapter_{chapter_id}{ext}")
-        os.makedirs(os.path.dirname(tmp_path), exist_ok=True)
-        with open(tmp_path, "wb") as f:
-            f.write(await file.read())
+        # Acquire temp file
+        os.makedirs("uploads", exist_ok=True)
+        tmp_path = os.path.join("uploads", f"tmp_import_chapter_{chapter_id}{ext or '.png'}")
+        if file is not None:
+            with open(tmp_path, "wb") as f:
+                f.write(await file.read())
+        else:
+            async def _download(url: str) -> bytes:
+                if url.startswith("data:image"):
+                    try:
+                        header, b64 = url.split(",", 1)
+                        return base64.b64decode(b64)
+                    except Exception as e:
+                        raise HTTPException(status_code=400, detail=f"Invalid data URL: {e}")
+                timeout = aiohttp.ClientTimeout(total=25)
+                async with aiohttp.ClientSession(timeout=timeout) as session:
+                    async with session.get(url) as resp:
+                        if resp.status != 200:
+                            raise HTTPException(status_code=400, detail=f"Failed to fetch image_url: HTTP {resp.status}")
+                        ctype = resp.headers.get("content-type", "")
+                        data = await resp.read()
+                        if "application/json" in ctype:
+                            try:
+                                import json
+                                payload = json.loads(data)
+                                b64 = payload.get("base64") or payload.get("data") or payload.get("image_base64")
+                                if b64 and isinstance(b64, str):
+                                    if b64.startswith("data:image"):
+                                        b64 = b64.split(",", 1)[1]
+                                    return base64.b64decode(b64)
+                            except Exception:
+                                pass
+                        return data
+            data = await _download(image_url)
+            with open(tmp_path, "wb") as f:
+                f.write(data)
 
         # Load settings
         try:
@@ -229,7 +303,6 @@ async def import_chapter_image(chapter_id: int, file: UploadFile = File(...)):
         except Exception:
             default_ratio = None
 
-        # Normalize extension to match target (keep existing extension if present)
         if not os.path.splitext(target_path)[1]:
             target_path += ".png"
 
@@ -238,10 +311,14 @@ async def import_chapter_image(chapter_id: int, file: UploadFile = File(...)):
 
         served_url = f"/{target_path}?v={int(__import__('time').time())}"
 
-        # If chapter didn't have an image_url before, update DB now (allowed; no existing link to preserve)
-        if not image_url:
+        # If chapter didn't have an image_url before, update DB now
+        if not existing_url:
             try:
-                await database.update_chapter_image(chapter_id=chapter_id, image_url=served_url.split("?")[0], image_prompt=chapter.get("ai_prompt") or chapter.get("image_prompt") or "")
+                await database.update_chapter_image(
+                    chapter_id=chapter_id,
+                    image_url=served_url.split("?")[0],
+                    image_prompt=chapter.get("ai_prompt") or chapter.get("image_prompt") or ""
+                )
             except Exception:
                 pass
 
