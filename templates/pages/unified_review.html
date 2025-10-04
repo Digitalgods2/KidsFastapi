@@ -211,10 +211,14 @@
                                     <!-- Image Display -->
                                     <div class="mb-3 text-center" id="image-container-{{ chapter.chapter_id }}">
                                         {% if chapter.image_url %}
-                                        <img src="{{ chapter.image_url }}" 
-                                             class="img-fluid rounded shadow-sm mb-2" 
-                                             style="max-height: 200px;"
-                                             alt="Chapter {{ chapter.chapter_number }}">
+                                        <div class="pswp-gallery" data-pswp-no-fallback>
+                                            <a href="{{ chapter.image_url }}" data-pswp-width="1600" data-pswp-height="1200">
+                                                <img src="{{ chapter.image_url }}" 
+                                                     class="img-fluid rounded shadow-sm mb-2" 
+                                                     style="max-height: 200px; cursor: zoom-in;"
+                                                     alt="Chapter {{ chapter.chapter_number }}">
+                                            </a>
+                                        </div>
                                         <div>
                                             <button class="btn btn-sm btn-outline-danger" 
                                                     onclick="deleteImage({{ chapter.chapter_id }})">
@@ -376,10 +380,14 @@ async function generateImage(chapterId) {
         if (response.ok) {
             const data = await response.json();
             imageContainer.innerHTML = `
-                <img src="${data.image_url}" class="img-fluid rounded shadow-sm mb-2" style="max-height: 200px;">
+                <div class=\"pswp-gallery\" data-pswp-no-fallback>
+                    <a href=\"${data.image_url}\" data-pswp-width=\"1600\" data-pswp-height=\"1200\">
+                        <img src=\"${data.image_url}\" class=\"img-fluid rounded shadow-sm mb-2\" style=\"max-height: 200px; cursor: zoom-in;\">
+                    </a>
+                </div>
                 <div>
-                    <button class="btn btn-sm btn-outline-danger" onclick="deleteImage(${chapterId})">
-                        <i class="bi bi-trash"></i> Delete
+                    <button class=\"btn btn-sm btn-outline-danger\" onclick=\"deleteImage(${chapterId})\">
+                        <i class=\"bi bi-trash\"></i> Delete
                     </button>
                 </div>
             `;

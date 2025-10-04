@@ -1777,7 +1777,9 @@
         }
 
         // Intercept clicks on gallery links and open in fallback modal
+        // Skip galleries that opt-out via data-pswp-no-fallback
         galleries.forEach(function(galleryEl) {
+          if (galleryEl.hasAttribute('data-pswp-no-fallback')) return;
           galleryEl.addEventListener('click', function(e) {
             const a = e.target.closest('a');
             if (!a) return;

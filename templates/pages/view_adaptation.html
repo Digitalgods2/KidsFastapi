@@ -228,9 +228,11 @@
                                     </td>
                                     <td>
                                         {% if chapter.image_url %}
-                                            <span class="badge bg-success">
-                                                <i class="bi bi-check-circle"></i> Done
-                                            </span>
+                                            <div class="pswp-gallery" data-pswp-no-fallback>
+                                                <a href="{{ chapter.image_url }}" data-pswp-width="1600" data-pswp-height="1200">
+                                                    <img src="{{ chapter.image_url }}" class="img-fluid rounded shadow-sm" alt="Chapter {{ chapter.chapter_number }}" style="max-height: 80px; cursor: zoom-in;">
+                                                </a>
+                                            </div>
                                         {% else %}
                                             <span class="badge bg-secondary">
                                                 <i class="bi bi-circle"></i> None
@@ -266,7 +268,11 @@
                             <div class="col-md-6 col-lg-4">
                                 <div class="card h-100 border shadow-sm">
                                     {% if chapter.image_url %}
-                                    <img src="{{ chapter.image_url }}" class="card-img-top" alt="Chapter {{ chapter.chapter_number }}" style="height: 200px; object-fit: cover;">
+                                    <div class="pswp-gallery" data-pswp-no-fallback>
+                                        <a href="{{ chapter.image_url }}" data-pswp-width="1600" data-pswp-height="1200">
+                                            <img src="{{ chapter.image_url }}" class="card-img-top" alt="Chapter {{ chapter.chapter_number }}" style="height: 200px; object-fit: cover; cursor: zoom-in;">
+                                        </a>
+                                    </div>
                                     {% else %}
                                     <div class="bg-light d-flex align-items-center justify-content-center" style="height: 200px;">
                                         <i class="bi bi-image text-muted" style="font-size: 3rem;"></i>
