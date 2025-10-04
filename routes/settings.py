@@ -180,7 +180,10 @@ async def test_connection():
                                 openai_client_err = f"/models {resp.status_code}: {resp.text[:200]}"
                     except Exception as raw_e:
                         openai_client_err = f"models.list failed: {e_list}; raw GET /models failed: {raw_e}"
-                # Step 2: model check via lightweight chat
+                # Record auth result separately and use it to set 'openai'
+                results["openai_auth"] = bool(auth_ok)
+                results["openai"] = bool(auth_ok)
+                # Step 2: model check via lightweight chat (optional)
                 try:
                     text, err = await chat_helper.generate_chat_text(
                         messages=[
@@ -192,9 +195,9 @@ async def test_connection():
                         max_tokens=5,
                     )
                     openai_err_detail = err
-                    results["openai"] = bool(auth_ok) and (err is None and (text or '').strip().upper().startswith('OK'))
+                    results["openai_chat"] = (err is None and (text or '').strip().upper().startswith('OK'))
                 except Exception as e_chat:
-                    results["openai"] = False
+                    results["openai_chat"] = False
                     openai_err_detail = f"chat test failed: {e_chat}"
         except Exception as e:
             results["openai"] = False
