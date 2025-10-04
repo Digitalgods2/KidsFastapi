@@ -3,15 +3,87 @@ Review routes for KidsKlassiks
 Handles review and editing of adaptations
 """
 
-from fastapi import APIRouter, Request, Form, HTTPException
+from fastapi import APIRouter, Request, Form, HTTPException, UploadFile, File
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import HTMLResponse, JSONResponse
 import database_fixed as database
 import config
 import os
+import shutil
+import subprocess
+from urllib.parse import urlparse
 
 router = APIRouter()
 templates = Jinja2Templates(directory="templates")
+
+# Helpers for image import
+ALLOWED_EXTS = {".png", ".jpg", ".jpeg"}
+
+def _parse_size(size_str: str) -> tuple[int, int]:
+    try:
+        w, h = size_str.lower().split("x")
+        return int(w), int(h)
+    except Exception:
+        return 1024, 1024
+
+def _detect_orientation(tmp_path: str) -> str:
+    try:
+        from PIL import Image
+        with Image.open(tmp_path) as im:
+            w, h = im.size
+            return "landscape" if w >= h else "portrait"
+    except Exception:
+        return "landscape"
+
+def _get_target_size_for_import(default_backend: str | None, default_ratio: str | None, tmp_path: str) -> tuple[int, int]:
+    try:
+        if default_backend and default_ratio:
+            from services.backends import get_aspect_ratio_size
+            size_str = get_aspect_ratio_size(default_backend, default_ratio)
+            return _parse_size(size_str)
+    except Exception:
+        pass
+    # Fallback: pick by orientation
+    orient = _detect_orientation(tmp_path)
+    if orient == "portrait":
+        return 1080, 1920
+    else:
+        return 1920, 1080
+
+def _run_ffmpeg_resize(src: str, dst: str, width: int, height: int) -> bool:
+    # Ensure ffmpeg exists and run resize with letterbox to exact size
+    vf = f"scale={width}:{height}:force_original_aspect_ratio=decrease,pad={width}:{height}:(ow-iw)/2:(oh-ih)/2:color=black"
+    try:
+        result = subprocess.run([
+            "ffmpeg", "-y", "-i", src, "-vf", vf, dst
+        ], stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=False)
+        return result.returncode == 0 and os.path.exists(dst)
+    except FileNotFoundError:
+        return False
+
+async def _import_image_common(tmp_upload_path: str, target_path: str, default_backend: str | None, default_ratio: str | None) -> str:
+    os.makedirs(os.path.dirname(target_path), exist_ok=True)
+    w, h = _get_target_size_for_import(default_backend, default_ratio, tmp_upload_path)
+
+    # Use ffmpeg, fallback to Pillow
+    ok = _run_ffmpeg_resize(tmp_upload_path, target_path, w, h)
+    if not ok:
+        try:
+            from PIL import Image
+            with Image.open(tmp_upload_path) as im:
+                im = im.convert("RGBA" if target_path.lower().endswith(".png") else "RGB")
+                im.thumbnail((w, h))
+                bg_mode = "RGBA" if target_path.lower().endswith(".png") else "RGB"
+                bg_color = (0, 0, 0, 0) if bg_mode == "RGBA" else (255, 255, 255)
+                bg = Image.new(bg_mode, (w, h), bg_color)
+                # center paste
+                x = (w - im.width) // 2
+                y = (h - im.height) // 2
+                bg.paste(im, (x, y), im if im.mode == "RGBA" else None)
+                bg.save(target_path)
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Failed to process image: {e}")
+    return target_path
 
 # Helper function for base context
 def get_base_context(request):
@@ -50,6 +122,134 @@ async def review_adaptation(request: Request, adaptation_id: int):
         raise HTTPException(status_code=500, detail=str(e))
     
     return templates.TemplateResponse("pages/review_adaptation.html", context)
+
+@router.post("/adaptation/{adaptation_id}/import-cover")
+async def import_cover_image(adaptation_id: int, file: UploadFile = File(...)):
+    """Import and replace the cover image. Keeps same filename so existing links continue to work."""
+    try:
+        # Validate extension
+        _, ext = os.path.splitext(file.filename or "")
+        ext = ext.lower()
+        if ext not in ALLOWED_EXTS:
+            raise HTTPException(status_code=400, detail="Only PNG or JPG images are allowed")
+
+        adaptation = await database.get_adaptation_details(adaptation_id)
+        if not adaptation:
+            raise HTTPException(status_code=404, detail="Adaptation not found")
+        book_id = adaptation.get("book_id")
+        if not book_id:
+            raise HTTPException(status_code=400, detail="Adaptation missing book_id")
+
+        # Determine target path
+        target_dir = os.path.join("generated_images", str(book_id), "chapters")
+        os.makedirs(target_dir, exist_ok=True)
+        # Cover filename standard is PNG
+        target_filename = f"cover_adaptation_{adaptation_id}.png"
+        target_path = os.path.join(target_dir, target_filename)
+
+        # Write upload to temp
+        tmp_path = os.path.join("uploads", f"tmp_import_cover_{adaptation_id}{ext}")
+        os.makedirs(os.path.dirname(tmp_path), exist_ok=True)
+        with open(tmp_path, "wb") as f:
+            f.write(await file.read())
+
+        # Load settings
+        try:
+            default_backend = await database.get_setting("default_image_backend", None)
+        except Exception:
+            default_backend = None
+        try:
+            default_ratio = await database.get_setting("default_aspect_ratio", None)
+        except Exception:
+            default_ratio = None
+
+        # Process and overwrite
+        await _import_image_common(tmp_path, target_path, default_backend, default_ratio)
+
+        # Do not change DB link; but return a cache-busting URL for UI refresh
+        served_url = f"/{target_dir}/{target_filename}?v={int(__import__('time').time())}"
+        return JSONResponse({"success": True, "image_url": served_url})
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/chapter/{chapter_id}/import-image")
+async def import_chapter_image(chapter_id: int, file: UploadFile = File(...)):
+    """Import and replace a chapter image, keeping filename if one exists; otherwise create a sensible default and update DB."""
+    try:
+        # Validate ext
+        _, ext = os.path.splitext(file.filename or "")
+        ext = ext.lower()
+        if ext not in ALLOWED_EXTS:
+            raise HTTPException(status_code=400, detail="Only PNG or JPG images are allowed")
+
+        chapter = await database.get_chapter_details(chapter_id)
+        if not chapter:
+            raise HTTPException(status_code=404, detail="Chapter not found")
+        adaptation_id = chapter.get("adaptation_id")
+        if not adaptation_id:
+            raise HTTPException(status_code=400, detail="Chapter missing adaptation_id")
+        adaptation = await database.get_adaptation_details(adaptation_id)
+        book_id = adaptation.get("book_id") if adaptation else None
+        if not book_id:
+            raise HTTPException(status_code=400, detail="Adaptation/book missing")
+
+        image_url = chapter.get("image_url") or ""
+        target_dir = os.path.join("generated_images", str(book_id), "chapters")
+        os.makedirs(target_dir, exist_ok=True)
+
+        if image_url:
+            # Derive existing path to keep same filename
+            parsed = urlparse(image_url)
+            path = (parsed.path or image_url).lstrip("/")
+            # Ensure path is within our dir
+            if not path.startswith(target_dir):
+                # If stored elsewhere, still keep basename in our directory
+                path = os.path.join(target_dir, os.path.basename(path.split("?")[0]))
+            target_path = path.split("?")[0]
+        else:
+            # No existing image; create default filename
+            chapter_number = chapter.get("chapter_number") or chapter_id
+            target_path = os.path.join(target_dir, f"adaptation_{adaptation_id}_chapter_{chapter_number}_import.png")
+
+        # Write upload to temp
+        tmp_path = os.path.join("uploads", f"tmp_import_chapter_{chapter_id}{ext}")
+        os.makedirs(os.path.dirname(tmp_path), exist_ok=True)
+        with open(tmp_path, "wb") as f:
+            f.write(await file.read())
+
+        # Load settings
+        try:
+            default_backend = await database.get_setting("default_image_backend", None)
+        except Exception:
+            default_backend = None
+        try:
+            default_ratio = await database.get_setting("default_aspect_ratio", None)
+        except Exception:
+            default_ratio = None
+
+        # Normalize extension to match target (keep existing extension if present)
+        if not os.path.splitext(target_path)[1]:
+            target_path += ".png"
+
+        # Process and overwrite
+        await _import_image_common(tmp_path, target_path, default_backend, default_ratio)
+
+        served_url = f"/{target_path}?v={int(__import__('time').time())}"
+
+        # If chapter didn't have an image_url before, update DB now (allowed; no existing link to preserve)
+        if not image_url:
+            try:
+                await database.update_chapter_image(chapter_id=chapter_id, image_url=served_url.split("?")[0], image_prompt=chapter.get("ai_prompt") or chapter.get("image_prompt") or "")
+            except Exception:
+                pass
+
+        return JSONResponse({"success": True, "image_url": served_url})
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/chapter/{chapter_id}/update")
 async def update_chapter(
