@@ -6,7 +6,10 @@ from typing import Any, Dict, List, Optional, Tuple
 import logging
 import os
 
-from openai import OpenAI
+try:
+    from openai import OpenAI
+except Exception:  # optional at runtime
+    OpenAI = None  # type: ignore
 import config
 
 logger = logging.getLogger(__name__)
@@ -15,6 +18,8 @@ logger = logging.getLogger(__name__)
 
 async def get_client() -> OpenAI:
     """Get OpenAI client with API key from database settings (preferred) or environment"""
+    if OpenAI is None:
+        raise ImportError("openai package not installed. Install openai>=1.0 or configure to skip AI features.")
     api_key = None
     
     # Try to get API key from database settings first
