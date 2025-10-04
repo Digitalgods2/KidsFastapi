@@ -81,6 +81,12 @@
                                     <button class="btn btn-outline-primary" onclick="regenerateCover()">
                                         <i class="bi bi-arrow-clockwise"></i> Regenerate Cover Image
                                     </button>
+                                    <div class="mt-2">
+                                        <label class="btn btn-outline-secondary">
+                                            <i class="bi bi-upload"></i> Import Cover Image
+                                            <input type="file" id="importCoverInput" accept="image/png,image/jpeg" hidden onchange="importCover(event)">
+                                        </label>
+                                    </div>
                                 </div>
                             {% else %}
                                 <div class="alert alert-info">
@@ -220,7 +226,11 @@
                                             </a>
                                         </div>
                                         <p class="text-muted small text-center mb-2">Click to zoom • Press ESC or tap × to close</p>
-                                        <div>
+                                        <div class="d-flex justify-content-center gap-2">
+                                            <label class="btn btn-sm btn-outline-secondary mb-0">
+                                                <i class="bi bi-upload"></i> Import
+                                                <input type="file" accept="image/png,image/jpeg" hidden onchange="importChapterImage(event, {{ chapter.chapter_id }})">
+                                            </label>
                                             <button class="btn btn-sm btn-outline-danger" 
                                                     onclick="deleteImage({{ chapter.chapter_id }})">
                                                 <i class="bi bi-trash"></i> Delete
@@ -493,6 +503,77 @@ async function saveAllChanges() {
 
 // Cover page functions
 const adaptationId = {{ adaptation.adaptation_id }};
+
+async function importCover(e) {
+    const file = e.target.files && e.target.files[0];
+    if (!file) return;
+    const fd = new FormData();
+    fd.append('file', file);
+    const btnArea = e.target.closest('label');
+    if (btnArea) btnArea.classList.add('disabled');
+    try {
+        const res = await fetch(`/review/adaptation/${adaptationId}/import-cover`, { method: 'POST', body: fd });
+        const data = await res.json();
+        if (data.success && data.image_url) {
+            // Update cover image if present on page
+            const coverImg = document.querySelector('#unified-cover-gallery img');
+            const coverLink = document.querySelector('#unified-cover-gallery a');
+            if (coverImg) coverImg.src = data.image_url;
+            if (coverLink) coverLink.href = data.image_url;
+            alert('Cover image imported successfully.');
+        } else {
+            alert('Import failed: ' + (data.error || 'Unknown error'));
+        }
+    } catch (err) {
+        alert('Error importing cover: ' + err.message);
+    } finally {
+        if (btnArea) btnArea.classList.remove('disabled');
+        e.target.value = '';
+    }
+}
+
+async function importChapterImage(e, chapterId) {
+    const file = e.target.files && e.target.files[0];
+    if (!file) return;
+    const fd = new FormData();
+    fd.append('file', file);
+    const label = e.target.closest('label');
+    if (label) label.classList.add('disabled');
+    try {
+        const res = await fetch(`/review/chapter/${chapterId}/import-image`, { method: 'POST', body: fd });
+        const data = await res.json();
+        if (data.success && data.image_url) {
+            const container = document.querySelector(`#image-container-${chapterId}`);
+            if (container) {
+                container.innerHTML = `
+                    <div class="pswp-gallery" data-pswp-no-fallback>
+                        <a href="${data.image_url}" data-pswp-width="1600" data-pswp-height="1200">
+                            <img src="${data.image_url}" class="img-fluid rounded shadow-sm mb-2" style="max-height: 200px; cursor: zoom-in;" alt="Chapter ${chapterId}">
+                        </a>
+                    </div>
+                    <p class="text-muted small text-center mb-2">Click to zoom • Press ESC or tap × to close</p>
+                    <div class="d-flex justify-content-center gap-2">
+                        <label class="btn btn-sm btn-outline-secondary mb-0">
+                            <i class="bi bi-upload"></i> Import
+                            <input type="file" accept="image/png,image/jpeg" hidden onchange="importChapterImage(event, ${chapterId})">
+                        </label>
+                        <button class="btn btn-sm btn-outline-danger" onclick="deleteImage(${chapterId})">
+                            <i class="bi bi-trash"></i> Delete
+                        </button>
+                    </div>
+                `;
+            }
+            alert('Chapter image imported successfully.');
+        } else {
+            alert('Import failed: ' + (data.error || 'Unknown error'));
+        }
+    } catch (err) {
+        alert('Error importing image: ' + err.message);
+    } finally {
+        if (label) label.classList.remove('disabled');
+        e.target.value = '';
+    }
+}
 
 function viewCoverImage() {
     const modal = new bootstrap.Modal(document.getElementById('coverImageModal'));
