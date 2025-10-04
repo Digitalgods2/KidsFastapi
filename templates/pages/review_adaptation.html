@@ -102,8 +102,10 @@
                         <div class="col-md-6">
                             <h6 class="mb-3">Cover Image</h6>
                             {% if adaptation.cover_url %}
-                                <div class="text-center mb-3">
-                                    <img src="{{ adaptation.cover_url }}" alt="Cover Image" class="img-fluid rounded shadow-sm" style="max-height: 300px; cursor: pointer;" onclick="openCoverModal()">
+                                <div class="text-center mb-3 pswp-gallery" id="cover-gallery">
+                                    <a href="{{ adaptation.cover_url }}" data-pswp-width="1600" data-pswp-height="1600" target="_blank">
+                                        <img src="{{ adaptation.cover_url }}" alt="Cover Image" class="img-fluid rounded shadow-sm" style="max-height: 300px; cursor: zoom-in;">
+                                    </a>
                                 </div>
                                 <div class="d-grid gap-2">
                                     <button class="btn btn-outline-warning" onclick="editCoverPrompt()">
@@ -325,47 +327,9 @@
     </div>
 </div>
 
-<!-- Cover Image View Modal - Bootstrap Modal (replaces custom lightbox) -->
-<div id="coverImageModal" class="modal fade" tabindex="-1">
-    <div class="modal-dialog modal-xl modal-dialog-centered">
-        <div class="modal-content bg-transparent border-0">
-            <div class="modal-body text-center p-0" style="position: relative;">
-                {% if adaptation.cover_url %}
-                <button type="button" class="btn-close btn-close-white position-absolute" 
-                        data-bs-dismiss="modal"
-                        style="top: 20px; right: 20px; z-index: 1060; font-size: 1.5rem;"
-                        title="Close">
-                </button>
-                <img src="{{ adaptation.cover_url }}" 
-                     class="img-fluid rounded shadow-lg" 
-                     alt="Cover Image"
-                     style="max-height: 90vh; cursor: pointer;"
-                     onclick="bootstrap.Modal.getInstance(document.getElementById('coverImageModal')).hide();">
-                <p class="text-white mt-3 mb-0" style="text-shadow: 0 0 10px rgba(0,0,0,0.8);">
-                    Click image or ✕ to close • Press ESC to close
-                </p>
-                {% else %}
-                <p class="text-white">No cover image available</p>
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                {% endif %}
-            </div>
-        </div>
-    </div>
-</div>
-
-
 <script>
 let currentChapterId = null;
 const adaptationId = {{ adaptation.adaptation_id }};
-
-function openCoverModal() {
-    const el = document.getElementById('coverImageModal');
-    if (el && el.parentNode !== document.body) {
-        document.body.appendChild(el);
-    }
-    const modal = bootstrap.Modal.getOrCreateInstance(el, { backdrop: true, keyboard: true, focus: true });
-    modal.show();
-}
 
 function editCoverPrompt() {
     // Close any open modals first
