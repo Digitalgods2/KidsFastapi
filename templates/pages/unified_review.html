@@ -219,6 +219,7 @@
                                                      alt="Chapter {{ chapter.chapter_number }}">
                                             </a>
                                         </div>
+                                        <p class="text-muted small text-center mb-2">Click to zoom • Press ESC or tap × to close</p>
                                         <div>
                                             <button class="btn btn-sm btn-outline-danger" 
                                                     onclick="deleteImage({{ chapter.chapter_id }})">
@@ -385,6 +386,7 @@ async function generateImage(chapterId) {
                         <img src=\"${data.image_url}\" class=\"img-fluid rounded shadow-sm mb-2\" style=\"max-height: 200px; cursor: zoom-in;\">
                     </a>
                 </div>
+                <p class=\"text-muted small text-center mb-2\">Click to zoom • Press ESC or tap × to close</p>
                 <div>
                     <button class=\"btn btn-sm btn-outline-danger\" onclick=\"deleteImage(${chapterId})\">
                         <i class=\"bi bi-trash\"></i> Delete
