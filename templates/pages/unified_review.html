@@ -886,13 +886,22 @@ async function generateCover() {
             method: 'POST'
         });
         
+        if (!response.ok) {
+            const errData = await response.json().catch(() => ({}));
+            const msg = errData.error || errData.detail || 'Unknown error';
+            alert('Error generating cover image: ' + msg);
+            button.disabled = false;
+            button.innerHTML = '<i class="bi bi-magic"></i> Generate Cover Image';
+            return;
+        }
+
         const data = await response.json();
         
         if (data.success) {
             alert('Cover image generated successfully!');
             location.reload();
         } else {
-            alert('Error generating cover image: ' + (data.error || 'Unknown error'));
+            alert('Error generating cover image: ' + (data.error || data.detail || 'Unknown error'));
             button.disabled = false;
             button.innerHTML = '<i class="bi bi-magic"></i> Generate Cover Image';
         }
@@ -943,6 +952,15 @@ async function regenerateCover() {
         const response = await fetch(`/review/adaptation/${adaptationId}/regenerate-cover`, {
             method: 'POST'
         });
+
+        if (!response.ok) {
+            const errData = await response.json().catch(() => ({}));
+            const msg = errData.error || errData.detail || 'Unknown error';
+            alert('Error regenerating cover image: ' + msg);
+            button.disabled = false;
+            button.innerHTML = originalHTML;
+            return;
+        }
         
         const data = await response.json();
         
@@ -950,7 +968,7 @@ async function regenerateCover() {
             alert('Cover image regenerated successfully!');
             location.reload();
         } else {
-            alert('Error regenerating cover image: ' + (data.error || 'Unknown error'));
+            alert('Error regenerating cover image: ' + (data.error || data.detail || 'Unknown error'));
             button.disabled = false;
             button.innerHTML = originalHTML;
         }
