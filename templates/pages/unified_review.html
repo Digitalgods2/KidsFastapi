@@ -81,11 +81,14 @@
                                     <button class="btn btn-outline-primary" onclick="regenerateCover()">
                                         <i class="bi bi-arrow-clockwise"></i> Regenerate Cover Image
                                     </button>
-                                    <div class="mt-2">
-                                        <label class="btn btn-outline-secondary">
+                                    <div class="mt-2 d-flex gap-2 justify-content-center">
+                                        <label class="btn btn-outline-secondary mb-0">
                                             <i class="bi bi-upload"></i> Import Cover Image
                                             <input type="file" id="importCoverInput" accept="image/png,image/jpeg" hidden onchange="importCover(event)">
                                         </label>
+                                        <button class="btn btn-outline-info" onclick="importCoverFromUrl()" title="Paste a URL or data:... base64">
+                                            <i class="bi bi-link-45deg"></i> Import via URL
+                                        </button>
                                     </div>
                                 </div>
                             {% else %}
@@ -231,6 +234,9 @@
                                                 <i class="bi bi-upload"></i> Import
                                                 <input type="file" accept="image/png,image/jpeg" hidden onchange="importChapterImage(event, {{ chapter.chapter_id }})">
                                             </label>
+                                            <button class="btn btn-sm btn-outline-info" onclick="importChapterImageFromUrl({{ chapter.chapter_id }})" title="Paste a URL or data:... base64">
+                                                <i class="bi bi-link-45deg"></i> Import via URL
+                                            </button>
                                             <button class="btn btn-sm btn-outline-danger" 
                                                     onclick="deleteImage({{ chapter.chapter_id }})">
                                                 <i class="bi bi-trash"></i> Delete
@@ -532,6 +538,28 @@ async function importCover(e) {
     }
 }
 
+async function importCoverFromUrl() {
+    const url = prompt('Paste image URL or data: URL. If the URL returns JSON, include base64 under base64/data/image_base64.');
+    if (!url) return;
+    const fd = new FormData();
+    fd.append('image_url', url);
+    try {
+        const res = await fetch(`/review/adaptation/${adaptationId}/import-cover`, { method: 'POST', body: fd });
+        const data = await res.json();
+        if (data.success && data.image_url) {
+            const coverImg = document.querySelector('#unified-cover-gallery img');
+            const coverLink = document.querySelector('#unified-cover-gallery a');
+            if (coverImg) coverImg.src = data.image_url;
+            if (coverLink) coverLink.href = data.image_url;
+            alert('Cover image imported successfully.');
+        } else {
+            alert('Import via URL failed: ' + (data.error || 'Unknown error'));
+        }
+    } catch (err) {
+        alert('Error importing cover via URL: ' + err.message);
+    }
+}
+
 async function importChapterImage(e, chapterId) {
     const file = e.target.files && e.target.files[0];
     if (!file) return;
@@ -546,19 +574,22 @@ async function importChapterImage(e, chapterId) {
             const container = document.querySelector(`#image-container-${chapterId}`);
             if (container) {
                 container.innerHTML = `
-                    <div class="pswp-gallery" data-pswp-no-fallback>
-                        <a href="${data.image_url}" data-pswp-width="1600" data-pswp-height="1200">
-                            <img src="${data.image_url}" class="img-fluid rounded shadow-sm mb-2" style="max-height: 200px; cursor: zoom-in;" alt="Chapter ${chapterId}">
+                    <div class=\"pswp-gallery\" data-pswp-no-fallback>
+                        <a href=\"${data.image_url}\" data-pswp-width=\"1600\" data-pswp-height=\"1200\">
+                            <img src=\"${data.image_url}\" class=\"img-fluid rounded shadow-sm mb-2\" style=\"max-height: 200px; cursor: zoom-in;\" alt=\"Chapter ${chapterId}\">
                         </a>
                     </div>
-                    <p class="text-muted small text-center mb-2">Click to zoom • Press ESC or tap × to close</p>
-                    <div class="d-flex justify-content-center gap-2">
-                        <label class="btn btn-sm btn-outline-secondary mb-0">
-                            <i class="bi bi-upload"></i> Import
-                            <input type="file" accept="image/png,image/jpeg" hidden onchange="importChapterImage(event, ${chapterId})">
+                    <p class=\"text-muted small text-center mb-2\">Click to zoom • Press ESC or tap × to close</p>
+                    <div class=\"d-flex justify-content-center gap-2\">
+                        <label class=\"btn btn-sm btn-outline-secondary mb-0\">
+                            <i class=\"bi bi-upload\"></i> Import
+                            <input type=\"file\" accept=\"image/png,image/jpeg\" hidden onchange=\"importChapterImage(event, ${chapterId})\">
                         </label>
-                        <button class="btn btn-sm btn-outline-danger" onclick="deleteImage(${chapterId})">
-                            <i class="bi bi-trash"></i> Delete
+                        <button class=\"btn btn-sm btn-outline-info\" onclick=\"importChapterImageFromUrl(${chapterId})\" title=\"Paste a URL or data:... base64\">
+                            <i class=\"bi bi-link-45deg\"></i> Import via URL
+                        </button>
+                        <button class=\"btn btn-sm btn-outline-danger\" onclick=\"deleteImage(${chapterId})\">
+                            <i class=\"bi bi-trash\"></i> Delete
                         </button>
                     </div>
                 `;
@@ -572,6 +603,47 @@ async function importChapterImage(e, chapterId) {
     } finally {
         if (label) label.classList.remove('disabled');
         e.target.value = '';
+    }
+}
+
+async function importChapterImageFromUrl(chapterId) {
+    const url = prompt('Paste image URL or data: URL. If the URL returns JSON, include base64 under base64/data/image_base64.');
+    if (!url) return;
+    const fd = new FormData();
+    fd.append('image_url', url);
+    try {
+        const res = await fetch(`/review/chapter/${chapterId}/import-image`, { method: 'POST', body: fd });
+        const data = await res.json();
+        if (data.success && data.image_url) {
+            const container = document.querySelector(`#image-container-${chapterId}`);
+            if (container) {
+                container.innerHTML = `
+                    <div class=\"pswp-gallery\" data-pswp-no-fallback>
+                        <a href=\"${data.image_url}\" data-pswp-width=\"1600\" data-pswp-height=\"1200\">
+                            <img src=\"${data.image_url}\" class=\"img-fluid rounded shadow-sm mb-2\" style=\"max-height: 200px; cursor: zoom-in;\" alt=\"Chapter ${chapterId}\">
+                        </a>
+                    </div>
+                    <p class=\"text-muted small text-center mb-2\">Click to zoom • Press ESC or tap × to close</p>
+                    <div class=\"d-flex justify-content-center gap-2\">
+                        <label class=\"btn btn-sm btn-outline-secondary mb-0\">
+                            <i class=\"bi bi-upload\"></i> Import
+                            <input type=\"file\" accept=\"image/png,image/jpeg\" hidden onchange=\"importChapterImage(event, ${chapterId})\">
+                        </label>
+                        <button class=\"btn btn-sm btn-outline-info\" onclick=\"importChapterImageFromUrl(${chapterId})\" title=\"Paste a URL or data:... base64\">
+                            <i class=\"bi bi-link-45deg\"></i> Import via URL
+                        </button>
+                        <button class=\"btn btn-sm btn-outline-danger\" onclick=\"deleteImage(${chapterId})\">
+                            <i class=\"bi bi-trash\"></i> Delete
+                        </button>
+                    </div>
+                `;
+            }
+            alert('Chapter image imported successfully.');
+        } else {
+            alert('Import via URL failed: ' + (data.error || 'Unknown error'));
+        }
+    } catch (err) {
+        alert('Error importing image via URL: ' + err.message);
     }
 }
 
