@@ -120,8 +120,11 @@ def build_cover_prompt_template(book: Dict[str, Any], adaptation: Dict[str, Any]
 
     system = (
         "You are an expert prompt engineer and children's book illustrator with deep knowledge of classic literature. "
-        "Create visually rich, child-friendly prompts that accurately depict characters from well-known stories. "
-        "When creating prompts for classic tales, ensure character appearances match their traditional depictions."
+        "Create visually rich, child-friendly prompts that accurately depict characters from well-known stories "
+        "AND produce READABLE TEXT on covers using GPT-Image-1/DALL-E. "
+        "When creating prompts for classic tales, ensure character appearances match their traditional depictions. "
+        "CRITICAL: For text rendering, you MUST structure prompts with a dedicated TEXT REQUIREMENTS section "
+        "using emphasis words like LEGIBLE, READABLE, CRISP, CLEAR, PROMINENT, SHARP, and specify HIGH CONTRAST."
     )
     user = f"""
 Create a detailed image generation prompt for a children's book cover.
@@ -137,14 +140,32 @@ Guidelines:
 - One single, engaging scene suitable for a cover featuring the key characters
 - IF this is a well-known story (like A Christmas Carol, The Wizard of Oz, etc.), ensure characters match their traditional appearances
 - Friendly, whimsical tone; bright colors; clear focal point
-- Include the book title "{title}" and author name "{author}" as clear, legible text prominently displayed on the cover
-- Position the title at the top or center, and author name at the bottom
-- Use child-friendly, easy-to-read fonts for the text
 - Avoid violence or scary elements; suitable for children
 - Describe characters with specific physical details (hair color, clothing, age, distinctive features)
 - Include setting, mood, color palette, composition
-- Keep under 200 words; no extra commentary
-- IMPORTANT: Return ONLY the image description, do NOT add any prefix like '**Prompt for...**' or headers
+
+TEXT RENDERING REQUIREMENTS (CRITICAL FOR AI IMAGE GENERATION):
+The prompt MUST include a dedicated "TEXT REQUIREMENTS" section that emphasizes:
+- EXACT PLACEMENT: "At the TOP CENTER" for title, "At the BOTTOM" for author
+- LEGIBILITY EMPHASIS: Use words like CLEAR, CRISP, LEGIBLE, READABLE, PROMINENT, SHARP
+- SPECIFIC STYLING: Describe font style (elegant script, playful rounded, etc.)
+- HIGH CONTRAST: Specify text color and background for readability (e.g., "WHITE text with subtle shadow against dark background")
+- EXACT TEXT: "{title}" for the title and "Written by {author}" or "by {author}" for author credit
+
+Format your prompt in TWO clear sections:
+1. SCENE DESCRIPTION: The visual elements (characters, setting, colors, mood)
+2. TEXT REQUIREMENTS (CRITICAL): The text placement and styling with emphasis on legibility
+
+Example structure:
+"A magical scene with... [visual description]
+
+TEXT REQUIREMENTS (CRITICAL):
+- At TOP CENTER: Display "{title}" in large, elegant, CLEARLY READABLE font with HIGH CONTRAST
+- At BOTTOM: Display "Written by {author}" in smaller, CRISP, LEGIBLE font
+- Both text elements must be PROMINENT and SHARP with excellent readability"
+
+Keep under 200 words total; no extra commentary.
+IMPORTANT: Return ONLY the image description, do NOT add any prefix like '**Prompt for...**' or headers
 """
     return [
         {"role": "system", "content": system},
@@ -372,8 +393,10 @@ async def analyze_book_for_cover_prompt(
         book_excerpt = book_content
     
     system = (
-        "You are an expert at creating concise, effective image generation prompts for AI art tools like DALL-E and Midjourney. "
-        "You write clear visual descriptions that produce beautiful children's book covers."
+        "You are an expert at creating concise, effective image generation prompts for AI art tools like GPT-Image-1 and DALL-E. "
+        "You write clear visual descriptions that produce beautiful children's book covers with readable text. "
+        "CRITICAL: For text rendering, you MUST use emphasis words (LEGIBLE, READABLE, CRISP, CLEAR, PROMINENT, SHARP) "
+        "and specify exact placement and high contrast to ensure the AI generates readable text on the cover."
     )
     
     # Build character section
@@ -384,7 +407,7 @@ async def analyze_book_for_cover_prompt(
     user = f"""
 Create a detailed IMAGE GENERATION PROMPT for a children's book cover of "{title}" by {author}.
 
-Your output will be sent to an AI image generator (DALL-E/Stable Diffusion/Midjourney).
+Your output will be sent to an AI image generator (GPT-Image-1/DALL-E).
 Write a visual description an AI can use to generate the cover image.
 
 Story context (for inspiration):
@@ -395,18 +418,27 @@ Cover requirements:
 - Art style: Whimsical, colorful, imaginative children's book illustration
 - Mood: Capture the emotional heart of the story (joyful, magical, mysterious, etc.)
 - Composition: Symbolic and evocative, not a literal scene
-- Text on cover: Title "{title}" and "Written by {author}"
 {char_section}
-FORMAT YOUR RESPONSE AS:
-A single paragraph describing the cover image in vivid visual detail. Include:
+FORMAT YOUR RESPONSE IN TWO SECTIONS:
+
+1. SCENE DESCRIPTION (visual elements):
 - Main visual elements (characters, objects, setting)
 - Character descriptions (if featured) using exact details from guide above
 - Color palette and lighting
-- Mood and atmosphere  
-- Art style (e.g., "whimsical children's book illustration style")
-- Text placement: "{title}" at top, "Written by {author}" at bottom
+- Mood and atmosphere
+- Art style
 
-Keep it under 150 words. Write ONLY the image prompt, no explanations or meta-commentary.
+2. TEXT REQUIREMENTS (CRITICAL):
+Structure this section with heavy emphasis on legibility:
+"TEXT REQUIREMENTS (CRITICAL):
+- At TOP CENTER: Display "{title}" in [font style], CLEARLY READABLE, LARGE, PROMINENT with HIGH CONTRAST
+- At BOTTOM: Display "Written by {author}" in [font style], CRISP, LEGIBLE with good contrast
+- All text must be SHARP, CLEAR, and fully READABLE"
+
+Use words like: LEGIBLE, READABLE, CRISP, CLEAR, PROMINENT, SHARP, HIGH CONTRAST, LARGE
+Specify exact placement (TOP CENTER, BOTTOM) and color contrast for text visibility.
+
+Keep total under 200 words. Write ONLY the image prompt, no explanations or meta-commentary.
 
 IMAGE PROMPT:"""
     
