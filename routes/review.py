@@ -172,21 +172,45 @@ async def import_cover_image(adaptation_id: int, file: UploadFile = File(None), 
                 timeout = aiohttp.ClientTimeout(total=25)
                 async with aiohttp.ClientSession(timeout=timeout) as session:
                     async with session.get(url) as resp:
-                        if resp.status != 200:
-                            raise HTTPException(status_code=400, detail=f"Failed to fetch image_url: HTTP {resp.status}")
                         ctype = resp.headers.get("content-type", "")
                         data = await resp.read()
-                        if "application/json" in ctype:
+                        # If non-200, try to bubble remote JSON error message
+                        if resp.status != 200:
+                            detail = f"Failed to fetch image_url: HTTP {resp.status}"
                             try:
                                 import json
                                 payload = json.loads(data)
-                                b64 = payload.get("base64") or payload.get("data") or payload.get("image_base64")
-                                if b64 and isinstance(b64, str):
-                                    if b64.startswith("data:image"):
-                                        b64 = b64.split(",", 1)[1]
-                                    return base64.b64decode(b64)
+                                if isinstance(payload, dict) and payload.get("error"):
+                                    detail = f"Remote error: {payload.get('error')}"
+                                elif isinstance(payload, dict) and payload.get("detail"):
+                                    detail = f"Remote error: {payload.get('detail')}"
                             except Exception:
-                                pass
+                                # fallback to text snippet
+                                try:
+                                    text_snip = data.decode("utf-8", "ignore")[:200]
+                                    if text_snip.strip():
+                                        detail = f"{detail} - {text_snip}"
+                                except Exception:
+                                    pass
+                            raise HTTPException(status_code=400, detail=detail)
+                        # If JSON or JSON-like, parse for base64 or bubble error
+                        try:
+                            should_try_json = ("application/json" in ctype) or (data and data.lstrip()[:1] in (b"{", b"[") )
+                            if should_try_json:
+                                import json
+                                payload = json.loads(data)
+                                if isinstance(payload, dict):
+                                    if payload.get("error"):
+                                        raise HTTPException(status_code=400, detail=f"Remote error: {payload.get('error')}")
+                                    b64 = payload.get("base64") or payload.get("data") or payload.get("image_base64")
+                                    if b64 and isinstance(b64, str):
+                                        if b64.startswith("data:image"):
+                                            b64 = b64.split(",", 1)[1]
+                                        return base64.b64decode(b64)
+                        except HTTPException:
+                            raise
+                        except Exception:
+                            pass
                         return data
             data = await _download(image_url)
             with open(tmp_path, "wb") as f:
@@ -273,21 +297,45 @@ async def import_chapter_image(chapter_id: int, file: UploadFile = File(None), i
                 timeout = aiohttp.ClientTimeout(total=25)
                 async with aiohttp.ClientSession(timeout=timeout) as session:
                     async with session.get(url) as resp:
-                        if resp.status != 200:
-                            raise HTTPException(status_code=400, detail=f"Failed to fetch image_url: HTTP {resp.status}")
                         ctype = resp.headers.get("content-type", "")
                         data = await resp.read()
-                        if "application/json" in ctype:
+                        # If non-200, try to bubble remote JSON error message
+                        if resp.status != 200:
+                            detail = f"Failed to fetch image_url: HTTP {resp.status}"
                             try:
                                 import json
                                 payload = json.loads(data)
-                                b64 = payload.get("base64") or payload.get("data") or payload.get("image_base64")
-                                if b64 and isinstance(b64, str):
-                                    if b64.startswith("data:image"):
-                                        b64 = b64.split(",", 1)[1]
-                                    return base64.b64decode(b64)
+                                if isinstance(payload, dict) and payload.get("error"):
+                                    detail = f"Remote error: {payload.get('error')}"
+                                elif isinstance(payload, dict) and payload.get("detail"):
+                                    detail = f"Remote error: {payload.get('detail')}"
                             except Exception:
-                                pass
+                                # fallback to text snippet
+                                try:
+                                    text_snip = data.decode("utf-8", "ignore")[:200]
+                                    if text_snip.strip():
+                                        detail = f"{detail} - {text_snip}"
+                                except Exception:
+                                    pass
+                            raise HTTPException(status_code=400, detail=detail)
+                        # If JSON or JSON-like, parse for base64 or bubble error
+                        try:
+                            should_try_json = ("application/json" in ctype) or (data and data.lstrip()[:1] in (b"{", b"[") )
+                            if should_try_json:
+                                import json
+                                payload = json.loads(data)
+                                if isinstance(payload, dict):
+                                    if payload.get("error"):
+                                        raise HTTPException(status_code=400, detail=f"Remote error: {payload.get('error')}")
+                                    b64 = payload.get("base64") or payload.get("data") or payload.get("image_base64")
+                                    if b64 and isinstance(b64, str):
+                                        if b64.startswith("data:image"):
+                                            b64 = b64.split(",", 1)[1]
+                                        return base64.b64decode(b64)
+                        except HTTPException:
+                            raise
+                        except Exception:
+                            pass
                         return data
             data = await _download(image_url)
             with open(tmp_path, "wb") as f:
