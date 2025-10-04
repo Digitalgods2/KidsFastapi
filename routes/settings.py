@@ -144,32 +144,45 @@ async def test_connection():
             results["database"] = True
             conn.close()
         
-        # Test OpenAI via chat_helper (version-agnostic)
+        # Test OpenAI via chat_helper (version-agnostic) and surface errors
+        openai_err_detail = None
+        openai_client_err = None
+        tested_model = await database.get_setting('openai_default_model', getattr(config, 'DEFAULT_GPT_MODEL', 'gpt-4o-mini'))
         try:
-            text, err = await chat_helper.generate_chat_text(
-                messages=[
-                    {"role": "system", "content": "You are a health check."},
-                    {"role": "user", "content": "Reply with: OK"}
-                ],
-                model=(await database.get_setting('openai_default_model', getattr(config, 'DEFAULT_GPT_MODEL', 'gpt-4o-mini'))),
-                temperature=0,
-                max_tokens=5,
-            )
-            results["openai"] = (err is None and (text or '').strip().upper().startswith('OK'))
-        except Exception:
+            # First ensure client can be constructed
+            try:
+                _ = await chat_helper.get_client()
+            except Exception as ce:
+                openai_client_err = str(ce)
+                results["openai"] = False
+            else:
+                text, err = await chat_helper.generate_chat_text(
+                    messages=[
+                        {"role": "system", "content": "You are a health check."},
+                        {"role": "user", "content": "Reply with: OK"}
+                    ],
+                    model=tested_model,
+                    temperature=0,
+                    max_tokens=5,
+                )
+                openai_err_detail = err
+                results["openai"] = (err is None and (text or '').strip().upper().startswith('OK'))
+        except Exception as e:
             results["openai"] = False
+            openai_err_detail = str(e)
         
         # Test Vertex
         if config.validate_vertex_ai_config():
             results["vertex"] = True
         
-        return JSONResponse({"success": True, "results": results, "model_tested": await database.get_setting('openai_default_model', getattr(config, 'DEFAULT_GPT_MODEL', 'gpt-4o-mini'))})
+        return JSONResponse({"success": True, "results": results, "model_tested": tested_model, "openai_error": openai_err_detail, "openai_client_error": openai_client_err})
         
     except Exception as e:
         from services.logger import get_logger
         log = get_logger("routes.settings")
         log.error("test_connection_error", extra={"error": str(e), "component": "routes.settings"})
-        return JSONResponse({"success": False, "error": str(e), "model_tested": await database.get_setting('openai_default_model', getattr(config, 'DEFAULT_GPT_MODEL', 'gpt-4o-mini'))})
+        tested_model = await database.get_setting('openai_default_model', getattr(config, 'DEFAULT_GPT_MODEL', 'gpt-4o-mini'))
+        return JSONResponse({"success": False, "error": str(e), "model_tested": tested_model})
 
 @router.post("/image-preferences")
 async def save_image_preferences(request: Request):
