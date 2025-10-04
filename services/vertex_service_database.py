@@ -8,7 +8,7 @@ import asyncio
 import os
 import json
 import tempfile
-from typing import Dict, Any, Optional, Tuple
+from typing import Dict, Any, Optional, Tuple, Any
 
 try:
     from google.cloud import aiplatform_v1
@@ -38,11 +38,10 @@ class VertexService:
                 "hint": "Install with: pip install google-cloud-aiplatform"
             })
     
-    async def get_client(self) -> Optional[aiplatform_v1.PredictionServiceClient]:
+    async def get_client(self) -> Optional[Any]:
         """Get Vertex AI client with credentials from database settings"""
         if not self.available:
             return None
-            
         try:
             # Get configuration from database settings
             import database_fixed as database
