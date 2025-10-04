@@ -643,18 +643,23 @@ class ImageGenerationService:
     
     async def generate_cover_image(self, adaptation_id: int, title: str, 
                                  author: str, theme: str, api_type: str = "dall-e-3") -> Dict[str, Any]:
-        """Generate a cover image for the adaptation"""
+        """Generate a cover image for the adaptation with text rendering"""
         try:
+            # Optimized prompt for text rendering (especially important for gpt-image-1)
             cover_prompt = f"""
-            Create a beautiful children's book cover illustration for "{title}" by {author}.
-            Theme: {theme}
+            A beautiful children's book cover illustration with the following elements:
+
+            SCENE: {theme} - Create a colorful, engaging illustration showing the main characters or key scenes. 
+            Use bright, child-friendly colors and whimsical art style suitable for children.
             
-            The cover should be:
-            - Colorful and engaging for children
-            - Show main characters or key scenes
-            - Include space for the title and author name
-            - Professional book cover quality
-            - Appealing to the target age group
+            TEXT REQUIREMENTS (CRITICAL - MUST INCLUDE TEXT):
+            - At the TOP CENTER: Display the title "{title}" in large, elegant, CLEARLY READABLE lettering
+            - At the BOTTOM: Display "by {author}" in a playful, CLEARLY READABLE font
+            - BOTH text elements MUST be LEGIBLE, CRISP, and PROMINENT on the cover
+            - Use contrasting colors to ensure text stands out clearly (white or yellow text on dark backgrounds, dark text on light backgrounds)
+            - The text should be an integral part of the cover design
+            
+            Style: Professional children's book cover quality with magical, enchanting appeal.
             """
             
             result = await self.generate_single_image(

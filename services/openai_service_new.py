@@ -157,14 +157,17 @@ class OpenAIService:
                 size = get_aspect_ratio_size(model, aspect_ratio)
             
             # Map model names to OpenAI API model strings
-            # GPT-Image-1 uses DALL-E 3 API with enhanced parameters
+            # GPT-Image-1 is a distinct, newer image model with tighter GPT/multimodal integration
+            # It has enhancements over previous models (not just DALL-E 3 with HD enabled)
             if model == "gpt-image-1":
-                # GPT-Image-1 uses DALL-E 3 backend with optimal settings
-                api_model = "dall-e-3"
-                # Force HD quality for GPT-Image-1
-                quality = "hd"
-                # Use natural style for better instruction following
-                style = "natural"
+                # GPT-Image-1 is its own model - call the actual API model
+                api_model = "gpt-image-1"
+                # Default to HD quality for optimal results
+                if not quality:
+                    quality = "hd"
+                # Default to vivid style for better text rendering and more vibrant colors
+                if not style:
+                    style = "vivid"
             elif model == "dall-e-3":
                 api_model = "dall-e-3"
             else:

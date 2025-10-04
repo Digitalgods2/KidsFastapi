@@ -3,7 +3,7 @@ from typing import Set, Dict, List, Any
 
 # Supported image generation backends
 SUPPORTED_BACKENDS: Set[str] = {
-    "gpt-image-1",     # NEW: GPT-Image-1 (default) - highest quality
+    "gpt-image-1",     # GPT-Image-1 - Newer model with tighter GPT/multimodal integration, enhanced over previous models
     "dall-e-3",        # DALL-E 3 - good quality, various sizes
     # "dall-e-2" REMOVED - deprecated
     "vertex-imagen",   # Google Vertex AI Imagen
@@ -17,7 +17,7 @@ BACKEND_ASPECT_RATIOS: Dict[str, List[str]] = {
         "1:1",      # Square - 1024x1024
         "16:9",     # Landscape wide - 1792x1024
         "9:16",     # Portrait tall - 1024x1792
-        # GPT-Image-1 only supports these 3 aspect ratios
+        # GPT-Image-1 supports these aspect ratios
     ],
     "dall-e-3": [
         "1:1",      # Square - 1024x1024
@@ -49,7 +49,7 @@ ASPECT_RATIO_SIZES: Dict[str, Dict[str, str]] = {
         "1:1": "1024x1024",
         "16:9": "1792x1024",
         "9:16": "1024x1792",
-        # GPT-Image-1 only supports these 3 sizes officially
+        # GPT-Image-1 supports these sizes
     },
     "dall-e-3": {
         "1:1": "1024x1024",
@@ -77,7 +77,7 @@ ASPECT_RATIO_SIZES: Dict[str, Dict[str, str]] = {
 
 # Backend descriptions
 BACKEND_DESCRIPTIONS: Dict[str, str] = {
-    "gpt-image-1": "GPT-Image-1 (Recommended) - Highest quality, best instruction following, superior text rendering",
+    "gpt-image-1": "GPT-Image-1 (Recommended) - Newer model with tighter GPT/multimodal integration, enhanced quality and instruction following",
     "dall-e-3": "DALL-E 3 - High quality, good for general illustrations",
     "vertex-imagen": "Google Vertex Imagen - Advanced Google AI model",
     "vertex-children": "Vertex Children's Mode - Optimized for whimsical children's illustrations",
