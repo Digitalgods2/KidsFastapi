@@ -6,7 +6,10 @@ Uses database-aware API key management for all OpenAI operations
 import json
 import asyncio
 from typing import Dict, Any, Optional, List, Tuple
-from openai import OpenAI
+try:
+    from openai import OpenAI  # type: ignore
+except Exception:
+    OpenAI = None  # type: ignore
 import config
 from models import AgeGroup, TransformationStyle, ImageModel
 
@@ -18,8 +21,11 @@ class OpenAIService:
         # No static client - we create it dynamically with current API key
         pass
     
-    async def get_client(self) -> Optional[OpenAI]:
+    async def get_client(self) -> Optional[Any]:
         """Get OpenAI client with API key from database settings (preferred) or environment"""
+        # If openai SDK is not available, skip client creation
+        if OpenAI is None:
+            return None
         try:
             # Try to get API key from database settings first
             import database_fixed as database
@@ -35,7 +41,7 @@ class OpenAIService:
             return OpenAI(api_key=api_key)
         except Exception:
             # Fallback to config if database access fails
-            if hasattr(config, 'OPENAI_API_KEY') and config.OPENAI_API_KEY and config.OPENAI_API_KEY.startswith('sk-'):
+            if hasattr(config, 'OPENAI_API_KEY') and getattr(config, 'OPENAI_API_KEY', None) and str(getattr(config, 'OPENAI_API_KEY')).startswith('sk-') and OpenAI is not None:
                 return OpenAI(api_key=config.OPENAI_API_KEY)
             return None
     
