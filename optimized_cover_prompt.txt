@@ -1,0 +1,23 @@
+OPTIMIZED COVER PROMPT FOR GPT-IMAGE-1:
+
+A whimsical children's book cover illustration featuring:
+
+SCENE: A joyful, ghostly figure of Marley in chains floats above a snowy Victorian street, surrounded by twinkling stars and softly glowing lanterns. Below, a silhouetted Scrooge - a grumpy old man with a top hat and furrowed brow - stands hunched over clutching a money bag. In the background, a cozy warmly-lit window shows a happy family celebrating Christmas. The color palette uses deep blues and whites for the night sky, contrasted with warm yellows and reds from the windows, creating a magical atmosphere blending mystery and joy.
+
+TEXT REQUIREMENTS (CRITICAL):
+- At the TOP CENTER: Display the title "A Christmas Carol" in elegant, large, clearly readable script font
+- At the BOTTOM: Display "Written by Charles Dickens" in a playful, clearly readable font
+- BOTH text elements must be LEGIBLE, CRISP, and PROMINENT
+- Use contrasting colors to ensure text stands out (white or yellow text against dark background)
+
+Style: Whimsical children's book illustration with a magical, enchanting quality suitable for ages 6-8.
+
+---
+
+KEY IMPROVEMENTS:
+1. Separated SCENE description from TEXT REQUIREMENTS
+2. Used "CRITICAL" to emphasize text importance
+3. Specified text placement (TOP CENTER, BOTTOM)
+4. Emphasized LEGIBLE, CRISP, PROMINENT
+5. Added contrast guidance for better readability
+6. Made text requirements a separate, highlighted section
