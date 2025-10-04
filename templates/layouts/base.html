@@ -1731,19 +1731,68 @@
     <script>
       // Initialize PhotoSwipe on any gallery container with class .pswp-gallery
       document.addEventListener('DOMContentLoaded', function() {
-        if (window.PhotoSwipeLightbox && window.PhotoSwipe) {
-          document.querySelectorAll('.pswp-gallery').forEach(function(galleryEl) {
+        const galleries = document.querySelectorAll('.pswp-gallery');
+        const hasPhotoSwipe = !!(window.PhotoSwipeLightbox && window.PhotoSwipe);
+
+        if (hasPhotoSwipe) {
+          galleries.forEach(function(galleryEl) {
             const lightbox = new PhotoSwipeLightbox({
               gallery: galleryEl,
               children: 'a',
               pswpModule: PhotoSwipe,
               bgOpacity: 0.95,
-              zoom: true,
-              closeSVG: '<svg aria-hidden="true" width="32" height="32" viewBox="0 0 32 32"><path d="M7 7l18 18M25 7L7 25" stroke="currentColor" stroke-width="2"/></svg>'
+              closeOnVerticalDrag: true,
+              wheelToZoom: true
             });
             lightbox.init();
           });
+          return;
         }
+
+        // Fallback: if PhotoSwipe failed to load (CSP/CDN), use a Bootstrap modal overlay
+        // Create reusable fallback modal once
+        if (!document.getElementById('imageFallbackModal')) {
+          const modalEl = document.createElement('div');
+          modalEl.id = 'imageFallbackModal';
+          modalEl.className = 'modal fade';
+          modalEl.tabIndex = -1;
+          modalEl.innerHTML = `
+            <div class="modal-dialog modal-xl modal-dialog-centered">
+              <div class="modal-content bg-transparent border-0">
+                <div class="modal-body text-center p-0 position-relative">
+                  <button type="button" class="btn-close btn-close-white position-absolute" data-bs-dismiss="modal" style="top: 16px; right: 16px; z-index: 2;"></button>
+                  <img id="imageFallbackModalImg" src="" alt="Image" class="img-fluid rounded shadow-lg" style="max-height: 90vh;" />
+                </div>
+              </div>
+            </div>`;
+          document.body.appendChild(modalEl);
+
+          // Cleanup on hide (belt-and-suspenders)
+          modalEl.addEventListener('hidden.bs.modal', function () {
+            document.querySelectorAll('.modal-backdrop').forEach(b => b.remove());
+            document.body.classList.remove('modal-open');
+            document.body.style.overflow = '';
+            document.body.style.paddingRight = '';
+          });
+        }
+
+        // Intercept clicks on gallery links and open in fallback modal
+        galleries.forEach(function(galleryEl) {
+          galleryEl.addEventListener('click', function(e) {
+            const a = e.target.closest('a');
+            if (!a) return;
+            e.preventDefault();
+            const imgSrc = a.getAttribute('href');
+            const modalRoot = document.getElementById('imageFallbackModal');
+            if (modalRoot && modalRoot.parentNode !== document.body) {
+              document.body.appendChild(modalRoot);
+            }
+            const imgEl = document.getElementById('imageFallbackModalImg');
+            if (imgEl) imgEl.src = imgSrc;
+            const modal = bootstrap.Modal.getOrCreateInstance(modalRoot, { backdrop: true, keyboard: true, focus: true });
+            modal.show();
+          });
+        });
       });
     </script>
     
