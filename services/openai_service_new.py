@@ -157,13 +157,11 @@ class OpenAIService:
                 size = get_aspect_ratio_size(model, aspect_ratio)
             
             # Map model names to OpenAI API model strings
-            # GPT-Image-1 is a distinct, newer image model with tighter GPT/multimodal integration
-            # It has enhancements over previous models (not just DALL-E 3 with HD enabled)
-            # However, it still uses the "dall-e-3" API endpoint
+            # gpt-image-1 is the correct API model parameter (introduced April 2025)
+            # It's a distinct, newer image model with tighter GPT/multimodal integration
             if model == "gpt-image-1":
-                # GPT-Image-1 uses "dall-e-3" as the API model parameter
-                # (the distinction is internal to OpenAI's infrastructure)
-                api_model = "dall-e-3"
+                # Use "gpt-image-1" as the actual API model parameter
+                api_model = "gpt-image-1"
                 # Default to HD quality for optimal results with gpt-image-1
                 if not quality:
                     quality = "hd"
