@@ -430,3 +430,15 @@ async def reset_settings():
                 <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
             </div>
         """, status_code=500)
+
+@router.get("/api/settings")
+async def get_settings_api():
+    """Get current settings as JSON for frontend use"""
+    try:
+        settings_data = await database.get_all_settings()
+        return JSONResponse(settings_data)
+    except Exception as e:
+        from services.logger import get_logger
+        log = get_logger("routes.settings")
+        log.error("get_settings_api_error", extra={"error": str(e), "component": "routes.settings"})
+        raise HTTPException(status_code=500, detail=str(e))

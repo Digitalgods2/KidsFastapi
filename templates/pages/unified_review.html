@@ -57,6 +57,76 @@
         </div>
     </div>
 
+    <!-- Cover Page Section -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header" style="background: linear-gradient(135deg, rgba(138, 43, 226, 0.1), rgba(75, 0, 130, 0.05));">
+                    <h5 class="mb-0">
+                        <i class="bi bi-image-fill"></i> Cover Page
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6 class="mb-3">Cover Image</h6>
+                            {% if adaptation.cover_url %}
+                                <div class="text-center mb-3 pswp-gallery" id="unified-cover-gallery">
+                                    <a href="{{ adaptation.cover_url }}" data-pswp-width="1600" data-pswp-height="1600" target="_blank">
+                                        <img src="{{ adaptation.cover_url }}" alt="Cover Image" class="img-fluid rounded shadow-sm" style="max-height: 300px; cursor: zoom-in;">
+                                    </a>
+                                </div>
+                                <div class="d-grid gap-2">
+                                    <button class="btn btn-outline-primary" onclick="regenerateCover()">
+                                        <i class="bi bi-arrow-clockwise"></i> Regenerate Cover Image
+                                    </button>
+                                </div>
+                            {% else %}
+                                <div class="alert alert-info">
+                                    <i class="bi bi-info-circle"></i> No cover image generated yet.
+                                </div>
+                                <div class="d-grid">
+                                    <button class="btn btn-primary" onclick="generateCover()">
+                                        <i class="bi bi-magic"></i> Generate Cover Image
+                                    </button>
+                                </div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-6">
+                            <h6 class="mb-3">Cover Prompt</h6>
+                            <div class="card bg-light">
+                                <div class="card-body">
+                                    <p class="mb-0" id="coverPromptDisplay">
+                                        {{ adaptation.cover_prompt or 'No cover prompt set yet.' }}
+                                    </p>
+                                </div>
+                            </div>
+                            <div class="mt-3 d-grid gap-2">
+                                {% if adaptation.cover_prompt %}
+                                <button class="btn btn-sm btn-outline-info" onclick="generateAICoverPrompt()" id="generatePromptBtn">
+                                    <i class="bi bi-arrow-clockwise"></i> Regenerate AI Prompt
+                                </button>
+                                {% else %}
+                                <button class="btn btn-sm btn-success" onclick="generateAICoverPrompt()" id="generatePromptBtn">
+                                    <i class="bi bi-stars"></i> Generate AI Cover Prompt
+                                </button>
+                                {% endif %}
+                                <button class="btn btn-sm btn-outline-secondary" onclick="editCoverPrompt()">
+                                    <i class="bi bi-pencil"></i> Edit Manually
+                                </button>
+                            </div>
+                            <div class="mt-2">
+                                <small class="text-muted">
+                                    <i class="bi bi-magic"></i> <strong>AI-Powered:</strong> Analyzes the entire book to extract themes, characters, setting, and emotional arc for the perfect cover.
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Chapters Grid -->
     <div class="row">
         {% for chapter in chapters %}
@@ -409,7 +479,387 @@ async function saveAllChanges() {
         btn.disabled = false;
     }
 }
+
+// Cover page functions
+const adaptationId = {{ adaptation.adaptation_id }};
+
+function viewCoverImage() {
+    const modal = new bootstrap.Modal(document.getElementById('coverImageModal'));
+    modal.show();
+}
+
+function forceCloseModal() {
+    console.log('Force closing modal...');
+    const modalElement = document.getElementById('coverImageModal');
+    
+    // Try Bootstrap method first
+    const modal = bootstrap.Modal.getInstance(modalElement);
+    if (modal) {
+        console.log('Using Bootstrap hide()');
+        modal.hide();
+    }
+    
+    // Force close as backup
+    setTimeout(() => {
+        console.log('Forcing modal closure...');
+        modalElement.classList.remove('show');
+        modalElement.style.display = 'none';
+        modalElement.setAttribute('aria-hidden', 'true');
+        modalElement.removeAttribute('aria-modal');
+        modalElement.removeAttribute('role');
+        
+        // Remove all backdrops
+        const backdrops = document.querySelectorAll('.modal-backdrop');
+        console.log('Found backdrops:', backdrops.length);
+        backdrops.forEach(backdrop => backdrop.remove());
+        
+        // Restore body
+        document.body.classList.remove('modal-open');
+        document.body.style.overflow = '';
+        document.body.style.paddingRight = '';
+        
+        console.log('Modal force closed');
+    }, 100);
+}
+
+function editCoverPrompt() {
+    // Close any open modals first
+    const coverImageModal = bootstrap.Modal.getInstance(document.getElementById('coverImageModal'));
+    if (coverImageModal) {
+        coverImageModal.hide();
+    }
+    
+    // Load current cover prompt
+    const currentPrompt = document.getElementById('coverPromptDisplay').innerText;
+    document.getElementById('coverPromptInput').value = currentPrompt === 'No cover prompt set yet.' ? '' : currentPrompt;
+    
+    // Show edit modal
+    const modal = new bootstrap.Modal(document.getElementById('editCoverPromptModal'));
+    modal.show();
+}
+
+async function saveCoverPrompt() {
+    const coverPrompt = document.getElementById('coverPromptInput').value.trim();
+    
+    if (!coverPrompt) {
+        alert('Please enter a cover prompt.');
+        return;
+    }
+    
+    // Disable button and show loading
+    const saveButton = event.target;
+    const originalHTML = saveButton.innerHTML;
+    saveButton.disabled = true;
+    saveButton.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Saving...';
+    
+    const formData = new FormData();
+    formData.append('cover_prompt', coverPrompt);
+    
+    try {
+        const response = await fetch(`/review/adaptation/${adaptationId}/update-cover-prompt`, {
+            method: 'POST',
+            body: formData
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            // Update the display
+            document.getElementById('coverPromptDisplay').innerText = coverPrompt;
+            
+            // Close modal
+            bootstrap.Modal.getInstance(document.getElementById('editCoverPromptModal')).hide();
+            
+            alert('Cover prompt saved successfully!');
+            location.reload();
+        } else {
+            alert('Error saving cover prompt: ' + (data.error || 'Unknown error'));
+            saveButton.disabled = false;
+            saveButton.innerHTML = originalHTML;
+        }
+    } catch (error) {
+        console.error('Error saving cover prompt:', error);
+        alert('Error saving cover prompt');
+        saveButton.disabled = false;
+        saveButton.innerHTML = originalHTML;
+    }
+}
+
+async function regenerateAICoverPrompt() {
+    if (!confirm('Regenerate the cover prompt using AI book analysis? This will analyze the entire book and create a new prompt.')) {
+        return;
+    }
+    
+    // Show loading indicator
+    const button = event.target;
+    const originalHTML = button.innerHTML;
+    button.disabled = true;
+    button.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Analyzing book...';
+    
+    try {
+        const response = await fetch(`/review/adaptation/${adaptationId}/generate-cover-prompt`, {
+            method: 'POST'
+        });
+        
+        const data = await response.json();
+        
+        if (data.success && data.cover_prompt) {
+            // Update the display
+            document.getElementById('coverPromptDisplay').innerText = data.cover_prompt;
+            
+            alert('AI cover prompt generated successfully! The prompt has been updated based on comprehensive book analysis.');
+            location.reload();
+        } else {
+            alert('Error regenerating cover prompt: ' + (data.error || 'Unknown error'));
+            button.disabled = false;
+            button.innerHTML = originalHTML;
+        }
+    } catch (error) {
+        console.error('Error regenerating cover prompt:', error);
+        alert('Error regenerating cover prompt');
+        button.disabled = false;
+        button.innerHTML = originalHTML;
+    }
+}
+
+async function generateAICoverPrompt() {
+    // Show loading indicator
+    const button = document.getElementById('generatePromptBtn');
+    const originalHTML = button.innerHTML;
+    button.disabled = true;
+    button.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Analyzing book...';
+    
+    try {
+        const response = await fetch(`/review/adaptation/${adaptationId}/generate-cover-prompt`, {
+            method: 'POST'
+        });
+        
+        const data = await response.json();
+        
+        if (data.success && data.cover_prompt) {
+            // Update the display
+            document.getElementById('coverPromptDisplay').innerText = data.cover_prompt;
+            
+            // Show success message
+            alert('AI cover prompt generated successfully! Review it below and click "Generate Cover Image" when ready.');
+            location.reload();
+        } else {
+            alert('Error generating AI cover prompt: ' + (data.error || data.message || 'Unknown error'));
+            button.disabled = false;
+            button.innerHTML = originalHTML;
+        }
+    } catch (error) {
+        console.error('Error generating AI cover prompt:', error);
+        alert('Error generating AI cover prompt. Please try again.');
+        button.disabled = false;
+        button.innerHTML = originalHTML;
+    }
+}
+
+async function generateCover() {
+    // Check if cover prompt exists
+    const promptText = document.getElementById('coverPromptDisplay').innerText.trim();
+    
+    if (!promptText || promptText === 'No cover prompt set yet.') {
+        if (confirm('No cover prompt found. Would you like to generate an AI cover prompt first?')) {
+            await generateAICoverPrompt();
+            return;
+        } else {
+            return;
+        }
+    }
+    
+    // Check for text instructions in prompt BEFORE generation
+    const hasTextInstructions = /title|text|written by|author|typography|font|lettering/i.test(promptText);
+    
+    if (hasTextInstructions) {
+        // Check current backend setting
+        try {
+            const settingsResponse = await fetch('/settings/api/settings');
+            const settings = await settingsResponse.json();
+            const currentBackend = settings.default_image_backend || 'gpt-image-1';
+            
+            if (currentBackend.startsWith('vertex') || currentBackend.startsWith('imagen')) {
+                const warningMsg = `⚠️ TEXT RENDERING WARNING\n\nYour cover prompt includes text instructions (title, author, etc.), but you have "${currentBackend}" selected.\n\nImagen models CANNOT render text in images. The title and author text will NOT appear on your cover.\n\nRECOMMENDATIONS:\n• Switch to "GPT-Image-1" in Settings for text rendering\n• Or remove text instructions from your prompt\n• Or continue anyway (text will be missing)\n\nDo you want to continue generating with ${currentBackend}?`;
+                
+                if (!confirm(warningMsg)) {
+                    return; // User cancelled
+                }
+            }
+        } catch (error) {
+            console.error('Error checking settings:', error);
+            // Continue anyway if we can't check settings
+        }
+    }
+    
+    if (!confirm('Generate cover image for this adaptation? This may take a minute.')) {
+        return;
+    }
+    
+    // Show loading indicator
+    const button = event.target;
+    button.disabled = true;
+    button.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Generating...';
+    
+    try {
+        const response = await fetch(`/review/adaptation/${adaptationId}/generate-cover`, {
+            method: 'POST'
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            alert('Cover image generated successfully!');
+            location.reload();
+        } else {
+            alert('Error generating cover image: ' + (data.error || 'Unknown error'));
+            button.disabled = false;
+            button.innerHTML = '<i class="bi bi-magic"></i> Generate Cover Image';
+        }
+    } catch (error) {
+        console.error('Error generating cover:', error);
+        alert('Error generating cover image');
+        button.disabled = false;
+        button.innerHTML = '<i class="bi bi-magic"></i> Generate Cover Image';
+    }
+}
+
+async function regenerateCover() {
+    // Check for text instructions in prompt BEFORE regeneration
+    const promptText = document.getElementById('coverPromptDisplay').innerText.trim();
+    const hasTextInstructions = /title|text|written by|author|typography|font|lettering/i.test(promptText);
+    
+    if (hasTextInstructions) {
+        // Check current backend setting
+        try {
+            const settingsResponse = await fetch('/settings/api/settings');
+            const settings = await settingsResponse.json();
+            const currentBackend = settings.default_image_backend || 'gpt-image-1';
+            
+            if (currentBackend.startsWith('vertex') || currentBackend.startsWith('imagen')) {
+                const warningMsg = `⚠️ TEXT RENDERING WARNING\n\nYour cover prompt includes text instructions (title, author, etc.), but you have "${currentBackend}" selected.\n\nImagen models CANNOT render text in images. The title and author text will NOT appear on your cover.\n\nRECOMMENDATIONS:\n• Switch to "GPT-Image-1" in Settings for text rendering\n• Or remove text instructions from your prompt\n• Or continue anyway (text will be missing)\n\nDo you want to continue regenerating with ${currentBackend}?`;
+                
+                if (!confirm(warningMsg)) {
+                    return; // User cancelled
+                }
+            }
+        } catch (error) {
+            console.error('Error checking settings:', error);
+            // Continue anyway if we can't check settings
+        }
+    }
+    
+    if (!confirm('Regenerate the cover image? This will replace the existing cover.')) {
+        return;
+    }
+    
+    // Show loading indicator
+    const button = event.target;
+    const originalHTML = button.innerHTML;
+    button.disabled = true;
+    button.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Regenerating...';
+    
+    try {
+        const response = await fetch(`/review/adaptation/${adaptationId}/regenerate-cover`, {
+            method: 'POST'
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            alert('Cover image regenerated successfully!');
+            location.reload();
+        } else {
+            alert('Error regenerating cover image: ' + (data.error || 'Unknown error'));
+            button.disabled = false;
+            button.innerHTML = originalHTML;
+        }
+    } catch (error) {
+        console.error('Error regenerating cover:', error);
+        alert('Error regenerating cover image');
+        button.disabled = false;
+        button.innerHTML = originalHTML;
+    }
+}
+
+// Ensure modal cleanup on close
+document.addEventListener('DOMContentLoaded', function() {
+    const coverImageModal = document.getElementById('coverImageModal');
+    
+    if (coverImageModal) {
+        // Clean up on hidden event
+        coverImageModal.addEventListener('hidden.bs.modal', function (e) {
+            // Clean up any leftover backdrops
+            const backdrops = document.querySelectorAll('.modal-backdrop');
+            backdrops.forEach(backdrop => backdrop.remove());
+            // Restore body scroll
+            document.body.classList.remove('modal-open');
+            document.body.style.overflow = '';
+            document.body.style.paddingRight = '';
+        });
+    }
+});
 </script>
+
+
+<!-- Cover Prompt Edit Modal -->
+<div class="modal fade" id="editCoverPromptModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Edit Cover Prompt</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="editCoverPromptForm">
+                    <div class="mb-3">
+                        <label for="coverPromptInput" class="form-label">Cover Prompt</label>
+                        <textarea class="form-control" id="coverPromptInput" name="cover_prompt" rows="6" placeholder="Describe the cover image you want to generate for this book..."></textarea>
+                        <div class="form-text">
+                            <i class="bi bi-info-circle"></i> Describe the overall theme, setting, and main characters that should appear on the book cover.
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="saveCoverPrompt()">Save Prompt</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Cover Image View Modal - Simple & Working -->
+<div id="coverImageModal" class="modal fade" tabindex="-1">
+    <div class="modal-dialog modal-xl modal-dialog-centered">
+        <div class="modal-content bg-transparent border-0">
+            <div class="modal-body text-center p-0" style="position: relative;">
+                {% if adaptation.cover_url %}
+                <!-- Close button -->
+                <button type="button" class="btn-close btn-close-white position-absolute" 
+                        data-bs-dismiss="modal"
+                        style="top: 20px; right: 20px; z-index: 1060; font-size: 1.5rem;"
+                        title="Close">
+                </button>
+                
+                <!-- Image -->
+                <img src="{{ adaptation.cover_url }}" 
+                     class="img-fluid rounded shadow-lg" 
+                     alt="Cover Image"
+                     style="max-height: 90vh; cursor: pointer;"
+                     onclick="bootstrap.Modal.getInstance(document.getElementById('coverImageModal')).hide();">
+                
+                <p class="text-white mt-3 mb-0" style="text-shadow: 0 0 10px rgba(0,0,0,0.8);">
+                    Click image or ✕ to close • Press ESC to close
+                </p>
+                {% else %}
+                <p class="text-white">No cover image available</p>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
 
 <style>
 .editable-title {

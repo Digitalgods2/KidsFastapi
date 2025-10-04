@@ -322,6 +322,97 @@ async def transform_chapter_text(
 
 # ---------- High-level helpers ----------
 
+async def analyze_book_for_cover_prompt(
+    book_content: str,
+    book: Dict[str, Any],
+    adaptation: Dict[str, Any]
+) -> Tuple[Optional[str], Optional[str]]:
+    """
+    Analyze entire book content to generate an AI-powered cover prompt
+    
+    Args:
+        book_content: Full text content of the book
+        book: Book details (title, author)
+        adaptation: Adaptation details (target_age_group, style, etc.)
+        
+    Returns:
+        Tuple of (cover_prompt, error_message)
+    """
+    if not book_content or not book_content.strip():
+        return None, "No book content provided for analysis"
+    
+    title = book.get('title', 'Unknown Title')
+    author = book.get('author', 'Unknown Author')
+    age_group = adaptation.get('target_age_group', '6-8')
+    style = adaptation.get('transformation_style', 'Simple & Direct')
+    theme = adaptation.get('overall_theme_tone', '')
+    
+    # Get character consistency reference
+    formatted_char_ref = ""
+    try:
+        from services.character_helper import get_formatted_character_reference
+        formatted_char_ref = await get_formatted_character_reference(
+            adaptation.get("adaptation_id"),
+            chapter_number=1,  # Cover is like chapter 1
+            total_chapters=1
+        )
+    except Exception as e:
+        logger.warning(f"Could not load character reference for cover: {e}")
+    
+    # Truncate book content if too long (keep first ~10,000 words for analysis)
+    words = book_content.split()
+    if len(words) > 10000:
+        book_excerpt = ' '.join(words[:10000]) + "\n\n[Book continues...]"
+    else:
+        book_excerpt = book_content
+    
+    system = (
+        "You are an expert at creating concise, effective image generation prompts for AI art tools like DALL-E and Midjourney. "
+        "You write clear visual descriptions that produce beautiful children's book covers."
+    )
+    
+    # Build character section
+    char_section = ""
+    if formatted_char_ref:
+        char_section = f"\n\n{formatted_char_ref}\n\nWhen characters appear in your prompt, use their exact physical descriptions from above.\n"
+    
+    user = f"""
+Create a detailed IMAGE GENERATION PROMPT for a children's book cover of "{title}" by {author}.
+
+Your output will be sent to an AI image generator (DALL-E/Stable Diffusion/Midjourney).
+Write a visual description an AI can use to generate the cover image.
+
+Story context (for inspiration):
+{book_excerpt[:3000]}
+
+Cover requirements:
+- Target audience: Children ages {age_group}
+- Art style: Whimsical, colorful, imaginative children's book illustration
+- Mood: Capture the emotional heart of the story (joyful, magical, mysterious, etc.)
+- Composition: Symbolic and evocative, not a literal scene
+- Text on cover: Title "{title}" and "Written by {author}"
+{char_section}
+FORMAT YOUR RESPONSE AS:
+A single paragraph describing the cover image in vivid visual detail. Include:
+- Main visual elements (characters, objects, setting)
+- Character descriptions (if featured) using exact details from guide above
+- Color palette and lighting
+- Mood and atmosphere  
+- Art style (e.g., "whimsical children's book illustration style")
+- Text placement: "{title}" at top, "Written by {author}" at bottom
+
+Keep it under 150 words. Write ONLY the image prompt, no explanations or meta-commentary.
+
+IMAGE PROMPT:"""
+    
+    messages = [
+        {"role": "system", "content": system},
+        {"role": "user", "content": user},
+    ]
+    
+    # Use higher max_tokens for book analysis
+    return await generate_chat_text(messages, temperature=0.7, max_tokens=800)
+
 async def generate_cover_prompt(book: Dict[str, Any], adaptation: Dict[str, Any]) -> Tuple[Optional[str], Optional[str]]:
     messages = build_cover_prompt_template(book, adaptation)
     return await generate_chat_text(messages, temperature=0.6, max_tokens=500)
