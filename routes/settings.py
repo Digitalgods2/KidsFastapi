@@ -159,91 +159,100 @@ async def test_connection():
         tested_model = await database.get_setting('openai_default_model', getattr(config, 'DEFAULT_GPT_MODEL', 'gpt-4o-mini'))
         api_key = await database.get_setting("openai_api_key", getattr(config, 'OPENAI_API_KEY', None) or "")
         
+        # Log for debugging
+        from services.logger import get_logger
+        log = get_logger("routes.settings")
+        log.info(f"Testing OpenAI connection - API key present: {bool(api_key)}, starts with sk-: {api_key.startswith('sk-') if api_key else False}")
+        
         # Validate API key format
         if not api_key:
-            errors["openai"] = "No API key configured"
+            errors["openai"] = "No API key configured - please enter your OpenAI API key above and save"
         elif not api_key.startswith('sk-'):
             errors["openai"] = "Invalid API key format (must start with 'sk-')"
         else:
             try:
                 # Step 1: Create client and test authentication
+                client = await chat_helper.get_client()
+                
+                # Test authentication with models.list
                 try:
-                    client = await chat_helper.get_client()
+                    listing = client.models.list()
+                    models = [m.id for m in listing.data]
+                    results["openai_auth"] = True
+                    results["openai"] = True
+                    log.info(f"OpenAI auth successful, found {len(models)} models")
                     
-                    # Test authentication with models.list
+                    # Verify the selected model exists
+                    if tested_model not in models:
+                        errors["openai"] = f"Model '{tested_model}' not available. Available: {', '.join(models[:5])}..."
+                    
+                except Exception as e_list:
+                    log.error(f"OpenAI models.list failed: {e_list}")
+                    errors["openai"] = f"Authentication failed: {str(e_list)}"
+                    results["openai_auth"] = False
+                    
+                    # Try raw HTTP as fallback for more details
                     try:
-                        listing = client.models.list()
-                        models = [m.id for m in listing.data]
-                        results["openai_auth"] = True
-                        results["openai"] = True
+                        import httpx
+                        base_url = await database.get_setting("openai_base_url", "https://api.openai.com/v1")
+                        org = await database.get_setting("openai_organization", "")
+                        headers = {"Authorization": f"Bearer {api_key}"}
+                        if org:
+                            headers["OpenAI-Organization"] = org
                         
-                        # Verify the selected model exists
-                        if tested_model not in models:
-                            errors["openai"] = f"Model '{tested_model}' not available in your account. Available models: {', '.join(models[:5])}..."
-                        
-                    except Exception as e_list:
-                        errors["openai"] = f"Authentication failed: {str(e_list)}"
-                        results["openai_auth"] = False
-                        
-                        # Try raw HTTP as fallback for more details
-                        try:
-                            import httpx
-                            base_url = await database.get_setting("openai_base_url", "https://api.openai.com/v1")
-                            org = await database.get_setting("openai_organization", "")
-                            headers = {"Authorization": f"Bearer {api_key}"}
-                            if org:
-                                headers["OpenAI-Organization"] = org
-                            
-                            async with httpx.AsyncClient(timeout=15) as s:
-                                resp = await s.get(f"{base_url.rstrip('/')}/models", headers=headers)
-                                if resp.status_code == 200:
-                                    results["openai_auth"] = True
-                                    results["openai"] = True
-                                    errors["openai"] = None
-                                elif resp.status_code == 401:
-                                    errors["openai"] = "Invalid API key - authentication failed (401)"
-                                elif resp.status_code == 429:
-                                    errors["openai"] = "Rate limit exceeded (429)"
-                                else:
-                                    errors["openai"] = f"API error ({resp.status_code}): {resp.text[:200]}"
-                        except Exception as raw_e:
-                            errors["openai"] = f"Connection failed: {str(raw_e)}"
-                    
-                    # Step 2: Test actual chat completion if auth succeeded
-                    if results["openai_auth"]:
-                        try:
-                            text, err = await chat_helper.generate_chat_text(
-                                messages=[
-                                    {"role": "system", "content": "You are a test assistant."},
-                                    {"role": "user", "content": "Reply with exactly: OK"}
-                                ],
-                                model=tested_model,
-                                temperature=0,
-                                max_tokens=10,
-                            )
-                            
-                            if err:
-                                errors["openai"] = f"Chat test failed: {err}"
-                                results["openai_chat"] = False
-                            elif text and 'OK' in text.upper():
-                                results["openai_chat"] = True
+                        async with httpx.AsyncClient(timeout=15) as s:
+                            resp = await s.get(f"{base_url.rstrip('/')}/models", headers=headers)
+                            if resp.status_code == 200:
+                                results["openai_auth"] = True
                                 results["openai"] = True
-                                errors["openai"] = None  # Clear any previous errors
+                                errors["openai"] = None
+                                log.info("OpenAI HTTP fallback successful")
+                            elif resp.status_code == 401:
+                                errors["openai"] = "Invalid API key - authentication failed (401)"
+                            elif resp.status_code == 429:
+                                errors["openai"] = "Rate limit exceeded (429)"
                             else:
-                                results["openai_chat"] = False
-                                errors["openai"] = f"Unexpected response: {text}"
-                                
-                        except Exception as e_chat:
-                            errors["openai"] = f"Chat test error: {str(e_chat)}"
+                                errors["openai"] = f"API error ({resp.status_code}): {resp.text[:200]}"
+                    except Exception as raw_e:
+                        log.error(f"OpenAI HTTP fallback failed: {raw_e}")
+                        errors["openai"] = f"Connection failed: {str(raw_e)}"
+                
+                # Step 2: Test actual chat completion if auth succeeded
+                if results["openai_auth"]:
+                    try:
+                        text, err = await chat_helper.generate_chat_text(
+                            messages=[
+                                {"role": "system", "content": "You are a test assistant."},
+                                {"role": "user", "content": "Reply with exactly: OK"}
+                            ],
+                            model=tested_model,
+                            temperature=0,
+                            max_tokens=10,
+                        )
+                        
+                        if err:
+                            errors["openai"] = f"Chat test failed: {err}"
                             results["openai_chat"] = False
-                    
-                except Exception as ce:
-                    errors["openai"] = f"Client initialization failed: {str(ce)}"
-                    results["openai"] = False
-                    
+                            log.error(f"Chat test failed: {err}")
+                        elif text and 'OK' in text.upper():
+                            results["openai_chat"] = True
+                            results["openai"] = True
+                            errors["openai"] = None  # Clear any previous errors
+                            log.info("Chat test successful")
+                        else:
+                            results["openai_chat"] = False
+                            errors["openai"] = f"Unexpected response: {text}"
+                            log.warning(f"Unexpected chat response: {text}")
+                            
+                    except Exception as e_chat:
+                        errors["openai"] = f"Chat test error: {str(e_chat)}"
+                        results["openai_chat"] = False
+                        log.error(f"Chat test exception: {e_chat}")
+                
             except Exception as e:
                 errors["openai"] = f"Unexpected error: {str(e)}"
                 results["openai"] = False
+                log.error(f"OpenAI test unexpected error: {e}", exc_info=True)
         
         # Test Vertex AI
         try:

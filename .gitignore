@@ -11,3 +11,5 @@ backups/
 publications/
 exports/
 vertexapi.json
+.venv/
+venv/
