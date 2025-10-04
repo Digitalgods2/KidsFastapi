@@ -665,6 +665,15 @@ async def regenerate_cover(adaptation_id: int):
             
     except Exception as e:
         from services.logger import get_logger
+        import traceback
         log = get_logger("routes.review")
-        log.error("regenerate_cover_error", extra={"error": str(e), "component": "routes.review", "request_id": None, "adaptation_id": adaptation_id})
-        raise HTTPException(status_code=500, detail=str(e))
+        error_detail = str(e) if str(e) else repr(e)
+        log.error("regenerate_cover_error", extra={
+            "error": error_detail, 
+            "error_type": type(e).__name__,
+            "traceback": traceback.format_exc(),
+            "component": "routes.review", 
+            "request_id": None, 
+            "adaptation_id": adaptation_id
+        })
+        raise HTTPException(status_code=500, detail=error_detail if error_detail else "Error regenerating cover image")
