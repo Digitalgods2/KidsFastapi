@@ -115,11 +115,13 @@
                                     </div>
                                 </div>
 
-                                <div id="api-response"></div>
-                                <div id="api-test-results" class="mt-3 small text-muted"></div>
+                                <hr class="my-4">
                                 
-                                <div class="d-flex justify-content-between">
-                                    <button type="button" class="btn btn-outline-secondary" onclick="testAPIConnection()">
+                                <div id="api-response"></div>
+                                <div id="api-test-results"></div>
+                                
+                                <div class="d-flex justify-content-between align-items-center mt-4">
+                                    <button type="button" class="btn btn-outline-primary" onclick="testAPIConnection()">
                                         <i class="bi bi-wifi"></i> Test Connection
                                     </button>
                                     <button type="submit" class="btn btn-primary">
@@ -415,39 +417,108 @@ function togglePassword(inputId) {
 }
 
 function testAPIConnection() {
-    // Send HTMX request to test API connections and also fetch JSON to show model tested
+    const responseDiv = document.querySelector('#api-response');
+    const resultsDiv = document.querySelector('#api-test-results');
+    
+    // Show loading state
+    responseDiv.innerHTML = `
+        <div class="alert alert-info" role="alert">
+            <i class="bi bi-hourglass-split"></i> Testing connections...
+        </div>`;
+    resultsDiv.innerHTML = '';
+    
+    // Send test request
     fetch('/settings/api/test-connection', {method: 'POST'})
       .then(async (r) => {
-        const text = await r.text();
-        let json = null;
-        try { json = JSON.parse(text); } catch {}
-        document.querySelector('#api-response').innerHTML =
-          json && json.success
-            ? `<div class="alert alert-success alert-dismissible fade show" role="alert">
-                 <i class="bi bi-check-circle"></i> Test completed.
-                 <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-               </div>`
-            : `<div class="alert alert-danger alert-dismissible fade show" role="alert">
-                 <i class="bi bi-exclamation-triangle"></i> Test failed: ${json?.error || 'Unknown error'}
-                 <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-               </div>`;
-        if (json) {
-          const res = json.results || {};
-          const model = json.model_tested || 'gpt-4o-mini';
-          const detail = json.openai_error || json.openai_client_error || '';
-          const prettyDetail = detail ? ' · detail: ' + (typeof detail === 'string' ? detail : (detail.message || JSON.stringify(detail))) : '';
-          const auth = res.openai_auth !== undefined ? `auth:${res.openai_auth}` : '';
-          const chat = res.openai_chat !== undefined ? ` chat:${res.openai_chat}` : '';
-          document.querySelector('#api-test-results').textContent =
-            `OpenAI: ${res.openai ? 'true' : 'false'} (${auth}${chat} model: ${model}) · Vertex: ${res.vertex ? 'true' : 'false'} · DB: ${res.database ? 'true' : 'false'}${prettyDetail}`;
+        const json = await r.json();
+        
+        if (!json.success) {
+            responseDiv.innerHTML = `
+                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                    <i class="bi bi-exclamation-triangle"></i> <strong>Test Failed</strong><br>
+                    ${json.error || 'Unknown error'}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>`;
+            return;
         }
+        
+        const res = json.results || {};
+        const errors = json.errors || {};
+        const model = json.model_tested || 'gpt-4o-mini';
+        const apiKeyPrefix = json.api_key_prefix || 'Not set';
+        
+        // Build detailed results
+        let resultHTML = '<div class="mt-3">';
+        
+        // OpenAI Status
+        if (res.openai) {
+            resultHTML += `
+                <div class="alert alert-success mb-2">
+                    <i class="bi bi-check-circle-fill"></i> <strong>OpenAI:</strong> Connected successfully
+                    <ul class="mb-0 mt-2 small">
+                        <li>API Key: ${apiKeyPrefix}</li>
+                        <li>Authentication: ✓ Valid</li>
+                        <li>Model Test: ${res.openai_chat ? '✓ Passed' : '⚠ Partial'} (${model})</li>
+                    </ul>
+                </div>`;
+        } else {
+            resultHTML += `
+                <div class="alert alert-danger mb-2">
+                    <i class="bi bi-x-circle-fill"></i> <strong>OpenAI:</strong> Connection failed
+                    <ul class="mb-0 mt-2 small">
+                        <li>API Key: ${apiKeyPrefix}</li>
+                        <li>Error: ${errors.openai || 'Unknown error'}</li>
+                    </ul>
+                </div>`;
+        }
+        
+        // Vertex AI Status
+        if (res.vertex) {
+            resultHTML += `
+                <div class="alert alert-success mb-2">
+                    <i class="bi bi-check-circle-fill"></i> <strong>Vertex AI:</strong> Configured
+                </div>`;
+        } else {
+            resultHTML += `
+                <div class="alert alert-warning mb-2">
+                    <i class="bi bi-info-circle-fill"></i> <strong>Vertex AI:</strong> ${errors.vertex || 'Not configured'}
+                </div>`;
+        }
+        
+        // Database Status
+        if (res.database) {
+            resultHTML += `
+                <div class="alert alert-success mb-2">
+                    <i class="bi bi-check-circle-fill"></i> <strong>Database:</strong> Connected
+                </div>`;
+        } else {
+            resultHTML += `
+                <div class="alert alert-danger mb-2">
+                    <i class="bi bi-x-circle-fill"></i> <strong>Database:</strong> ${errors.database || 'Connection failed'}
+                </div>`;
+        }
+        
+        resultHTML += '</div>';
+        
+        // Show summary at top
+        const allGood = res.openai && res.database;
+        responseDiv.innerHTML = `
+            <div class="alert alert-${allGood ? 'success' : 'warning'} alert-dismissible fade show" role="alert">
+                <i class="bi bi-${allGood ? 'check-circle' : 'exclamation-triangle'}"></i> 
+                <strong>Connection Test ${allGood ? 'Passed' : 'Completed with Issues'}</strong>
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>`;
+        
+        resultsDiv.innerHTML = resultHTML;
       })
       .catch((e) => {
-        document.querySelector('#api-response').innerHTML =
-          `<div class="alert alert-danger alert-dismissible fade show" role="alert">
-             <i class="bi bi-exclamation-triangle"></i> Test failed: ${e}
-             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-           </div>`;
+        responseDiv.innerHTML = `
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                <i class="bi bi-exclamation-triangle"></i> <strong>Request Failed</strong><br>
+                ${e.message || e}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>`;
+        resultsDiv.innerHTML = '';
       });
 }
 

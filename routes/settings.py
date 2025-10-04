@@ -130,91 +130,148 @@ async def save_settings(request: Request):
 
 @router.post("/api/test-connection")
 async def test_connection():
-    """Test API connections"""
+    """Test API connections with detailed validation"""
     try:
         results = {
             "openai": False,
+            "openai_auth": False,
+            "openai_chat": False,
             "vertex": False,
             "database": False
         }
         
+        errors = {
+            "openai": None,
+            "vertex": None,
+            "database": None
+        }
+        
         # Test database
-        conn = database.get_db_connection()
-        if conn:
-            results["database"] = True
-            conn.close()
-        
-        # Test OpenAI via models.list (auth) then chat (model) and surface errors
-        openai_err_detail = None
-        openai_client_err = None
-        tested_model = await database.get_setting('openai_default_model', getattr(config, 'DEFAULT_GPT_MODEL', 'gpt-4o-mini'))
         try:
-            # First ensure client can be constructed
-            try:
-                client = await chat_helper.get_client()
-            except Exception as ce:
-                openai_client_err = str(ce)
-                results["openai"] = False
-            else:
-                # Step 1: auth check – list models via SDK; if it fails, do raw HTTP fallback
-                auth_ok = False
-                try:
-                    listing = client.models.list()
-                    _ = [getattr(m, 'id', None) for m in getattr(listing, 'data', [])]
-                    auth_ok = True
-                except Exception as e_list:
-                    # Raw HTTP fallback to /v1/models to disambiguate SDK vs key/network
-                    try:
-                        import httpx
-                        api_key = await database.get_setting("openai_api_key", getattr(config, 'OPENAI_API_KEY', None) or "")
-                        base_url = await database.get_setting("openai_base_url", "https://api.openai.com/v1")
-                        org = await database.get_setting("openai_organization", "")
-                        headers = {"Authorization": f"Bearer {api_key}"}
-                        if org:
-                            headers["OpenAI-Organization"] = org
-                        async with httpx.AsyncClient(timeout=10) as s:
-                            resp = await s.get(f"{base_url.rstrip('/')}/models", headers=headers)
-                            if resp.status_code == 200:
-                                auth_ok = True
-                            else:
-                                openai_client_err = f"/models {resp.status_code}: {resp.text[:200]}"
-                    except Exception as raw_e:
-                        openai_client_err = f"models.list failed: {e_list}; raw GET /models failed: {raw_e}"
-                # Record auth result separately and use it to set 'openai'
-                results["openai_auth"] = bool(auth_ok)
-                results["openai"] = bool(auth_ok)
-                # Step 2: model check via lightweight chat (optional)
-                try:
-                    text, err = await chat_helper.generate_chat_text(
-                        messages=[
-                            {"role": "system", "content": "You are a health check."},
-                            {"role": "user", "content": "Reply with: OK"}
-                        ],
-                        model=tested_model,
-                        temperature=0,
-                        max_tokens=5,
-                    )
-                    openai_err_detail = err
-                    results["openai_chat"] = (err is None and (text or '').strip().upper().startswith('OK'))
-                except Exception as e_chat:
-                    results["openai_chat"] = False
-                    openai_err_detail = f"chat test failed: {e_chat}"
+            conn = database.get_db_connection()
+            if conn:
+                results["database"] = True
+                conn.close()
         except Exception as e:
-            results["openai"] = False
-            openai_err_detail = str(e)
+            errors["database"] = str(e)
         
-        # Test Vertex
-        if config.validate_vertex_ai_config():
-            results["vertex"] = True
+        # Test OpenAI - comprehensive validation
+        tested_model = await database.get_setting('openai_default_model', getattr(config, 'DEFAULT_GPT_MODEL', 'gpt-4o-mini'))
+        api_key = await database.get_setting("openai_api_key", getattr(config, 'OPENAI_API_KEY', None) or "")
         
-        return JSONResponse({"success": True, "results": results, "model_tested": tested_model, "openai_error": openai_err_detail, "openai_client_error": openai_client_err})
+        # Validate API key format
+        if not api_key:
+            errors["openai"] = "No API key configured"
+        elif not api_key.startswith('sk-'):
+            errors["openai"] = "Invalid API key format (must start with 'sk-')"
+        else:
+            try:
+                # Step 1: Create client and test authentication
+                try:
+                    client = await chat_helper.get_client()
+                    
+                    # Test authentication with models.list
+                    try:
+                        listing = client.models.list()
+                        models = [m.id for m in listing.data]
+                        results["openai_auth"] = True
+                        results["openai"] = True
+                        
+                        # Verify the selected model exists
+                        if tested_model not in models:
+                            errors["openai"] = f"Model '{tested_model}' not available in your account. Available models: {', '.join(models[:5])}..."
+                        
+                    except Exception as e_list:
+                        errors["openai"] = f"Authentication failed: {str(e_list)}"
+                        results["openai_auth"] = False
+                        
+                        # Try raw HTTP as fallback for more details
+                        try:
+                            import httpx
+                            base_url = await database.get_setting("openai_base_url", "https://api.openai.com/v1")
+                            org = await database.get_setting("openai_organization", "")
+                            headers = {"Authorization": f"Bearer {api_key}"}
+                            if org:
+                                headers["OpenAI-Organization"] = org
+                            
+                            async with httpx.AsyncClient(timeout=15) as s:
+                                resp = await s.get(f"{base_url.rstrip('/')}/models", headers=headers)
+                                if resp.status_code == 200:
+                                    results["openai_auth"] = True
+                                    results["openai"] = True
+                                    errors["openai"] = None
+                                elif resp.status_code == 401:
+                                    errors["openai"] = "Invalid API key - authentication failed (401)"
+                                elif resp.status_code == 429:
+                                    errors["openai"] = "Rate limit exceeded (429)"
+                                else:
+                                    errors["openai"] = f"API error ({resp.status_code}): {resp.text[:200]}"
+                        except Exception as raw_e:
+                            errors["openai"] = f"Connection failed: {str(raw_e)}"
+                    
+                    # Step 2: Test actual chat completion if auth succeeded
+                    if results["openai_auth"]:
+                        try:
+                            text, err = await chat_helper.generate_chat_text(
+                                messages=[
+                                    {"role": "system", "content": "You are a test assistant."},
+                                    {"role": "user", "content": "Reply with exactly: OK"}
+                                ],
+                                model=tested_model,
+                                temperature=0,
+                                max_tokens=10,
+                            )
+                            
+                            if err:
+                                errors["openai"] = f"Chat test failed: {err}"
+                                results["openai_chat"] = False
+                            elif text and 'OK' in text.upper():
+                                results["openai_chat"] = True
+                                results["openai"] = True
+                                errors["openai"] = None  # Clear any previous errors
+                            else:
+                                results["openai_chat"] = False
+                                errors["openai"] = f"Unexpected response: {text}"
+                                
+                        except Exception as e_chat:
+                            errors["openai"] = f"Chat test error: {str(e_chat)}"
+                            results["openai_chat"] = False
+                    
+                except Exception as ce:
+                    errors["openai"] = f"Client initialization failed: {str(ce)}"
+                    results["openai"] = False
+                    
+            except Exception as e:
+                errors["openai"] = f"Unexpected error: {str(e)}"
+                results["openai"] = False
+        
+        # Test Vertex AI
+        try:
+            if config.validate_vertex_ai_config():
+                results["vertex"] = True
+            else:
+                errors["vertex"] = "Vertex AI not configured (missing project ID or credentials)"
+        except Exception as e:
+            errors["vertex"] = str(e)
+        
+        return JSONResponse({
+            "success": True, 
+            "results": results, 
+            "errors": errors,
+            "model_tested": tested_model,
+            "api_key_prefix": api_key[:10] + "..." if api_key else "Not set"
+        })
         
     except Exception as e:
         from services.logger import get_logger
         log = get_logger("routes.settings")
         log.error("test_connection_error", extra={"error": str(e), "component": "routes.settings"})
-        tested_model = await database.get_setting('openai_default_model', getattr(config, 'DEFAULT_GPT_MODEL', 'gpt-4o-mini'))
-        return JSONResponse({"success": False, "error": str(e), "model_tested": tested_model})
+        return JSONResponse({
+            "success": False, 
+            "error": str(e),
+            "results": {"openai": False, "vertex": False, "database": False},
+            "errors": {"global": str(e)}
+        })
 
 @router.post("/image-preferences")
 async def save_image_preferences(request: Request):
