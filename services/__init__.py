@@ -11,7 +11,13 @@ except Exception:
     # Keep optional; most chat calls route through services.chat_helper now
     OpenAIService = None
 from .text_processing import TextProcessor
-from .pdf_generator import PDFGenerator
+# Lazy/optional import for PDF generator to avoid hard dependency at startup
+try:
+    from .pdf_generator import PDFGenerator  # type: ignore
+except Exception:
+    class PDFGenerator:  # type: ignore
+        def __init__(self, *args, **kwargs):
+            raise ImportError("PDFGenerator requires optional dependencies (e.g., reportlab). Install them to enable PDF export.")
 
 # Use database-aware vertex service with fallback to simplified version
 try:
