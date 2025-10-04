@@ -156,19 +156,30 @@ async def test_connection():
                 openai_client_err = str(ce)
                 results["openai"] = False
             else:
-                # Step 1: auth check – list models
+                # Step 1: auth check – list models via SDK; if it fails, do raw HTTP fallback
+                auth_ok = False
                 try:
                     listing = client.models.list()
-                    ids = [getattr(m, 'id', None) for m in getattr(listing, 'data', [])]
+                    _ = [getattr(m, 'id', None) for m in getattr(listing, 'data', [])]
                     auth_ok = True
                 except Exception as e_list:
-                    auth_ok = False
-                    # Preserve detailed JSON if available
+                    # Raw HTTP fallback to /v1/models to disambiguate SDK vs key/network
                     try:
-                        import json
-                        openai_client_err = f"models.list failed: {e_list}"
-                    except Exception:
-                        openai_client_err = f"models.list failed: {str(e_list)}"
+                        import httpx
+                        api_key = await database.get_setting("openai_api_key", getattr(config, 'OPENAI_API_KEY', None) or "")
+                        base_url = await database.get_setting("openai_base_url", "https://api.openai.com/v1")
+                        org = await database.get_setting("openai_organization", "")
+                        headers = {"Authorization": f"Bearer {api_key}"}
+                        if org:
+                            headers["OpenAI-Organization"] = org
+                        async with httpx.AsyncClient(timeout=10) as s:
+                            resp = await s.get(f"{base_url.rstrip('/')}/models", headers=headers)
+                            if resp.status_code == 200:
+                                auth_ok = True
+                            else:
+                                openai_client_err = f"/models {resp.status_code}: {resp.text[:200]}"
+                    except Exception as raw_e:
+                        openai_client_err = f"models.list failed: {e_list}; raw GET /models failed: {raw_e}"
                 # Step 2: model check via lightweight chat
                 try:
                     text, err = await chat_helper.generate_chat_text(
