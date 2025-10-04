@@ -751,6 +751,10 @@
         .modal-backdrop { z-index: 12040 !important; }
         /* Ensure PhotoSwipe overlay sits above navbar & modals */
         .pswp { z-index: 13050 !important; }
+        /* Always show PhotoSwipe close button and add hint styling */
+        .pswp__button--close { opacity: 1 !important; visibility: visible !important; }
+        .pswp--ui-hidden .pswp__button--close { opacity: 1 !important; visibility: visible !important; }
+        .pswp-custom-hint { position: absolute; left: 50%; bottom: 16px; transform: translateX(-50%); color: #fff; font-size: 12px; opacity: 0.9; text-shadow: 0 2px 6px rgba(0,0,0,0.6); pointer-events: none; }
     </style>
     
     <!-- HTMX -->
@@ -1743,6 +1747,17 @@
               bgOpacity: 0.95,
               closeOnVerticalDrag: true,
               wheelToZoom: true
+            });
+            // Register an in-overlay hint and ensure a visible close affordance
+            lightbox.on('uiRegister', function() {
+              // Add a small hint at the bottom of overlay
+              lightbox.pswp.ui.registerElement({
+                name: 'custom-hint',
+                order: 9,
+                isButton: false,
+                appendTo: 'root',
+                html: '<div class="pswp-custom-hint">Press ESC or tap × to close</div>'
+              });
             });
             lightbox.init();
           });
