@@ -159,12 +159,16 @@ async def test_connection():
                 # Step 1: auth check – list models
                 try:
                     listing = client.models.list()
-                    ids = [m.id for m in getattr(listing, 'data', []) if getattr(m, 'id', None)]
-                    # If auth passes but model not in list, still proceed to chat test
+                    ids = [getattr(m, 'id', None) for m in getattr(listing, 'data', [])]
                     auth_ok = True
                 except Exception as e_list:
                     auth_ok = False
-                    openai_client_err = f"models.list failed: {e_list}"
+                    # Preserve detailed JSON if available
+                    try:
+                        import json
+                        openai_client_err = f"models.list failed: {e_list}"
+                    except Exception:
+                        openai_client_err = f"models.list failed: {str(e_list)}"
                 # Step 2: model check via lightweight chat
                 try:
                     text, err = await chat_helper.generate_chat_text(

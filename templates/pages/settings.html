@@ -435,8 +435,9 @@ function testAPIConnection() {
           const res = json.results || {};
           const model = json.model_tested || 'gpt-4o-mini';
           const detail = json.openai_error || json.openai_client_error || '';
+          const prettyDetail = detail ? ' · detail: ' + (typeof detail === 'string' ? detail : JSON.stringify(detail)) : '';
           document.querySelector('#api-test-results').textContent =
-            `OpenAI: ${res.openai ? 'true' : 'false'} (model: ${model}) · Vertex: ${res.vertex ? 'true' : 'false'} · DB: ${res.database ? 'true' : 'false'}${detail ? ' · detail: ' + detail : ''}`;
+            `OpenAI: ${res.openai ? 'true' : 'false'} (model: ${model}) · Vertex: ${res.vertex ? 'true' : 'false'} · DB: ${res.database ? 'true' : 'false'}${prettyDetail}`;
         }
       })
       .catch((e) => {
