@@ -1778,7 +1778,8 @@
               pswpModule: PhotoSwipe,
               bgOpacity: 0.95,
               closeOnVerticalDrag: true,
-              wheelToZoom: true
+              wheelToZoom: true,
+              clickToCloseNonZoomable: true
             });
             // Register an in-overlay hint and ensure a visible close affordance
             lightbox.on('uiRegister', function() {
@@ -1788,8 +1789,20 @@
                 order: 9,
                 isButton: false,
                 appendTo: 'root',
-                html: '<div class="pswp-custom-hint">Press ESC or tap × to close</div>'
+                html: '<div class="pswp-custom-hint">Press ESC, tap ×, or click outside to close</div>'
               });
+            });
+            // Close when clicking on dark background
+            lightbox.on('afterInit', function() {
+              const pswp = lightbox.pswp;
+              if (pswp) {
+                pswp.on('click', (e) => {
+                  const target = e.originalEvent && e.originalEvent.target;
+                  if (target && target.classList && target.classList.contains('pswp__bg')) {
+                    pswp.close();
+                  }
+                });
+              }
             });
             lightbox.init();
           });
