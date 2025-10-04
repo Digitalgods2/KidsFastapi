@@ -18,7 +18,7 @@
     <!-- Digital Gods Enhanced Styles -->
     <link href="/static/css/digital-gods-style.css?v=3" rel="stylesheet">
     <!-- PhotoSwipe CSS for advanced image viewer -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/photoswipe@5/dist/photoswipe.css">
+    <link rel="stylesheet" href="/static/vendor/photoswipe/photoswipe.css">
     
     <!-- Theme Styles -->
     <style>
@@ -1730,13 +1730,45 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
     <!-- PhotoSwipe JS (UMD) -->
-    <script src="https://cdn.jsdelivr.net/npm/photoswipe@5/dist/photoswipe.umd.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/photoswipe@5/dist/photoswipe-lightbox.umd.min.js"></script>
+    <script src="/static/vendor/photoswipe/photoswipe.umd.min.js"></script>
+    <script src="/static/vendor/photoswipe/photoswipe-lightbox.umd.min.js"></script>
     <script>
       // Initialize PhotoSwipe on any gallery container with class .pswp-gallery
       document.addEventListener('DOMContentLoaded', function() {
+        // Ensure Bootstrap modals are direct children of <body> to avoid stacking-context traps
+        document.querySelectorAll('.modal').forEach(function(modalEl) {
+          if (modalEl.parentElement !== document.body) {
+            document.body.appendChild(modalEl);
+          }
+        });
+        // Global cleanup on hide to prevent stuck backdrops/scroll lock
+        document.addEventListener('hidden.bs.modal', function () {
+          document.querySelectorAll('.modal-backdrop').forEach(function(b){ b.remove(); });
+          document.body.classList.remove('modal-open');
+          document.body.style.removeProperty('overflow');
+          document.body.style.removeProperty('padding-right');
+        });
+
         const galleries = document.querySelectorAll('.pswp-gallery');
         const hasPhotoSwipe = !!(window.PhotoSwipeLightbox && window.PhotoSwipe);
+
+        // Auto-fill missing width/height so PhotoSwipe doesn't over-zoom
+        galleries.forEach(function(galleryEl) {
+          galleryEl.querySelectorAll('a[href]').forEach(function(a){
+            if (!a.dataset.pswpWidth || !a.dataset.pswpHeight) {
+              const img = a.querySelector('img');
+              const src = a.getAttribute('href') || (img && (img.currentSrc || img.src));
+              if (src) {
+                const tmp = new Image();
+                tmp.onload = function() {
+                  if (!a.dataset.pswpWidth) a.setAttribute('data-pswp-width', String(tmp.naturalWidth || tmp.width || 1600));
+                  if (!a.dataset.pswpHeight) a.setAttribute('data-pswp-height', String(tmp.naturalHeight || tmp.height || 1200));
+                };
+                tmp.src = src;
+              }
+            }
+          });
+        });
 
         if (hasPhotoSwipe) {
           galleries.forEach(function(galleryEl) {
